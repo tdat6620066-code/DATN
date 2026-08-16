@@ -24,7 +24,13 @@ class CourtController extends Controller
     public function index(SearchCourtRequest $searchRequest, FilterCourtRequest $filterRequest)
     {
         $query = Court::where('status', 'ACTIVE')
-            ->with('courtType', 'images', 'prices');
+            ->with(['courtType', 'images', 'prices', 'amenities'])
+            ->withCount([
+                'reviews as approved_reviews_count' => fn ($reviewQuery) => $reviewQuery->where('status', 'APPROVED'),
+            ])
+            ->withAvg([
+                'reviews as approved_rating' => fn ($reviewQuery) => $reviewQuery->where('status', 'APPROVED'),
+            ], 'rating');
 
         // UC12 - Search by keyword (name, code, court_type)
         if ($searchRequest->keyword) {
@@ -49,16 +55,24 @@ class CourtController extends Controller
             }, '=', count($filterRequest->amenity_ids));
         }
 
-        // Filter by price if booking_date and time_slot_id provided
-        if ($filterRequest->booking_date && $filterRequest->time_slot_id) {
+        // Filter by selected time/date or price range. Price-only searches use
+        // every active price; a selected date/time narrows that down further.
+        if (($filterRequest->booking_date && $filterRequest->time_slot_id)
+            || $filterRequest->price_min || $filterRequest->price_max) {
             $query->whereHas('prices', function ($q) use ($filterRequest) {
-                $q->where('time_slot_id', $filterRequest->time_slot_id)
-                    ->where('status', 'ACTIVE')
-                    ->where('effective_from', '<=', $filterRequest->booking_date)
-                    ->where(function ($subQ) use ($filterRequest) {
-                        $subQ->whereNull('effective_to')
-                            ->orWhere('effective_to', '>=', $filterRequest->booking_date);
-                    });
+                $q->where('status', 'ACTIVE');
+
+                if ($filterRequest->time_slot_id) {
+                    $q->where('time_slot_id', $filterRequest->time_slot_id);
+                }
+
+                if ($filterRequest->booking_date) {
+                    $q->where('effective_from', '<=', $filterRequest->booking_date)
+                        ->where(function ($subQ) use ($filterRequest) {
+                            $subQ->whereNull('effective_to')
+                                ->orWhere('effective_to', '>=', $filterRequest->booking_date);
+                        });
+                }
 
                 if ($filterRequest->price_min) {
                     $q->where('price', '>=', $filterRequest->price_min);
@@ -74,10 +88,20 @@ class CourtController extends Controller
         $sortBy = $filterRequest->sort_by ?? 'name_asc';
         switch ($sortBy) {
             case 'price_asc':
-                $query->orderBy('prices.price', 'asc');
+                $query->orderBy(
+                    CourtPrice::selectRaw('MIN(price)')
+                        ->whereColumn('court_id', 'courts.id')
+                        ->where('status', 'ACTIVE'),
+                    'asc'
+                );
                 break;
             case 'price_desc':
-                $query->orderBy('prices.price', 'desc');
+                $query->orderBy(
+                    CourtPrice::selectRaw('MIN(price)')
+                        ->whereColumn('court_id', 'courts.id')
+                        ->where('status', 'ACTIVE'),
+                    'desc'
+                );
                 break;
             case 'name_asc':
                 $query->orderBy('name', 'asc');
@@ -101,7 +125,22 @@ class CourtController extends Controller
                 break;
         }
 
-        $courts = $query->paginate(15);
+        $courts = $query->paginate(12)->withQueryString();
+
+        $courtPreviewData = $courts->getCollection()->map(function (Court $court) {
+            return [
+                'id' => $court->id,
+                'name' => $court->name,
+                'address' => $court->address,
+                'phone' => $court->phone,
+                'opening' => $court->opening_time ? Carbon::parse($court->opening_time)->format('H:i') : null,
+                'closing' => $court->closing_time ? Carbon::parse($court->closing_time)->format('H:i') : null,
+                'description' => $court->description,
+                'price' => $court->prices->min('price') ?? 0,
+                'images' => $court->images->pluck('image')->values(),
+                'amenities' => $court->amenities->pluck('name')->values(),
+            ];
+        })->keyBy('id');
         
         // Get court types for filter
         $courtTypes = CourtType::where('status', 'ACTIVE')->get();
@@ -110,6 +149,7 @@ class CourtController extends Controller
             'courts' => $courts,
             'courtTypes' => $courtTypes,
             'keyword' => $searchRequest->keyword ?? '',
+            'courtPreviewData' => $courtPreviewData,
         ]);
     }
 

@@ -1,197 +1,62 @@
-@extends('layouts.app')
-
-@section('title', 'Danh sách sân - SmashZone')
-
-@section('content')
-<div class="row">
-    <!-- Filters -->
-    <div class="col-lg-3 mb-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-funnel"></i> Bộ lọc</h5>
-            </div>
-            <div class="card-body">
-                <form action="/courts" method="GET" id="filterForm">
-                    <!-- Search -->
-                    <div class="mb-4">
-                        <label class="form-label"><strong>Tìm kiếm</strong></label>
-                        <input type="text" class="form-control" name="keyword" value="{{ request('keyword') }}" placeholder="Tên sân...">
-                    </div>
-
-                    <!-- Court Type -->
-                    <div class="mb-4">
-                        <label class="form-label"><strong>Loại sân</strong></label>
-                        <select class="form-select" name="court_type_id">
-                            <option value="">-- Tất cả --</option>
-                            @foreach($courtTypes ?? [] as $type)
-                            <option value="{{ $type->id }}" {{ request('court_type_id') == $type->id ? 'selected' : '' }}>
-                                {{ $type->name }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Price Range -->
-                    <div class="mb-4">
-                        <label class="form-label"><strong>Khoảng giá</strong></label>
-                        <div class="row">
-                            <div class="col-6">
-                                <input type="number" class="form-control" name="price_min" value="{{ request('price_min') }}" placeholder="Từ">
-                            </div>
-                            <div class="col-6">
-                                <input type="number" class="form-control" name="price_max" value="{{ request('price_max') }}" placeholder="Đến">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Booking Date -->
-                    <div class="mb-4">
-                        <label class="form-label"><strong>Ngày đặt</strong></label>
-                        <input type="date" class="form-control" name="booking_date" value="{{ request('booking_date') }}">
-                    </div>
-
-                    <!-- Sort -->
-                    <div class="mb-4">
-                        <label class="form-label"><strong>Sắp xếp</strong></label>
-                        <select class="form-select" name="sort_by">
-                            <option value="">-- Mặc định --</option>
-                            <option value="price_asc" {{ request('sort_by') == 'price_asc' ? 'selected' : '' }}>Giá tăng dần</option>
-                            <option value="price_desc" {{ request('sort_by') == 'price_desc' ? 'selected' : '' }}>Giá giảm dần</option>
-                            <option value="name_asc" {{ request('sort_by') == 'name_asc' ? 'selected' : '' }}>Tên A-Z</option>
-                            <option value="name_desc" {{ request('sort_by') == 'name_desc' ? 'selected' : '' }}>Tên Z-A</option>
-                            <option value="most_booked" {{ request('sort_by') == 'most_booked' ? 'selected' : '' }}>Đặt nhiều nhất</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 mb-2">
-                        <i class="bi bi-search"></i> Lọc
-                    </button>
-                    <a href="/courts" class="btn btn-outline-secondary w-100">
-                        <i class="bi bi-x-circle"></i> Xóa bộ lọc
-                    </a>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Courts List -->
-    <div class="col-lg-9">
-        <!-- Results Header -->
-        <div class="mb-4">
-            <h2>
-                @if(request('keyword'))
-                    Kết quả tìm kiếm: "{{ request('keyword') }}"
-                @else
-                    Danh sách sân cầu lông
-                @endif
-            </h2>
-            <p class="text-muted">Tìm thấy <strong>{{ $courts->total() }}</strong> sân</p>
-        </div>
-
-        <!-- Courts Grid -->
-        @if($courts->count() > 0)
-        <div class="row">
-            @foreach($courts as $court)
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card court-card h-100">
-                    <!-- Image -->
-                    <div style="position: relative; height: 200px; overflow: hidden;">
-                        <img src="{{ $court->images->first()?->image ?? 'https://via.placeholder.com/300x200?text=No+Image' }}" class="card-img-top court-image" alt="{{ $court->name }}">
-                        <div style="position: absolute; top: 10px; right: 10px;">
-                            <span class="badge bg-primary">{{ $court->courtType->name }}</span>
-                        </div>
-                    </div>
-
-                    <div class="card-body d-flex flex-column">
-                        <!-- Court Info -->
-                        <h5 class="card-title">{{ $court->name }}</h5>
-                        <p class="card-text small text-muted mb-2">
-                            <i class="bi bi-geo-alt"></i> {{ $court->code }}
-                        </p>
-
-                        <!-- Rating -->
-                        @if($court->reviews->count() > 0)
-                        <p class="card-text small mb-2">
-                            @for($i = 0; $i < floor($court->getAverageRating()); $i++)
-                            <i class="bi bi-star-fill" style="color: #fbbf24;"></i>
-                            @endfor
-                            <span class="text-muted">({{ $court->getReviewCount() }} đánh giá)</span>
-                        </p>
-                        @endif
-
-                        <!-- Price -->
-                        @if($court->prices->count() > 0)
-                        <p class="card-text mb-3">
-                            <strong style="color: #6366f1; font-size: 1.1rem;">
-                                Từ {{ number_format($court->prices->min('price'), 0, ',', '.') }} VNĐ
-                            </strong>
-                        </p>
-                        @endif
-
-                        <!-- Amenities -->
-                        @if($court->amenities->count() > 0)
-                        <div class="mb-3">
-                            <small class="text-muted d-block mb-2">Tiện ích:</small>
-                            @foreach($court->amenities->take(3) as $amenity)
-                            <span class="badge bg-light text-dark me-1 mb-1">{{ $amenity->name }}</span>
-                            @endforeach
-                            @if($court->amenities->count() > 3)
-                            <span class="badge bg-light text-dark">+{{ $court->amenities->count() - 3 }}</span>
-                            @endif
-                        </div>
-                        @endif
-
-                        <!-- Action Buttons -->
-                        <div class="mt-auto">
-                            <a href="/courts/{{ $court->id }}" class="btn btn-primary w-100">
-                                <i class="bi bi-info-circle"></i> Chi tiết
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endforeach
-        </div>
-
-        <!-- Pagination -->
-        @if($courts->hasPages())
-        <nav aria-label="Page navigation" class="mt-5">
-            <ul class="pagination justify-content-center">
-                @if($courts->onFirstPage())
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo; Trước</span>
-                </li>
-                @else
-                <li class="page-item">
-                    <a class="page-link" href="{{ $courts->previousPageUrl() }}">&laquo; Trước</a>
-                </li>
-                @endif
-
-                @foreach($courts->getUrlRange(1, $courts->lastPage()) as $page => $url)
-                <li class="page-item {{ $page == $courts->currentPage() ? 'active' : '' }}">
-                    <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                </li>
-                @endforeach
-
-                @if($courts->hasMorePages())
-                <li class="page-item">
-                    <a class="page-link" href="{{ $courts->nextPageUrl() }}">Tiếp &raquo;</a>
-                </li>
-                @else
-                <li class="page-item disabled">
-                    <span class="page-link">Tiếp &raquo;</span>
-                </li>
-                @endif
-            </ul>
-        </nav>
-        @endif
-
-        @else
-        <!-- No Results -->
-        <div class="alert alert-info" role="alert">
-            <i class="bi bi-info-circle"></i> Không tìm thấy sân phù hợp. Vui lòng thử lại với các tiêu chí khác.
-        </div>
-        @endif
-    </div>
-</div>
-@endsection
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Danh sách sân – SmashZone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root{--navy:#082635;--green:#05d381;--green-dark:#009e5b;--paper:#fff;--bg:#f2f6f4;--line:#dce8e2;--muted:#71818a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--navy);font-family:"Segoe UI",Arial,sans-serif}.shell{width:min(1180px,calc(100% - 48px));margin:auto}.header{background:var(--navy);color:#fff}.nav{height:106px;display:flex;align-items:center;justify-content:space-between;gap:25px}.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:27px;font-weight:800;letter-spacing:-1.4px}.brand i{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--green);font-size:23px}.menu{display:flex;gap:32px}.menu a,.user{color:#e8f1ee;text-decoration:none;font-size:15px;font-weight:700}.menu a:hover,.menu .active{color:var(--green)}.actions{display:flex;align-items:center;gap:17px}.search{border:0;background:transparent;color:#fff;font-size:22px;cursor:pointer}.cta,.submit{border:0;border-radius:13px;background:var(--green);color:#062b27;text-decoration:none;font-size:14px;font-weight:800;cursor:pointer}.cta{padding:18px 22px}.hero{padding:55px 0 105px;background:radial-gradient(circle at 75% 20%,rgba(5,211,129,.16),transparent 30%),var(--navy)}.crumb{display:flex;gap:8px;align-items:center;margin-bottom:20px;color:#9db4ae;font-size:13px;font-weight:700}.crumb a{color:#c6d4d0;text-decoration:none}.eyebrow{margin:0 0 10px;color:var(--green);font-size:12px;font-weight:800;letter-spacing:1.2px}.hero h1{max-width:650px;margin:0;color:#fff;font-size:48px;line-height:1.08;letter-spacing:-2.3px}.hero p:last-child{max-width:590px;margin:17px 0 0;color:#c8d7d3;font-size:16px;line-height:1.7}.content{position:relative;margin-top:-50px;padding-bottom:80px}.layout{display:grid;grid-template-columns:262px 1fr;gap:27px}.filters{padding:23px;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 12px 35px rgba(8,38,53,.08)}.filter-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:21px;font-size:17px;font-weight:800}.filter-title i,label i{color:var(--green-dark)}.group{margin-bottom:17px}.group label{display:block;margin-bottom:7px;color:#35515e;font-size:12px;font-weight:800}.control{width:100%;height:43px;padding:0 12px;border:1px solid #d9e5df;border-radius:9px;background:#fbfdfc;color:var(--navy);font:inherit;font-size:13px;outline:0}.control:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(5,211,129,.14)}.prices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.submit{width:100%;height:45px}.reset{display:block;margin-top:12px;color:#60757e;text-align:center;text-decoration:none;font-size:13px;font-weight:700}.results{margin:8px 0 23px}.results h2{margin:0;font-size:27px;letter-spacing:-1px}.results p{margin:7px 0 0;color:var(--muted);font-size:14px}.results strong{color:var(--green-dark)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card{display:flex;min-width:0;flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff;transition:.22s}.card:hover{transform:translateY(-5px);box-shadow:0 16px 28px rgba(16,57,49,.13)}.image{position:relative;height:185px;overflow:hidden;background:linear-gradient(135deg,#0b4b4d,#2acb78)}.image img{width:100%;height:100%;object-fit:cover;transition:.35s}.card:hover .image img{transform:scale(1.06)}.fallback{display:grid;place-items:center;height:100%;color:#fff;font-size:42px}.type{position:absolute;top:12px;right:12px;padding:6px 9px;border-radius:99px;background:#fff;color:#08794c;font-size:10px;font-weight:800}.card-body{display:flex;flex:1;flex-direction:column;padding:17px}.rating{min-height:18px;color:#ec9c17;font-size:12px;font-weight:800}.rating small{color:#8a989d;font-weight:600}.card h3{overflow:hidden;margin:6px 0;color:#102d3b;font-size:17px;text-overflow:ellipsis;white-space:nowrap}.location{overflow:hidden;margin:0;color:#74848b;font-size:12px;text-overflow:ellipsis;white-space:nowrap}.location i{margin-right:5px;color:var(--green-dark)}.amenities{display:flex;min-height:26px;gap:5px;flex-wrap:wrap;margin:13px 0}.amenities span{padding:4px 6px;border-radius:5px;background:#edf8f1;color:#477161;font-size:10px;font-weight:700}.card-footer{display:flex;justify-content:space-between;align-items:end;gap:8px;margin-top:auto;padding-top:13px;border-top:1px solid #edf1ef}.card-footer small{display:block;color:#89969c;font-size:10px;font-weight:700;text-transform:uppercase}.card-footer strong{color:var(--green-dark);font-size:16px}.card-footer em{color:#87949a;font-size:10px;font-style:normal;font-weight:500}.court-link{color:#0d3b4e;text-decoration:none;font-size:12px;font-weight:800;white-space:nowrap}.court-link:hover{color:var(--green-dark)}.empty{padding:56px 25px;border:1px dashed #b9cdc4;border-radius:16px;background:#fff;color:#61777e;text-align:center}.empty i{display:block;margin-bottom:12px;color:var(--green-dark);font-size:34px}.empty h3{margin:0 0 7px;color:var(--navy)}.pages{display:flex;justify-content:center;gap:7px;margin:38px 0 0;padding:0;list-style:none}.page-link{display:grid;min-width:38px;height:38px;place-items:center;border:1px solid var(--line);border-radius:9px;background:#fff;color:#33515b;text-decoration:none;font-size:13px;font-weight:800}.active .page-link{border-color:var(--green);background:var(--green);color:#073c30}.disabled .page-link{opacity:.45;pointer-events:none}.footer{padding:52px 0 23px;background:var(--navy);color:#c1d0cb}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:45px}.footer h4{margin:4px 0 14px;color:#fff;font-size:14px}.footer a{display:block;margin:9px 0;color:#bdcec8;text-decoration:none;font-size:13px}.footer .brand{display:inline-flex;font-size:21px}.footer .brand i{display:inline;width:auto;height:auto;background:none;color:var(--green);font-size:20px}.copy{max-width:310px;font-size:13px;line-height:1.7}.bottom{margin-top:40px;padding-top:20px;border-top:1px solid #234451;font-size:12px}@media(max-width:991px){.menu{display:none}.nav{height:82px}.layout{display:block}.filters{margin-bottom:25px}.filter-form{display:grid;grid-template-columns:1fr 1fr;gap:0 15px}.filter-actions{grid-column:span 2}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.shell{width:min(1180px,calc(100% - 28px))}.user{display:none}.cta{padding:13px 14px;font-size:12px}.brand{font-size:22px}.brand i{width:36px;height:36px;font-size:18px}.hero{padding:39px 0 78px}.hero h1{font-size:35px;letter-spacing:-1.6px}.hero p:last-child{font-size:14px}.content{margin-top:-36px}.filter-form{display:block}.grid{grid-template-columns:1fr}.results h2{font-size:23px}.footer-grid{grid-template-columns:1fr 1fr;gap:25px}.footer-grid>div:first-child{grid-column:span 2}}
+    </style>
+    <style>
+        .court-preview{position:fixed;inset:0;z-index:9999;display:none;background:rgba(3,18,26,.78);align-items:flex-end}.court-preview.open{display:flex}.court-preview-panel{width:100%;max-height:calc(100vh - 80px);overflow:auto;border-radius:22px 22px 0 0;background:#f4f8f0;box-shadow:0 -10px 35px rgba(0,0,0,.2)}.court-preview-top{position:sticky;top:0;z-index:2;height:47px;display:flex;align-items:center;justify-content:center;background:#f4f8f0}.court-preview-handle{width:58px;height:8px;border-radius:8px;background:#dce5df}.court-preview-close{position:absolute;right:20px;border:0;background:transparent;color:#4d5f68;font-size:23px;cursor:pointer}.court-preview-gallery{display:flex;gap:15px;overflow-x:auto;padding:0 20px 18px}.court-preview-gallery img,.court-preview-fallback{width:min(31vw,480px);height:295px;flex:0 0 min(31vw,480px);border-radius:15px;object-fit:cover;background:linear-gradient(135deg,#0b4b4d,#2acb78)}.court-preview-fallback{display:grid;place-items:center;color:#fff;font-size:42px}.court-preview-body{padding:5px 20px 112px}.court-preview-body h2{margin:10px 0 13px;color:#0b2536;font-size:30px;letter-spacing:-1px}.court-preview-meta{margin:7px 0;color:#657987;font-size:16px}.court-preview-meta i{width:22px;color:#058d55}.court-preview-body h3{margin:33px 0 12px;padding-left:14px;border-left:5px solid #05d381;font-size:21px}.court-preview-body p{max-width:1200px;color:#3f5662;line-height:1.65}.court-preview-amenities{display:flex;gap:9px;flex-wrap:wrap}.court-preview-amenities span{padding:7px 10px;border-radius:7px;background:#e2f5e9;color:#237447;font-size:13px;font-weight:700}.court-preview-footer{position:fixed;bottom:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:24px;padding:16px 20px 23px;border-top:1px solid #dce6df;background:#fff}.court-preview-price small{display:block;color:#6d7e87;font-size:12px;font-weight:800}.court-preview-price strong{color:#04c870;font-size:24px}.court-preview-price em{color:#6d7e87;font-size:15px;font-style:normal;font-weight:600}.court-preview-book{flex:1;border-radius:14px;background:#05d381;color:#fff;padding:16px;text-align:center;font-size:19px;font-weight:800;text-decoration:none}.court-preview-book:hover{background:#00b967;color:#fff}@media(max-width:650px){.court-preview-gallery img,.court-preview-fallback{width:82vw;flex-basis:82vw;height:230px}.court-preview-body h2{font-size:24px}.court-preview-meta{font-size:14px}.court-preview-footer{gap:12px}.court-preview-price strong{font-size:19px}.court-preview-book{font-size:16px;padding:13px}}
+    </style>
+</head>
+<body>
+<header class="header">
+    <nav class="shell nav">
+        <a class="brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a>
+        <div class="menu"><a href="{{ route('home') }}">Trang chủ</a><a class="active" href="{{ route('courts.index') }}">Sân cầu lông</a><a href="{{ route('home') }}#offers">Khuyến mãi</a><a href="{{ route('home') }}#news">Tin tức</a><a href="{{ route('home') }}#why">Giới thiệu</a></div>
+        <div class="actions"><button class="search" onclick="document.getElementById('keyword').focus()" aria-label="Tìm kiếm"><i class="bi bi-search"></i></button>@auth<a class="user" href="{{ route('bookings.index') }}">{{ Str::limit(Auth::user()->name,16) }}</a>@else<a class="user" href="{{ route('login') }}">Đăng nhập</a>@endauth<a class="cta" href="#court-list">Đặt sân ngay</a></div>
+    </nav>
+    <section class="hero"><div class="shell"><div class="crumb"><a href="{{ route('home') }}">Trang chủ</a><i class="bi bi-chevron-right"></i><span>Sân cầu lông</span></div><p class="eyebrow">KHÁM PHÁ SÂN</p><h1>Chọn sân phù hợp cho trận đấu của bạn.</h1><p>Tìm kiếm, so sánh và đặt sân cầu lông yêu thích chỉ trong vài bước đơn giản.</p></div></section>
+</header>
+<main class="shell content" id="court-list"><div class="layout">
+    <aside class="filters"><div class="filter-title">Bộ lọc tìm sân <i class="bi bi-sliders"></i></div><form class="filter-form" method="GET" action="{{ route('courts.index') }}">
+        <div class="group"><label for="keyword"><i class="bi bi-search"></i> Tìm kiếm</label><input class="control" id="keyword" name="keyword" value="{{ request('keyword') }}" placeholder="Tên sân hoặc khu vực"></div>
+        <div class="group"><label for="court_type_id"><i class="bi bi-grid"></i> Loại sân</label><select class="control" id="court_type_id" name="court_type_id"><option value="">Tất cả loại sân</option>@foreach($courtTypes as $type)<option value="{{ $type->id }}" @selected((string)request('court_type_id') === (string)$type->id)>{{ $type->name }}</option>@endforeach</select></div>
+        <div class="group"><label><i class="bi bi-wallet2"></i> Khoảng giá (VNĐ)</label><div class="prices"><input class="control" type="number" name="price_min" value="{{ request('price_min') }}" placeholder="Từ"><input class="control" type="number" name="price_max" value="{{ request('price_max') }}" placeholder="Đến"></div></div>
+        <div class="group"><label for="booking_date"><i class="bi bi-calendar3"></i> Ngày chơi</label><input class="control" id="booking_date" type="date" name="booking_date" min="{{ now()->toDateString() }}" value="{{ request('booking_date') }}"></div>
+        <div class="group"><label for="sort_by"><i class="bi bi-sort-down"></i> Sắp xếp</label><select class="control" id="sort_by" name="sort_by"><option value="name_asc" @selected(request('sort_by','name_asc') === 'name_asc')>Tên A–Z</option><option value="name_desc" @selected(request('sort_by') === 'name_desc')>Tên Z–A</option><option value="price_asc" @selected(request('sort_by') === 'price_asc')>Giá tăng dần</option><option value="price_desc" @selected(request('sort_by') === 'price_desc')>Giá giảm dần</option><option value="most_booked" @selected(request('sort_by') === 'most_booked')>Được đặt nhiều</option></select></div>
+        <div class="filter-actions"><button class="submit"><i class="bi bi-search"></i> Tìm sân</button><a class="reset" href="{{ route('courts.index') }}"><i class="bi bi-arrow-counterclockwise"></i> Xóa bộ lọc</a></div>
+    </form></aside>
+    <section><div class="results"><h2>{{ request('keyword') ? 'Kết quả cho “'.request('keyword').'”' : 'Danh sách sân cầu lông' }}</h2><p>Tìm thấy <strong>{{ $courts->total() }}</strong> sân phù hợp</p></div>
+    @if($courts->isNotEmpty())
+        <div class="grid">@foreach($courts as $court)
+            @php($minimumPrice = $court->prices->min('price') ?? 0)
+            <article class="card"><div class="image">@if($court->images->first()?->image)<img src="{{ $court->images->first()->image }}" alt="{{ $court->name }}" loading="lazy">@else<div class="fallback"><i class="bi bi-trophy"></i></div>@endif<span class="type">{{ $court->courtType?->name ?? 'Sân cầu lông' }}</span></div><div class="card-body"><div class="rating"><i class="bi bi-star-fill"></i> {{ $court->approved_rating ? number_format($court->approved_rating,1) : 'Sân chất lượng' }} @if($court->approved_rating)<small>({{ $court->approved_reviews_count }} đánh giá)</small>@endif</div><h3>{{ $court->name }}</h3><p class="location"><i class="bi bi-geo-alt"></i>{{ $court->address ?: $court->code }}</p><div class="amenities">@foreach($court->amenities->take(3) as $amenity)<span>{{ $amenity->name }}</span>@endforeach</div><div class="card-footer"><div><small>Giá từ</small><strong>{{ number_format($minimumPrice,0,',','.') }}đ <em>/giờ</em></strong></div><a class="court-link" href="{{ route('courts.show',$court) }}">Xem sân <i class="bi bi-arrow-up-right"></i></a></div></div></article>
+        @endforeach</div>
+        @if($courts->hasPages())<nav><ul class="pages"><li class="{{ $courts->onFirstPage() ? 'disabled' : '' }}"><a class="page-link" href="{{ $courts->previousPageUrl() ?: '#' }}"><i class="bi bi-chevron-left"></i></a></li>@foreach($courts->getUrlRange(1,$courts->lastPage()) as $page => $url)<li class="{{ $page === $courts->currentPage() ? 'active' : '' }}"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>@endforeach<li class="{{ !$courts->hasMorePages() ? 'disabled' : '' }}"><a class="page-link" href="{{ $courts->nextPageUrl() ?: '#' }}"><i class="bi bi-chevron-right"></i></a></li></ul></nav>@endif
+    @else
+        <div class="empty"><i class="bi bi-search-heart"></i><h3>Chưa tìm thấy sân phù hợp</h3><p>Hãy thử thay đổi từ khóa hoặc các điều kiện lọc của bạn.</p><a class="court-link" href="{{ route('courts.index') }}">Xem tất cả sân <i class="bi bi-arrow-right"></i></a></div>
+    @endif
+    </section>
+</div></main>
+<footer class="footer"><div class="shell"><div class="footer-grid"><div><a class="brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a><p class="copy">Nền tảng đặt sân cầu lông đơn giản, nhanh chóng và tiện lợi.</p></div><div><h4>Khám phá</h4><a href="{{ route('home') }}">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="{{ route('home') }}#news">Tin tức</a></div><div><h4>Liên hệ</h4><a href="mailto:hello@smashzone.vn">hello@smashzone.vn</a><a href="tel:0982949974">0982 949 974</a><a href="#">Hà Nội, Việt Nam</a></div></div><div class="bottom">© {{ now()->year }} SmashZone. All rights reserved.</div></div></footer>
+<div class="court-preview" id="courtPreview" aria-hidden="true"><div class="court-preview-panel"><div class="court-preview-top"><span class="court-preview-handle"></span><button class="court-preview-close" type="button" aria-label="Đóng">×</button></div><div id="courtPreviewContent"></div></div></div>
+<script>
+const courtPreviewData = @json($courtPreviewData);
+const preview = document.getElementById('courtPreview'), previewContent = document.getElementById('courtPreviewContent');
+const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
+function openCourtPreview(id, bookingUrl) {
+    const court = courtPreviewData[id]; if (!court) return;
+    const gallery = court.images.length ? court.images.map(image => `<img src="${escapeHtml(image)}" alt="${escapeHtml(court.name)}">`).join('') : '<div class="court-preview-fallback"><i class="bi bi-trophy"></i></div>';
+    const amenities = court.amenities.length ? `<div class="court-preview-amenities">${court.amenities.map(item => `<span><i class="bi bi-check-circle-fill me-1"></i>${escapeHtml(item)}</span>`).join('')}</div>` : '';
+    const hours = court.opening && court.closing ? `<div class="court-preview-meta"><i class="bi bi-clock"></i>Thứ 2 - CN: ${court.opening} - ${court.closing}</div>` : '';
+    previewContent.innerHTML = `<div class="court-preview-gallery">${gallery}</div><section class="court-preview-body"><h2>${escapeHtml(court.name)}</h2><div class="court-preview-meta"><i class="bi bi-geo-alt"></i>${escapeHtml(court.address || 'Địa chỉ đang cập nhật')}</div><div class="court-preview-meta"><i class="bi bi-telephone"></i>${escapeHtml(court.phone || 'Đang cập nhật')}</div>${hours}<h3>Dịch vụ tiện ích</h3>${amenities}<p>${escapeHtml(court.description || 'Sân được đầu tư khang trang, sạch đẹp với các trang thiết bị hiện đại và mặt sân đạt chuẩn.')}</p></section><div class="court-preview-footer"><div class="court-preview-price"><small>GIÁ TỪ</small><strong>${Number(court.price).toLocaleString('vi-VN')}đ <em>/giờ</em></strong></div><a class="court-preview-book" href="${escapeHtml(bookingUrl)}">Đặt ngay</a></div>`;
+    preview.classList.add('open'); preview.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden';
+}
+document.querySelectorAll('.court-link[href*="/courts/"]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); const match = link.href.match(/\/courts\/(\d+)/); if (match) openCourtPreview(match[1], link.href); }));
+function closeCourtPreview(){preview.classList.remove('open');preview.setAttribute('aria-hidden','true');document.body.style.overflow='';}
+document.querySelector('.court-preview-close').addEventListener('click',closeCourtPreview);preview.addEventListener('click',event=>{if(event.target===preview)closeCourtPreview()});document.addEventListener('keydown',event=>{if(event.key==='Escape')closeCourtPreview()});
+</script>
+</body></html>
