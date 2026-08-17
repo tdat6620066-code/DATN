@@ -1,58 +1,12 @@
-@extends('layouts.app')
-
+@extends('layouts.auth')
 @section('title', 'Đăng ký - SmashZone')
-
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-person-plus"></i> Đăng ký</h5>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('register') }}" method="POST">
-                    @csrf
-
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Họ và tên</label>
-                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required autofocus>
-                        @error('name')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required>
-                        @error('email')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Mật khẩu</label>
-                        <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" required>
-                        @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-muted">Tối thiểu 8 ký tự</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
-                        <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
-                </form>
-
-                <hr>
-
-                <p class="text-center mb-0">
-                    Đã có tài khoản? <a href="{{ route('login') }}">Đăng nhập</a>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
+<header class="auth-heading"><small>BẮT ĐẦU CÙNG SMASHZONE</small><h2>Tạo tài khoản</h2><p>Đăng ký để đặt sân và quản lý lịch chơi của bạn.</p></header>
+<form action="{{ route('register') }}" method="POST">@csrf
+<div class="auth-field"><label for="name">Họ và tên</label><div class="auth-input-wrap"><i class="bi bi-person"></i><input class="@error('name') invalid @enderror" id="name" name="name" value="{{ old('name') }}" placeholder="Nguyễn Văn A" required autofocus></div>@error('name')<div class="field-error">{{ $message }}</div>@enderror</div>
+<div class="auth-field"><label for="email">Địa chỉ email</label><div class="auth-input-wrap"><i class="bi bi-envelope"></i><input class="@error('email') invalid @enderror" id="email" name="email" type="email" value="{{ old('email') }}" placeholder="name@example.com" required></div>@error('email')<div class="field-error">{{ $message }}</div>@enderror</div>
+<div class="auth-field"><label for="password">Mật khẩu</label><div class="auth-input-wrap"><i class="bi bi-lock"></i><input class="@error('password') invalid @enderror" id="password" name="password" type="password" placeholder="Tối thiểu 8 ký tự" required></div>@error('password')<div class="field-error">{{ $message }}</div>@enderror</div>
+<div class="auth-field"><label for="password_confirmation">Xác nhận mật khẩu</label><div class="auth-input-wrap"><i class="bi bi-shield-lock"></i><input id="password_confirmation" name="password_confirmation" type="password" placeholder="Nhập lại mật khẩu" required></div></div>
+<button class="auth-submit" type="submit">Tạo tài khoản <i class="bi bi-arrow-right"></i></button>
+</form><p class="auth-switch">Đã có tài khoản? <a href="{{ route('login') }}">Đăng nhập</a></p>
 @endsection

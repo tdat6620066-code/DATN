@@ -208,7 +208,7 @@
             <div class="d-flex align-items-center gap-2 mb-3">
                 <span style="color: #00d084; font-size: 16px; font-weight: bold;">
                     <i class="bi bi-calendar-event"></i> 
-                    <span id="displayDate">{{ $bookingDate->formatLocalized('%A, %d %B %Y') }}</span>
+                    <span id="displayDate">{{ $bookingDate->locale('vi')->translatedFormat('l, d F Y') }}</span>
                 </span>
                 <button type="button" class="btn btn-sm btn-outline-success ms-auto" id="changeDateBtn">
                     <i class="bi bi-calendar-plus"></i> Chọn ngày
@@ -422,7 +422,7 @@ function updateSummary() {
     document.getElementById('checkoutBtn').disabled = selectedSlots.length === 0;
 }
 </script>
-@endsection
+{{-- Legacy duplicate form kept out of the rendered page.
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Tạo đặt sân</h5>
@@ -677,4 +677,5 @@ const today = new Date().toISOString().split('T')[0];
 bookingDateInput.min = today;
 </script>
 @endpush
+--}}
 @endsection

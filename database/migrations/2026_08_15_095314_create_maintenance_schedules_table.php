@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('court_id')->constrained('courts')->onDelete('cascade');
             $table->date('maintenance_date');
+            $table->date('start_date');
+            $table->date('end_date');
             $table->time('start_time');
             $table->time('end_time');
             $table->string('reason')->nullable();

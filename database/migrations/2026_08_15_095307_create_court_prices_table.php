@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignId('court_id')->constrained('courts')->onDelete('cascade');
             $table->foreignId('time_slot_id')->constrained('time_slots');
             $table->decimal('price', 12, 2);
+            $table->enum('day_type', ['WEEKDAY', 'WEEKEND', 'HOLIDAY'])->default('WEEKDAY');
+            $table->boolean('is_peak')->default(false);
             $table->date('effective_from');
             $table->date('effective_to')->nullable();
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');

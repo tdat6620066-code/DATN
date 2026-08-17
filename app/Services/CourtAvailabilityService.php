@@ -20,7 +20,7 @@ class CourtAvailabilityService
     {
         // Check if court exists and is active
         $court = Court::find($courtId);
-        if (!$court || $court->status !== 'ACTIVE') {
+        if (! $court || $court->status !== 'ACTIVE' || $court->operational_status !== 'AVAILABLE') {
             return null;
         }
 
@@ -72,7 +72,8 @@ class CourtAvailabilityService
         $timeSlot = TimeSlot::find($timeSlotId);
         
         $maintenance = MaintenanceSchedule::where('court_id', $courtId)
-            ->where('maintenance_date', $date->toDateString())
+            ->whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
             ->where('status', '!=', 'CANCELLED')
             ->whereRaw("? BETWEEN start_time AND end_time", [$timeSlot->start_time])
             ->exists();

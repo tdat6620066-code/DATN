@@ -14,27 +14,64 @@ body:has(.pro-home){background:#f7f9f8;color:#10293a;font-family:'Plus Jakarta S
 @endpush
 
 @section('content')
+@php
+    $currentRole = Auth::user()?->role;
+    $primaryRoute = $currentRole === 'ADMIN'
+        ? route('admin.dashboard')
+        : ($currentRole === 'EMPLOYEE' ? route('employee.dashboard') : route('courts.index'));
+    $primaryLabel = $currentRole === 'ADMIN'
+        ? 'Vào quản trị'
+        : ($currentRole === 'EMPLOYEE' ? 'Vào vận hành' : 'Đặt sân ngay');
+    $canBook = ! Auth::check() || $currentRole === 'CUSTOMER' || $currentRole === null;
+@endphp
 <div class="pro-home">
-    <header class="home-nav" id="homeNav"><div class="home-shell home-nav-inner"><a class="home-brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a><nav class="home-menu"><a href="#home">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="#offers">Khuyến mãi</a><a href="#news">Tin tức</a><a href="#why">Giới thiệu</a></nav><div class="home-nav-actions"><button class="home-icon"><i class="bi bi-search"></i></button>@auth <a class="home-login" href="{{ route('bookings.index') }}">{{ Str::limit(Auth::user()->name, 16) }}</a> @else <a class="home-login" href="{{ route('login') }}">Đăng nhập</a> @endauth<a class="home-nav-cta" href="{{ route('courts.index') }}">Đặt sân ngay</a><button class="home-icon mobile-menu" type="button" onclick="document.querySelector('.home-menu').classList.toggle('open')"><i class="bi bi-list"></i></button></div></div></header>
+    <header class="home-nav" id="homeNav"><div class="home-shell home-nav-inner"><a class="home-brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a><nav class="home-menu"><a href="#home">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="#offers">Khuyến mãi</a><a href="#news">Tin tức</a><a href="#why">Giới thiệu</a></nav><div class="home-nav-actions"><button class="home-icon"><i class="bi bi-search"></i></button>@auth <a class="home-login" href="{{ $primaryRoute }}">{{ Str::limit(Auth::user()->name, 16) }}</a> @else <a class="home-login" href="{{ route('login') }}">Đăng nhập</a> @endauth<a class="home-nav-cta" href="{{ $primaryRoute }}">{{ $primaryLabel }}</a><button class="home-icon mobile-menu" type="button" onclick="document.querySelector('.home-menu').classList.toggle('open')"><i class="bi bi-list"></i></button></div></div></header>
     <main id="home">
-        <section class="hero" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif><div class="home-shell hero-content"><span class="hero-kicker"><i class="bi bi-shield-check"></i> Nền tảng đặt sân tin cậy</span><h1>Đặt sân dễ dàng.<br><b>Tận hưởng từng trận đấu.</b></h1><p>Tìm sân cầu lông phù hợp, chọn khung giờ yêu thích và đặt sân nhanh chóng cùng SmashZone.</p><div class="hero-actions"><a class="hero-primary" href="{{ route('courts.index') }}">Đặt sân ngay <i class="bi bi-arrow-right ms-2"></i></a><a class="hero-secondary" href="#featured">Khám phá sân</a></div></div></section>
+        <section class="hero" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif><div class="home-shell hero-content"><span class="hero-kicker"><i class="bi bi-shield-check"></i> Nền tảng đặt sân tin cậy</span><h1>Đặt sân dễ dàng.<br><b>Tận hưởng từng trận đấu.</b></h1><p>Tìm sân cầu lông phù hợp, chọn khung giờ yêu thích và đặt sân nhanh chóng cùng SmashZone.</p><div class="hero-actions"><a class="hero-primary" href="{{ $primaryRoute }}">{{ $primaryLabel }} <i class="bi bi-arrow-right ms-2"></i></a><a class="hero-secondary" href="#featured">Khám phá sân</a></div></div></section>
+        @if($canBook)
         <form class="quick-booking home-shell" action="{{ route('courts.index') }}" method="GET"><div class="quick-field"><label><i class="bi bi-geo-alt"></i>Bạn muốn chơi ở đâu?</label><input name="keyword" placeholder="Tên sân hoặc khu vực"></div><div class="quick-field"><label><i class="bi bi-calendar3"></i>Chọn ngày</label><input name="booking_date" type="date" min="{{ now()->toDateString() }}"></div><div class="quick-field"><label><i class="bi bi-clock"></i>Khung giờ</label><select name="time_slot_id"><option value="">Chọn giờ</option>@foreach($timeSlots as $slot)<option value="{{ $slot->id }}">{{ \Carbon\Carbon::parse($slot->start_time)->format('H:i') }}</option>@endforeach</select></div><div class="quick-field"><label><i class="bi bi-wallet2"></i>Khoảng giá</label><select name="price_max"><option value="">Mọi mức giá</option><option value="100000">Dưới 100.000đ</option><option value="150000">Dưới 150.000đ</option><option value="200000">Dưới 200.000đ</option></select></div><button class="quick-submit" type="submit">Tìm sân <i class="bi bi-arrow-right ms-1"></i></button></form>
+        @endif
         <section class="home-shell trust-strip"><x-stat-card :value="$statistics['bookings']" suffix="+" label="Lượt đặt sân"/><x-stat-card :value="$statistics['courts']" suffix="+" label="Sân đang hoạt động"/><x-stat-card :value="$statistics['customers']" suffix="+" label="Khách hàng"/><x-stat-card :value="$statistics['rating'] ?: '—'" suffix="/5" label="Đánh giá trung bình"/></section>
         <section class="home-section" id="featured"><div class="home-shell"><div class="section-top"><x-section-heading eyebrow="SÂN NỔI BẬT" title="Được khách hàng yêu thích" description="Những sân được cộng đồng SmashZone lựa chọn nhiều trong thời gian gần đây."/><a class="section-link" href="{{ route('courts.index') }}">Xem tất cả <i class="bi bi-arrow-right"></i></a></div>@if($featured_courts->isNotEmpty())<div class="courts-grid">@foreach($featured_courts as $court)<x-court-card :court="$court" :modal-id="'featuredCourt'.$court->id"/>@include('components.court-detail-modal',['court'=>$court,'modalId'=>'featuredCourt'.$court->id])@endforeach</div>@else<div class="text-muted">Hiện chưa có sân phù hợp.</div>@endif</div></section>
         <section class="home-section alt"><div class="home-shell"><x-section-heading eyebrow="PHỔ BIẾN" title="Sân được đặt nhiều" description="Những lựa chọn phổ biến nhất trong cộng đồng người chơi cầu lông."/>@if($most_booked_courts->isNotEmpty())<div class="courts-grid">@foreach($most_booked_courts->take(3) as $court)<x-court-card :court="$court" :rank="$loop->iteration" :modal-id="'popularCourt'.$court->id"/>@include('components.court-detail-modal',['court'=>$court,'modalId'=>'popularCourt'.$court->id])@endforeach</div>@endif</div></section>
         @if($promotions->isNotEmpty())<section class="home-section" id="offers"><div class="home-shell"><x-section-heading eyebrow="ƯU ĐÃI" title="Ưu đãi dành cho bạn" description="Sẵn sàng cho những trận cầu nhiều cảm hứng với các ưu đãi đang diễn ra."/><div class="promotion-grid">@foreach($promotions->take(3) as $promotion)<x-promotion-card :promotion="$promotion"/>@endforeach</div></div></section>@endif
-        <section class="home-section"><div class="home-shell"><div class="booking-cta" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif><span>SMASHZONE BOOKING</span><h2>Trận đấu tiếp theo của bạn đã sẵn sàng.</h2><p>Chọn sân yêu thích và bắt đầu đặt sân chỉ trong vài phút.</p><a class="hero-primary" href="{{ route('courts.index') }}">Đặt sân ngay <i class="bi bi-arrow-right ms-2"></i></a></div></div></section>
+        @if($canBook)<section class="home-section"><div class="home-shell"><div class="booking-cta" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif><span>SMASHZONE BOOKING</span><h2>Trận đấu tiếp theo của bạn đã sẵn sàng.</h2><p>Chọn sân yêu thích và bắt đầu đặt sân chỉ trong vài phút.</p><a class="hero-primary" href="{{ route('courts.index') }}">Đặt sân ngay <i class="bi bi-arrow-right ms-2"></i></a></div></div></section>@endif
         @if($news->isNotEmpty())<section class="home-section alt" id="news"><div class="home-shell"><x-section-heading eyebrow="CỘNG ĐỒNG" title="Tin tức & Cẩm nang cầu lông" description="Cập nhật mẹo chơi, hoạt động và những thông tin hữu ích từ SmashZone."/><div class="news-layout">@foreach($news->take(4) as $item)<x-news-card :news="$item"/>@endforeach</div></div></section>@endif
         @if($reviews->isNotEmpty())<section class="home-section"><div class="home-shell"><x-section-heading eyebrow="TRẢI NGHIỆM" title="Khách hàng nói gì về SmashZone?" description="Những chia sẻ thật từ cộng đồng người chơi của chúng tôi."/><div class="review-grid">@foreach($reviews->take(3) as $review)<x-review-card :review="$review"/>@endforeach</div></div></section>@endif
         <section class="home-section alt" id="why"><div class="home-shell"><x-section-heading eyebrow="SMASHZONE" title="Tại sao chọn SmashZone?" description="Một trải nghiệm đơn giản, minh bạch và sẵn sàng cho mọi trận đấu."/><div class="why-grid"><article class="why-card"><i class="why-icon bi bi-lightning-charge"></i><h3>Đặt sân nhanh</h3><p>Chọn sân và khung giờ yêu thích chỉ trong vài bước.</p></article><article class="why-card"><i class="why-icon bi bi-clock-history"></i><h3>Cập nhật thời gian thực</h3><p>Biết ngay khung giờ nào còn trống trước khi đặt.</p></article><article class="why-card"><i class="why-icon bi bi-shield-check"></i><h3>Thanh toán tiện lợi</h3><p>Quy trình thanh toán rõ ràng, nhanh chóng và an toàn.</p></article><article class="why-card"><i class="why-icon bi bi-calendar2-check"></i><h3>Quản lý dễ dàng</h3><p>Theo dõi lịch đặt sân của bạn bất cứ lúc nào.</p></article></div></div></section>
     </main>
     <footer class="home-footer"><div class="home-shell"><div class="footer-grid"><div><a class="footer-brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i> SmashZone</a><p>Nền tảng đặt sân cầu lông đơn giản, nhanh chóng và tiện lợi.</p></div><div><h4>Khám phá</h4><a href="#home">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="#offers">Khuyến mãi</a><a href="#news">Tin tức</a></div><div><h4>Hỗ trợ</h4><a href="#">Liên hệ</a><a href="#">Câu hỏi thường gặp</a><a href="#">Điều khoản</a><a href="#">Chính sách</a></div><div><h4>Liên hệ</h4><p>Hotline: 0982 949 974<br>Email: hello@smashzone.vn<br>Hà Nội, Việt Nam</p></div></div><div class="footer-bottom">© {{ now()->year }} SmashZone. All rights reserved.</div></div></footer>
-    <a class="floating-book" href="{{ route('courts.index') }}"><i class="bi bi-calendar2-plus"></i>Đặt sân</a>
+    <a class="floating-book" href="{{ $primaryRoute }}"><i class="bi {{ $canBook ? 'bi-calendar2-plus' : 'bi-speedometer2' }}"></i>{{ $primaryLabel }}</a>
 </div>
 @endsection
 
 @push('styles')
 <style>
+.home-brand i,
+.footer-brand i {
+    background: url('{{ asset('images/logo.png') }}?v=4') center/contain no-repeat;
+    color: transparent !important;
+    overflow: hidden;
+}
+.home-brand i {
+    width: 185px;
+    height: 70px;
+    margin-right: 0;
+    border-radius: 10px;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, .3);
+}
+.footer-brand i {
+    display: inline-block;
+    width: 190px;
+    height: 78px;
+    margin-right: 0;
+    border-radius: 10px;
+    vertical-align: middle;
+}
+.home-brand,
+.footer-brand {
+    font-size: 0 !important;
+}
 .court-detail-modal .modal-dialog{max-width:100%;height:calc(100% - 76px);margin:76px 0 0}.court-detail-modal .modal-content{height:100%;border:0;border-radius:22px 22px 0 0;background:#f5f9f2}.court-detail-modal .modal-header{min-height:38px}.modal-handle{width:54px;height:7px;border-radius:8px;background:#dde6df}.court-gallery{display:flex;gap:14px;overflow-x:auto;padding:0 20px 13px}.court-gallery img{flex:0 0 min(31vw,480px);height:280px;border-radius:14px;object-fit:cover}.court-detail-content{padding:8px 20px 28px}.court-detail-content h2{font-size:29px;font-weight:800}.court-contact{margin:7px 0;color:#657989}.court-contact i{margin-right:8px;color:#00a660}.court-detail-content h3{margin-top:28px;padding-left:12px;border-left:4px solid #08d67c;font-size:20px;font-weight:800}.court-description{color:#556872;line-height:1.65}.court-booking-footer{display:flex;align-items:center;gap:24px;padding:16px 20px 22px;background:#fff}.court-booking-footer small{display:block;color:#71818b;font-weight:800}.court-booking-footer strong{display:block;color:#00ad63;font-size:23px}.court-booking-footer em{color:#71818b;font-size:13px;font-style:normal}.court-booking-footer .btn{flex:1;border-radius:12px;padding:14px;background:#08d67c;color:#05311e;font-weight:800}
 @media(max-width:991px){.home-menu.open{position:absolute;top:62px;left:14px;right:14px;display:flex;flex-direction:column;gap:0;padding:10px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:#0b2a3a;box-shadow:0 16px 35px rgba(0,0,0,.25)}.home-menu.open a{padding:11px 10px}}
 </style>

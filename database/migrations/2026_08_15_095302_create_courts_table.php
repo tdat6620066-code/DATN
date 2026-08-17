@@ -23,6 +23,10 @@ return new class extends Migration
             $table->time('opening_time')->default('06:00');
             $table->time('closing_time')->default('22:00');
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+            $table->enum('availability_status', ['AVAILABLE', 'OCCUPIED'])->default('AVAILABLE');
+            $table->enum('operational_status', ['AVAILABLE', 'LOCKED', 'MAINTENANCE'])->default('AVAILABLE');
+            $table->text('status_reason')->nullable();
+            $table->dateTime('status_updated_at')->nullable();
             $table->boolean('is_featured')->default(false);
             $table->timestamps();
             

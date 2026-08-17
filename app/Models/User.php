@@ -22,6 +22,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'phone',
+        'status',
+        'permissions',
+        'refund_approval_limit',
     ];
 
     /**
@@ -44,6 +49,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'refund_approval_limit' => 'decimal:2',
+            'permissions' => 'array',
         ];
     }
 
@@ -56,5 +63,12 @@ class User extends Authenticatable
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return $this->role === 'ADMIN'
+            || ($this->role === 'EMPLOYEE' && $this->permissions === null)
+            || in_array($permission, $this->permissions ?? [], true);
     }
 }

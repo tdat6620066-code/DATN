@@ -12,7 +12,7 @@ class BookingPolicy
      */
     public function view(User $user, Booking $booking): bool
     {
-        return $user->id === $booking->user_id;
+        return ($user->role ?: 'CUSTOMER') === 'CUSTOMER' && $user->id === $booking->user_id;
     }
 
     /**
@@ -20,7 +20,7 @@ class BookingPolicy
      */
     public function update(User $user, Booking $booking): bool
     {
-        return $user->id === $booking->user_id && in_array($booking->status, ['HOLD', 'PENDING_PAYMENT']);
+        return ($user->role ?: 'CUSTOMER') === 'CUSTOMER' && $user->id === $booking->user_id && $booking->status === 'PENDING_PAYMENT';
     }
 
     /**
@@ -28,7 +28,8 @@ class BookingPolicy
      */
     public function cancel(User $user, Booking $booking): bool
     {
-        return $user->id === $booking->user_id && in_array($booking->status, ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED']);
+        return ($user->role ?: 'CUSTOMER') === 'CUSTOMER' && $user->id === $booking->user_id
+            && in_array($booking->status, ['PENDING_PAYMENT', 'CONFIRMED'], true);
     }
 
     /**
@@ -36,6 +37,7 @@ class BookingPolicy
      */
     public function confirmPayment(User $user, Booking $booking): bool
     {
-        return $user->id === $booking->user_id && in_array($booking->status, ['PENDING_PAYMENT']);
+        return ($user->role ?: 'CUSTOMER') === 'CUSTOMER' && $user->id === $booking->user_id
+            && $booking->status === 'PENDING_PAYMENT';
     }
 }

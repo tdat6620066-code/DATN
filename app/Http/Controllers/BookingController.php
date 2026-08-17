@@ -211,7 +211,7 @@ class BookingController extends Controller
      */
     public function confirmPayment(Booking $booking, Request $request)
     {
-        $this->authorize('view', $booking);
+        $this->authorize('confirmPayment', $booking);
 
         if ($booking->status !== 'PENDING_PAYMENT') {
             return back()->with('error', 'Booking này không thể thanh toán');
@@ -242,7 +242,7 @@ class BookingController extends Controller
      */
     public function cancel(Booking $booking, Request $request)
     {
-        $this->authorize('view', $booking);
+        $this->authorize('cancel', $booking);
 
         try {
             $this->bookingService->cancelBooking($booking);
@@ -250,6 +250,37 @@ class BookingController extends Controller
                 ->route('bookings.index')
                 ->with('success', 'Hủy booking thành công.');
         } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * UC38 - Check-out customer (employee only).
+     */
+    public function checkout(Booking $booking, Request $request)
+    {
+        abort_unless($request->user()->hasPermission('bookings.checkout'), 403);
+
+        try {
+            $booking = $this->bookingService->checkoutBooking($booking);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Check-out thành công.',
+                    'data' => [
+                        'booking_id' => $booking->id,
+                        'checked_out_at' => $booking->checked_out_at->toISOString(),
+                        'status' => $booking->status,
+                    ],
+                ]);
+            }
+
+            return back()->with('success', 'Check-out thành công. Sân đã sẵn sàng.');
+        } catch (\DomainException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
             return back()->with('error', $e->getMessage());
         }
     }
