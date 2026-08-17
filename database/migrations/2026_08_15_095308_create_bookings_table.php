@@ -18,12 +18,14 @@ return new class extends Migration
             $table->decimal('subtotal', 12, 2)->default(0);
             $table->decimal('discount', 12, 2)->default(0);
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->enum('status', ['PENDING_PAYMENT', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED'])->default('PENDING_PAYMENT');
+            $table->enum('status', ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'EXPIRED'])->default('PENDING_PAYMENT');
             $table->enum('payment_status', ['PENDING', 'PAID', 'FAILED', 'REFUNDED'])->default('PENDING');
             $table->text('note')->nullable();
             $table->dateTime('hold_expires_at')->nullable();
             $table->dateTime('confirmed_at')->nullable();
             $table->dateTime('cancelled_at')->nullable();
+            $table->dateTime('checked_in_at')->nullable();
+            $table->dateTime('checked_out_at')->nullable();
             $table->timestamps();
             
             $table->index('user_id');

@@ -28,8 +28,17 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (Auth::attempt($credentials + ['status' => 'ACTIVE'], $request->boolean('remember'))) {
             $request->session()->regenerate();
+
+            if (Auth::user()->role === 'ADMIN') {
+                return redirect()->route('admin.dashboard');
+            }
+
+            if (Auth::user()->role === 'EMPLOYEE') {
+                return redirect()->route('employee.dashboard');
+            }
+
             return redirect()->intended(route('home'));
         }
 

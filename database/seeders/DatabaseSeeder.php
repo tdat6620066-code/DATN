@@ -29,6 +29,8 @@ class DatabaseSeeder extends Seeder
             BannerSeeder::class,
             PromotionSeeder::class,
             NewsSeeder::class,
+            RefundRequestDemoSeeder::class,
+            AdminSeeder::class,
         ]);
 
         // Create test user

@@ -9,7 +9,7 @@ class Voucher extends Model
 {
     protected $fillable = [
         'code', 'name', 'discount_type', 'discount_value', 'min_order_amount',
-        'max_discount', 'start_at', 'end_at', 'usage_limit', 'used_count', 'status'
+        'max_discount', 'start_at', 'end_at', 'usage_limit', 'used_count', 'conditions', 'status'
     ];
 
     protected $casts = [
@@ -46,6 +46,6 @@ class Voucher extends Model
             $discount = min($discount, $this->max_discount);
         }
 
-        return $discount;
+        return min($discount, $amount);
     }
 }

@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'SmashZone - Đặt sân cầu lông')</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v=4">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
-            --success: #10b981;
+            --primary: #08b96b;
+            --success: #08b96b;
             --danger: #ef4444;
             --warning: #f59e0b;
         }
@@ -19,13 +20,28 @@
         }
         
         .navbar {
-            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, #082c3e 0%, #086052 100%);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .navbar-brand {
             font-weight: 700;
             font-size: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .navbar-brand-logo {
+            width: 180px;
+            height: 58px;
+            border-radius: 10px;
+            object-fit: contain;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .navbar-brand > span {
+            display: none;
         }
         
         .btn-primary {
@@ -34,8 +50,8 @@
         }
         
         .btn-primary:hover {
-            background-color: #4f46e5;
-            border-color: #4f46e5;
+            background-color: #079957;
+            border-color: #079957;
         }
         
         .badge-available {
@@ -153,7 +169,7 @@
         
         .form-control:focus, .form-select:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(8, 185, 107, 0.2);
         }
         
         .rating {
@@ -174,7 +190,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-rocket-fill"></i> SmashZone
+                <img class="navbar-brand-logo" src="{{ asset('images/logo.png') }}?v=4" alt="Logo SmashZone">
+                <span>SmashZone</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -188,9 +205,24 @@
                         <a class="nav-link" href="/courts">Danh sách sân</a>
                     </li>
                     @auth
+                    @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
                     <li class="nav-item">
                         <a class="nav-link" href="/bookings">Đặt sân của tôi</a>
                     </li>
+                    @elseif(Auth::user()->role === 'EMPLOYEE')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('employee.dashboard') }}">Tổng quan</a>
+                    </li>
+                    @if(Auth::user()->hasPermission('refunds.manage'))
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('employee.refund-requests.index') }}">Xử lý hoàn tiền</a>
+                    </li>
+                    @endif
+                    @elseif(Auth::user()->role === 'ADMIN')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.dashboard') }}">Quản trị hệ thống</a>
+                    </li>
+                    @endif
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
@@ -283,6 +315,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/status-labels.js') }}?v=2"></script>
     @stack('scripts')
 </body>
 </html>

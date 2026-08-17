@@ -37,6 +37,14 @@ class VoucherService
             ];
         }
 
+        if ($amount < $voucher->min_order_amount) {
+            return [
+                'valid' => false,
+                'message' => 'Booking chưa đạt giá trị tối thiểu để áp dụng voucher',
+                'discount' => 0,
+            ];
+        }
+
         $discount = $voucher->calculateDiscount($amount);
 
         return [
@@ -67,10 +75,10 @@ class VoucherService
      */
     public function incrementUsage($voucherId)
     {
-        $voucher = Voucher::find($voucherId);
-        
-        if ($voucher) {
-            $voucher->increment('used_count');
-        }
+        Voucher::whereKey($voucherId)
+            ->where(function ($query) {
+                $query->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
+            })
+            ->increment('used_count');
     }
 }

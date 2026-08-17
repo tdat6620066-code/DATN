@@ -8,7 +8,8 @@ class Booking extends Model
 {
     protected $fillable = [
         'booking_code', 'user_id', 'subtotal', 'discount', 'total_amount',
-        'status', 'payment_status', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at'
+        'status', 'payment_status', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
+        'checked_in_at', 'checked_out_at'
     ];
 
     protected $casts = [
@@ -18,6 +19,8 @@ class Booking extends Model
         'hold_expires_at' => 'datetime',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'checked_in_at' => 'datetime',
+        'checked_out_at' => 'datetime',
     ];
 
     public function user()
@@ -38,6 +41,16 @@ class Booking extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function refundRequests()
+    {
+        return $this->hasMany(RefundRequest::class);
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(BookingAuditLog::class);
     }
 
     public function isHoldExpired()

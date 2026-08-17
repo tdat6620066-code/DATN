@@ -8,11 +8,13 @@ class Court extends Model
 {
     protected $fillable = [
         'code', 'name', 'court_type_id', 'description', 'address',
-        'map_url', 'phone', 'opening_time', 'closing_time', 'status', 'is_featured'
+        'map_url', 'phone', 'opening_time', 'closing_time', 'status', 'availability_status',
+        'operational_status', 'status_reason', 'status_updated_at', 'is_featured'
     ];
 
     protected $casts = [
         'is_featured' => 'boolean',
+        'status_updated_at' => 'datetime',
     ];
 
     public function courtType()

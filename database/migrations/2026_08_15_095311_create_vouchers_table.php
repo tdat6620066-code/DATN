@@ -23,6 +23,7 @@ return new class extends Migration
             $table->dateTime('end_at');
             $table->integer('usage_limit')->nullable();
             $table->integer('used_count')->default(0);
+            $table->text('conditions')->nullable();
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
             

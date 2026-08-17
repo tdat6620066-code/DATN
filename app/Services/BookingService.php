@@ -2,7 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\{Booking, BookingDetail, Court, CourtPrice, TimeSlot};
+use App\Models\Booking;
+use App\Models\BookingDetail;
+use App\Models\Court;
+use App\Models\CourtPrice;
+use App\Models\Holiday;
+use App\Models\TimeSlot;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -10,7 +15,9 @@ use Illuminate\Support\Str;
 class BookingService
 {
     private CourtAvailabilityService $availabilityService;
+
     private VoucherService $voucherService;
+
     private PaymentService $paymentService;
 
     public function __construct(
@@ -33,13 +40,13 @@ class BookingService
             // Validate and lock all booking details
             $validatedDetails = $this->validateAndLockBookingDetails($bookingDetails);
 
-            if (!empty($validatedDetails['errors'])) {
+            if (! empty($validatedDetails['errors'])) {
                 throw new \Exception(json_encode($validatedDetails['errors']));
             }
 
             // Calculate prices
             $subtotal = $this->calculateSubtotal($validatedDetails['details']);
-            
+
             // Apply voucher if provided
             $discount = 0;
             $voucherId = null;
@@ -105,12 +112,13 @@ class BookingService
             $bookingDate = Carbon::parse($detail['booking_date']);
 
             // Validate court
-            if (!$court) {
+            if (! $court) {
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => 'Sân không tồn tại'
+                    'message' => 'Sân không tồn tại',
                 ];
+
                 continue;
             }
 
@@ -118,28 +126,31 @@ class BookingService
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => 'Sân không hoạt động'
+                    'message' => 'Sân không hoạt động',
                 ];
+
                 continue;
             }
 
             // Validate time slot
-            if (!$timeSlot || $timeSlot->status !== 'ACTIVE') {
+            if (! $timeSlot || $timeSlot->status !== 'ACTIVE') {
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => 'Khung giờ không hợp lệ'
+                    'message' => 'Khung giờ không hợp lệ',
                 ];
+
                 continue;
             }
 
             // Validate booking date
-            if (!$this->isValidBookingDate($bookingDate, $timeSlot)) {
+            if (! $this->isValidBookingDate($bookingDate, $timeSlot)) {
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => 'Ngày đặt không hợp lệ'
+                    'message' => 'Ngày đặt không hợp lệ',
                 ];
+
                 continue;
             }
 
@@ -154,19 +165,21 @@ class BookingService
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => $this->getAvailabilityErrorMessage($availability)
+                    'message' => $this->getAvailabilityErrorMessage($availability),
                 ];
+
                 continue;
             }
 
             // Get current price
             $price = $this->getCurrentPrice($court->id, $timeSlot->id, $bookingDate);
-            if (!$price) {
+            if (! $price) {
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => 'Không có giá cho khung giờ này'
+                    'message' => 'Không có giá cho khung giờ này',
                 ];
+
                 continue;
             }
 
@@ -181,8 +194,9 @@ class BookingService
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
-                    'message' => 'Khung giờ này bị trùng trong yêu cầu'
+                    'message' => 'Khung giờ này bị trùng trong yêu cầu',
                 ];
+
                 continue;
             }
 
@@ -198,7 +212,7 @@ class BookingService
 
         return [
             'errors' => $errors,
-            'details' => $validatedDetails
+            'details' => $validatedDetails,
         ];
     }
 
@@ -208,7 +222,7 @@ class BookingService
     private function isValidBookingDate(Carbon $date, TimeSlot $timeSlot)
     {
         $maxDays = config('booking.max_days', 30);
-        
+
         // A booking is valid for the whole current day. Comparing a date at
         // midnight with the current time previously rejected every booking made today.
         if ($date->copy()->startOfDay()->lt(now()->startOfDay())) {
@@ -221,7 +235,7 @@ class BookingService
         }
 
         // A slot may not be booked once its start time has passed.
-        $slotStart = Carbon::parse($date->toDateString() . ' ' . $timeSlot->start_time);
+        $slotStart = Carbon::parse($date->toDateString().' '.$timeSlot->start_time);
         if ($slotStart->lte(now())) {
             return false;
         }
@@ -234,8 +248,12 @@ class BookingService
      */
     private function getCurrentPrice($courtId, $timeSlotId, Carbon $date)
     {
+        $dayType = Holiday::whereDate('holiday_date', $date)->exists()
+            ? 'HOLIDAY'
+            : ($date->isWeekend() ? 'WEEKEND' : 'WEEKDAY');
         $price = CourtPrice::where('court_id', $courtId)
             ->where('time_slot_id', $timeSlotId)
+            ->where('day_type', $dayType)
             ->where('status', 'ACTIVE')
             ->where('effective_from', '<=', $date->toDateString())
             ->where(function ($query) use ($date) {
@@ -244,6 +262,14 @@ class BookingService
             })
             ->latest('effective_from')
             ->first();
+
+        if (! $price && $dayType !== 'WEEKDAY') {
+            $price = CourtPrice::where('court_id', $courtId)->where('time_slot_id', $timeSlotId)
+                ->where('day_type', 'WEEKDAY')->where('status', 'ACTIVE')
+                ->where('effective_from', '<=', $date->toDateString())
+                ->where(fn ($query) => $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->toDateString()))
+                ->latest('effective_from')->first();
+        }
 
         return $price ? $price->price : null;
     }
@@ -262,7 +288,7 @@ class BookingService
     private function generateBookingCode()
     {
         do {
-            $code = 'BK' . date('Ymd') . strtoupper(Str::random(6));
+            $code = 'BK'.date('Ymd').strtoupper(Str::random(6));
         } while (Booking::where('booking_code', $code)->exists());
 
         return $code;
@@ -273,7 +299,7 @@ class BookingService
      */
     private function getAvailabilityErrorMessage($status)
     {
-        return match($status) {
+        return match ($status) {
             CourtAvailabilityService::STATUS_BOOKED => 'Khung giờ này đã được đặt',
             CourtAvailabilityService::STATUS_HOLD => 'Khung giờ này đang được giữ',
             CourtAvailabilityService::STATUS_MAINTENANCE => 'Sân đang bảo trì trong khung giờ này',
@@ -295,7 +321,7 @@ class BookingService
         // Validate before creating
         $validationResult = $this->validateAndLockBookingDetails($bookingDetails);
 
-        if (!empty($validationResult['errors'])) {
+        if (! empty($validationResult['errors'])) {
             throw new \Exception(json_encode($validationResult['errors']));
         }
 
@@ -338,8 +364,8 @@ class BookingService
     public function cancelBooking(Booking $booking)
     {
         return DB::transaction(function () use ($booking) {
-            if (!in_array($booking->status, ['PENDING_PAYMENT', 'CONFIRMED', 'COMPLETED'])) {
-                throw new \Exception('Không thể hủy booking ở trạng thái ' . $booking->status);
+            if (! in_array($booking->status, ['PENDING_PAYMENT', 'CONFIRMED'], true)) {
+                throw new \Exception('Không thể hủy booking ở trạng thái '.$booking->status);
             }
 
             $booking->update([
@@ -358,6 +384,39 @@ class BookingService
             }
 
             return $booking;
+        });
+    }
+
+    /**
+     * UC38 - Check out a customer who is currently using the court.
+     */
+    public function checkoutBooking(Booking $booking): Booking
+    {
+        return DB::transaction(function () use ($booking) {
+            $lockedBooking = Booking::query()
+                ->with('bookingDetails')
+                ->lockForUpdate()
+                ->findOrFail($booking->id);
+
+            if ($lockedBooking->status !== 'CHECKED_IN') {
+                throw new \DomainException('Chỉ booking đã check-in mới được check-out.');
+            }
+
+            $checkedOutAt = now();
+
+            $lockedBooking->update([
+                'status' => 'COMPLETED',
+                'checked_out_at' => $checkedOutAt,
+            ]);
+
+            $lockedBooking->bookingDetails()->update(['status' => 'COMPLETED']);
+
+            $courtIds = $lockedBooking->bookingDetails->pluck('court_id')->unique();
+            Court::query()
+                ->whereIn('id', $courtIds)
+                ->update(['availability_status' => 'AVAILABLE']);
+
+            return $lockedBooking->fresh(['bookingDetails.court']);
         });
     }
 
