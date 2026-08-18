@@ -1,11 +1,10 @@
 <?php
-
-<<<<<<< HEAD
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\{AdminBookingController, AdminCourtController, AdminCourtTypeController, AdminCustomerController, AdminDashboardController, AdminEmployeeController, AdminMaintenanceController, AdminPaymentController, AdminPricingController, AdminVoucherController, AuthController, BookingController, CourtController, EmployeeCourtController, EmployeeDashboardController, HomeController, RefundRequestController};
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -222,9 +221,8 @@ Route::middleware('auth')->group(function () {
     )->middleware('throttle:6,1')
      ->name('verification.send');
 });
-=======
-use App\Http\Controllers\{AdminBookingController, AdminCourtController, AdminCourtTypeController, AdminCustomerController, AdminDashboardController, AdminEmployeeController, AdminMaintenanceController, AdminPaymentController, AdminPricingController, AdminVoucherController, AuthController, BookingController, CourtController, EmployeeCourtController, EmployeeDashboardController, HomeController, RefundRequestController};
-use Illuminate\Support\Facades\Route;
+
+
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home'); // UC11
@@ -321,4 +319,4 @@ Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
 Route::post('/booking/{booking}/checkout', [BookingController::class, 'checkout'])
     ->middleware(['auth', 'active', 'role:EMPLOYEE', 'permission:bookings.checkout'])
     ->name('bookings.checkout');
->>>>>>> 9790fd584874111b4e4d91e45e981ae25b3deaae
+

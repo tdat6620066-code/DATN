@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-<<<<<<< HEAD
+
 @section('title', 'Trang chủ - SmashZone')
 
 @section('content')
@@ -18,7 +18,7 @@
 </div>
 
 @endsection
-=======
+
 @section('title', 'SmashZone – Đặt sân cầu lông nhanh chóng')
 
 @push('styles')
@@ -103,4 +103,4 @@ const nav=document.getElementById('homeNav');window.addEventListener('scroll',()
 document.querySelectorAll('[data-counter]').forEach(el=>{const target=Number(el.dataset.counter);if(!Number.isFinite(target)||target===0)return;const suffix=el.dataset.suffix;let started=false;new IntersectionObserver(entries=>{if(!entries[0].isIntersecting||started)return;started=true;const start=performance.now(),duration=700;const tick=now=>{el.textContent=Math.round(target*Math.min((now-start)/duration,1)).toLocaleString('vi-VN')+suffix;if(now-start<duration)requestAnimationFrame(tick)};requestAnimationFrame(tick)}).observe(el)});
 </script>
 @endpush
->>>>>>> 9790fd584874111b4e4d91e45e981ae25b3deaae
+

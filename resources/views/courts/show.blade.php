@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-```blade
+
 @extends('layouts.app')
 
 @section('title', $court->name . ' - SmashZone')
@@ -662,8 +661,8 @@
 </style>
 
 @endpush
-```
-=======
+
+
 @extends('layouts.app')
 
 @section('title', $court->name . ' - Đặt sân')

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<<<<<<< HEAD
+
 <html lang="vi">
 
 <head>
@@ -192,7 +192,7 @@
 </body>
 
 </html>
-=======
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -513,4 +513,3 @@
     @stack('scripts')
 </body>
 </html>
->>>>>>> 9790fd584874111b4e4d91e45e981ae25b3deaae
