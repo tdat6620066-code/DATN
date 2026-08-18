@@ -1,0 +1,435 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Booking;
+use App\Models\BookingDetail;
+use App\Models\Court;
+use App\Models\CourtPrice;
+use App\Models\Holiday;
+use App\Models\TimeSlot;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class BookingService
+{
+    private CourtAvailabilityService $availabilityService;
+
+    private VoucherService $voucherService;
+
+    private PaymentService $paymentService;
+
+    public function __construct(
+        CourtAvailabilityService $availabilityService,
+        VoucherService $voucherService,
+        PaymentService $paymentService
+    ) {
+        $this->availabilityService = $availabilityService;
+        $this->voucherService = $voucherService;
+        $this->paymentService = $paymentService;
+    }
+
+    /**
+     * Create booking with transaction and locking
+     * UC18, UC19, UC20
+     */
+    public function createBooking($userId, $bookingDetails, $voucherCode = null)
+    {
+        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode) {
+            // Validate and lock all booking details
+            $validatedDetails = $this->validateAndLockBookingDetails($bookingDetails);
+
+            if (! empty($validatedDetails['errors'])) {
+                throw new \Exception(json_encode($validatedDetails['errors']));
+            }
+
+            // Calculate prices
+            $subtotal = $this->calculateSubtotal($validatedDetails['details']);
+
+            // Apply voucher if provided
+            $discount = 0;
+            $voucherId = null;
+            if ($voucherCode) {
+                $voucherResult = $this->voucherService->validateAndApply($voucherCode, $subtotal);
+                if ($voucherResult['valid']) {
+                    $discount = $voucherResult['discount'];
+                    $voucherId = $voucherResult['voucher_id'];
+                }
+            }
+
+            $totalAmount = max(0, $subtotal - $discount);
+
+            // Create booking
+            $booking = Booking::create([
+                'booking_code' => $this->generateBookingCode(),
+                'user_id' => $userId,
+                'subtotal' => $subtotal,
+                'discount' => $discount,
+                'total_amount' => $totalAmount,
+                'status' => 'PENDING_PAYMENT',
+                'payment_status' => 'PENDING',
+                'hold_expires_at' => now()->addMinutes(config('booking.hold_timeout', 10)),
+            ]);
+
+            // Create booking details
+            foreach ($validatedDetails['details'] as $detail) {
+                BookingDetail::create([
+                    'booking_id' => $booking->id,
+                    'court_id' => $detail['court_id'],
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'price' => $detail['price'],
+                    'subtotal' => $detail['subtotal'],
+                    'status' => 'PENDING',
+                ]);
+            }
+
+            // Increment voucher usage if applied
+            if ($voucherId) {
+                $this->voucherService->incrementUsage($voucherId);
+            }
+
+            // Create payment record
+            $this->paymentService->createPayment($booking, $totalAmount);
+
+            return $booking;
+        }, 3); // 3 retry attempts
+    }
+
+    /**
+     * Validate and lock all booking details
+     * Uses SELECT FOR UPDATE to prevent race conditions
+     */
+    private function validateAndLockBookingDetails($bookingDetails)
+    {
+        $errors = [];
+        $validatedDetails = [];
+
+        foreach ($bookingDetails as $detail) {
+            $court = Court::lockForUpdate()->find($detail['court_id']);
+            $timeSlot = TimeSlot::lockForUpdate()->find($detail['time_slot_id']);
+            $bookingDate = Carbon::parse($detail['booking_date']);
+
+            // Validate court
+            if (! $court) {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => 'Sân không tồn tại',
+                ];
+
+                continue;
+            }
+
+            if ($court->status !== 'ACTIVE') {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => 'Sân không hoạt động',
+                ];
+
+                continue;
+            }
+
+            // Validate time slot
+            if (! $timeSlot || $timeSlot->status !== 'ACTIVE') {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => 'Khung giờ không hợp lệ',
+                ];
+
+                continue;
+            }
+
+            // Validate booking date
+            if (! $this->isValidBookingDate($bookingDate, $timeSlot)) {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => 'Ngày đặt không hợp lệ',
+                ];
+
+                continue;
+            }
+
+            // Check availability
+            $availability = $this->availabilityService->checkAvailability(
+                $court->id,
+                $bookingDate,
+                $timeSlot->id
+            );
+
+            if ($availability !== CourtAvailabilityService::STATUS_AVAILABLE) {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => $this->getAvailabilityErrorMessage($availability),
+                ];
+
+                continue;
+            }
+
+            // Get current price
+            $price = $this->getCurrentPrice($court->id, $timeSlot->id, $bookingDate);
+            if (! $price) {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => 'Không có giá cho khung giờ này',
+                ];
+
+                continue;
+            }
+
+            // Validate no duplicates in request
+            $exists = collect($validatedDetails)->contains(function ($v) use ($detail) {
+                return $v['court_id'] == $detail['court_id']
+                    && $v['booking_date'] == $detail['booking_date']
+                    && $v['time_slot_id'] == $detail['time_slot_id'];
+            });
+
+            if ($exists) {
+                $errors[] = [
+                    'booking_date' => $detail['booking_date'],
+                    'time_slot_id' => $detail['time_slot_id'],
+                    'message' => 'Khung giờ này bị trùng trong yêu cầu',
+                ];
+
+                continue;
+            }
+
+            // All validations passed
+            $validatedDetails[] = [
+                'court_id' => $court->id,
+                'booking_date' => $bookingDate,
+                'time_slot_id' => $timeSlot->id,
+                'price' => $price,
+                'subtotal' => $price,
+            ];
+        }
+
+        return [
+            'errors' => $errors,
+            'details' => $validatedDetails,
+        ];
+    }
+
+    /**
+     * Validate booking date
+     */
+    private function isValidBookingDate(Carbon $date, TimeSlot $timeSlot)
+    {
+        $maxDays = config('booking.max_days', 30);
+
+        // A booking is valid for the whole current day. Comparing a date at
+        // midnight with the current time previously rejected every booking made today.
+        if ($date->copy()->startOfDay()->lt(now()->startOfDay())) {
+            return false;
+        }
+
+        // Must be within allowed days
+        if ($date > now()->addDays($maxDays)) {
+            return false;
+        }
+
+        // A slot may not be booked once its start time has passed.
+        $slotStart = Carbon::parse($date->toDateString().' '.$timeSlot->start_time);
+        if ($slotStart->lte(now())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get current price for court and time slot on booking date
+     */
+    private function getCurrentPrice($courtId, $timeSlotId, Carbon $date)
+    {
+        $dayType = Holiday::whereDate('holiday_date', $date)->exists()
+            ? 'HOLIDAY'
+            : ($date->isWeekend() ? 'WEEKEND' : 'WEEKDAY');
+        $price = CourtPrice::where('court_id', $courtId)
+            ->where('time_slot_id', $timeSlotId)
+            ->where('day_type', $dayType)
+            ->where('status', 'ACTIVE')
+            ->where('effective_from', '<=', $date->toDateString())
+            ->where(function ($query) use ($date) {
+                $query->whereNull('effective_to')
+                    ->orWhere('effective_to', '>=', $date->toDateString());
+            })
+            ->latest('effective_from')
+            ->first();
+
+        if (! $price && $dayType !== 'WEEKDAY') {
+            $price = CourtPrice::where('court_id', $courtId)->where('time_slot_id', $timeSlotId)
+                ->where('day_type', 'WEEKDAY')->where('status', 'ACTIVE')
+                ->where('effective_from', '<=', $date->toDateString())
+                ->where(fn ($query) => $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->toDateString()))
+                ->latest('effective_from')->first();
+        }
+
+        return $price ? $price->price : null;
+    }
+
+    /**
+     * Calculate subtotal from details
+     */
+    private function calculateSubtotal($details)
+    {
+        return collect($details)->sum('subtotal');
+    }
+
+    /**
+     * Generate unique booking code
+     */
+    private function generateBookingCode()
+    {
+        do {
+            $code = 'BK'.date('Ymd').strtoupper(Str::random(6));
+        } while (Booking::where('booking_code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
+     * Get availability error message
+     */
+    private function getAvailabilityErrorMessage($status)
+    {
+        return match ($status) {
+            CourtAvailabilityService::STATUS_BOOKED => 'Khung giờ này đã được đặt',
+            CourtAvailabilityService::STATUS_HOLD => 'Khung giờ này đang được giữ',
+            CourtAvailabilityService::STATUS_MAINTENANCE => 'Sân đang bảo trì trong khung giờ này',
+            default => 'Khung giờ không khả dụng'
+        };
+    }
+
+    /**
+     * Create recurring booking (UC21)
+     */
+    public function createRecurringBooking($userId, $recurringData, $voucherCode = null)
+    {
+        $bookingDetails = $this->generateRecurringBookingDetails($recurringData);
+
+        if (empty($bookingDetails)) {
+            throw new \Exception('Không thể tạo lịch đặt định kỳ');
+        }
+
+        // Validate before creating
+        $validationResult = $this->validateAndLockBookingDetails($bookingDetails);
+
+        if (! empty($validationResult['errors'])) {
+            throw new \Exception(json_encode($validationResult['errors']));
+        }
+
+        // Create single booking with multiple details
+        return $this->createBooking($userId, $bookingDetails, $voucherCode);
+    }
+
+    /**
+     * Generate recurring booking details
+     */
+    private function generateRecurringBookingDetails($recurringData)
+    {
+        $startDate = Carbon::parse($recurringData['start_date']);
+        $endDate = Carbon::parse($recurringData['end_date']);
+        $daysOfWeek = $recurringData['days_of_week']; // [1, 2, 3...] for Mon-Sun
+        $timeSlotId = $recurringData['time_slot_id'];
+        $courtId = $recurringData['court_id'];
+
+        $bookingDetails = [];
+        $current = $startDate->copy();
+
+        while ($current <= $endDate) {
+            // Check if current day is in daysOfWeek (1=Monday, 7=Sunday)
+            if (in_array($current->dayOfWeek, $daysOfWeek)) {
+                $bookingDetails[] = [
+                    'court_id' => $courtId,
+                    'booking_date' => $current->toDateString(),
+                    'time_slot_id' => $timeSlotId,
+                ];
+            }
+            $current->addDay();
+        }
+
+        return $bookingDetails;
+    }
+
+    /**
+     * Cancel booking
+     */
+    public function cancelBooking(Booking $booking)
+    {
+        return DB::transaction(function () use ($booking) {
+            if (! in_array($booking->status, ['PENDING_PAYMENT', 'CONFIRMED'], true)) {
+                throw new \Exception('Không thể hủy booking ở trạng thái '.$booking->status);
+            }
+
+            $booking->update([
+                'status' => 'CANCELLED',
+                'cancelled_at' => now(),
+            ]);
+
+            // Update booking details
+            foreach ($booking->bookingDetails as $detail) {
+                $detail->update(['status' => 'CANCELLED']);
+            }
+
+            // Refund payment if paid
+            if ($booking->payment && $booking->payment->status === 'PAID') {
+                $this->paymentService->refund($booking->payment);
+            }
+
+            return $booking;
+        });
+    }
+
+    /**
+     * UC38 - Check out a customer who is currently using the court.
+     */
+    public function checkoutBooking(Booking $booking): Booking
+    {
+        return DB::transaction(function () use ($booking) {
+            $lockedBooking = Booking::query()
+                ->with('bookingDetails')
+                ->lockForUpdate()
+                ->findOrFail($booking->id);
+
+            if ($lockedBooking->status !== 'CHECKED_IN') {
+                throw new \DomainException('Chỉ booking đã check-in mới được check-out.');
+            }
+
+            $checkedOutAt = now();
+
+            $lockedBooking->update([
+                'status' => 'COMPLETED',
+                'checked_out_at' => $checkedOutAt,
+            ]);
+
+            $lockedBooking->bookingDetails()->update(['status' => 'COMPLETED']);
+
+            $courtIds = $lockedBooking->bookingDetails->pluck('court_id')->unique();
+            Court::query()
+                ->whereIn('id', $courtIds)
+                ->update(['availability_status' => 'AVAILABLE']);
+
+            return $lockedBooking->fresh(['bookingDetails.court']);
+        });
+    }
+
+    /**
+     * Get booking details for user
+     */
+    public function getBookingDetails(Booking $booking, $userId)
+    {
+        // Authorize: user can only see their own bookings
+        if ($booking->user_id !== $userId) {
+            throw new \Exception('Không có quyền truy cập booking này');
+        }
+
+        return $booking;
+    }
+}

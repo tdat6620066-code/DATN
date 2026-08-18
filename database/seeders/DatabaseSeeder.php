@@ -15,11 +15,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed court data first
+        $this->call([
+            CourtTypeSeeder::class,
+            AmenitySeeder::class,
+            TimeSlotSeeder::class,
+            CourtSeeder::class,
+            CourtPriceSeeder::class,
+        ]);
 
+        // Seed homepage content
+        $this->call([
+            BannerSeeder::class,
+            PromotionSeeder::class,
+            NewsSeeder::class,
+            RefundRequestDemoSeeder::class,
+            AdminSeeder::class,
+        ]);
+
+        // Create test user
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'password' => bcrypt('password'),
         ]);
     }
 }
