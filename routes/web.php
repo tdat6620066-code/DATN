@@ -227,14 +227,6 @@ Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
 Route::get('/courts/{court}', [CourtController::class, 'show'])->name('courts.show');
 Route::get('/courts/{court}/availability', [CourtController::class, 'availability'])->name('courts.availability');
 
-// Authentication routes
-Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-});
-
 Route::middleware(['auth', 'active', 'role:EMPLOYEE'])->prefix('employee')->name('employee.')->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->middleware('permission:employee.dashboard')->name('dashboard');
     Route::middleware('permission:courts.status.manage')->group(function () {
@@ -298,6 +290,10 @@ Route::get('/bookings', function (\Illuminate\Http\Request $request) {
     };
 })->middleware(['auth', 'active'])->name('bookings.index');
 
+// VNPay return & IPN callbacks (public - được gọi bởi VNPay / trình duyệt)
+Route::get('/booking/vnpay/return', [BookingController::class, 'vnpayReturn'])->name('bookings.vnpay.return');
+Route::get('/booking/vnpay/ipn', [BookingController::class, 'vnpayIpn'])->name('bookings.vnpay.ipn');
+
 Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
     Route::get('/booking', [BookingController::class, 'create'])->name('bookings.create');
     Route::get('/booking/create', [BookingController::class, 'create']);
@@ -307,6 +303,7 @@ Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
 
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::post('/booking/{booking}/confirm-payment', [BookingController::class, 'confirmPayment'])->name('bookings.confirm-payment');
+    Route::get('/booking/{booking}/vnpay', [BookingController::class, 'vnpayCreate'])->name('bookings.vnpay');
     Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/refund-requests', [RefundRequestController::class, 'store'])->name('refund-requests.store');
 });

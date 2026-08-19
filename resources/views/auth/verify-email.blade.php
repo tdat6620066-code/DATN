@@ -1,109 +1,16 @@
-<!DOCTYPE html>
-<html lang="vi">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Xác thực Email - SmashZone</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-</head>
-
-<body class="bg-light">
-
-<div class="container py-5">
-
-    <div class="row justify-content-center">
-
-        <div class="col-md-6">
-
-            <div class="card border-0 shadow">
-
-                <div class="card-body p-5 text-center">
-
-                    <h3 class="fw-bold mb-3">
-                        Xác thực Email
-                    </h3>
-
-                    <p class="text-muted">
-
-                        Chúng tôi đã gửi một liên kết xác thực
-                        đến:
-
-                    </p>
-
-                    <strong>
-                        {{ auth()->user()->email }}
-                    </strong>
-
-                    <p class="text-muted mt-3">
-
-                        Vui lòng kiểm tra hộp thư và nhấn
-                        vào liên kết xác thực.
-
-                    </p>
-
-                    @if (session('success'))
-
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
-
-                    @endif
-
-                    <form
-                        method="POST"
-                        action="{{ route('verification.send') }}"
-                    >
-
-                        @csrf
-
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
-                        >
-                            Gửi lại Email xác thực
-                        </button>
-
-                    </form>
-
-                    <form
-                        method="POST"
-                        action="{{ route('logout') }}"
-                        class="mt-3"
-                    >
-
-                        @csrf
-
-                        <button
-                            type="submit"
-                            class="btn btn-link"
-                        >
-                            Đăng xuất
-                        </button>
-
-                    </form>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-</body>
-
-</html>
+@extends('layouts.auth')
+@section('title', 'Xác thực Email - SmashZone')
+@section('content')
+<header class="auth-heading"><small>XÁC THỰC TÀI KHOẢN</small><h2>Xác thực Email</h2><p>Chúng tôi đã gửi một liên kết xác thực đến <strong>{{ auth()->user()->email }}</strong>.</p></header>
+<p class="auth-verify-hint"><i class="bi bi-envelope-check"></i> Vui lòng kiểm tra hộp thư đến và nhấn vào liên kết xác thực để kích hoạt tài khoản.</p>
+@if(session('success'))
+<div class="auth-alert auth-alert-success">{{ session('success') }}</div>
+@endif
+<form action="{{ route('verification.send') }}" method="POST">@csrf
+<button class="auth-submit" type="submit">Gửi lại Email xác thực <i class="bi bi-arrow-right"></i></button>
+</form>
+<form action="{{ route('logout') }}" method="POST" class="auth-switch">@csrf
+<button type="submit" class="auth-link-btn">Đăng xuất và quay lại trang chủ</button>
+</form>
+<p class="auth-switch">Đã xác thực xong? <a href="{{ route('home') }}">Về trang chủ</a></p>
+@endsection

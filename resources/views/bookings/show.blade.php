@@ -418,15 +418,12 @@
                 @if($booking->status === 'PENDING_PAYMENT')
                     <p class="text-muted mb-3">
                         <i class="bi bi-info-circle me-1"></i>
-                        Đơn đặt sân của bạn đang chờ thanh toán. Vui lòng xác nhận thanh toán để hoàn tất.
+                        Đơn đặt sân của bạn đang chờ thanh toán. Vui lòng thanh toán qua VNPay để hoàn tất.
                     </p>
                     <div class="d-flex flex-wrap gap-2">
-                        <form action="{{ route('bookings.confirm-payment', $booking) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-success action-btn">
-                                <i class="bi bi-check-circle me-1"></i> Xác nhận thanh toán
-                            </button>
-                        </form>
+                        <a href="{{ route('bookings.vnpay', $booking) }}" class="btn btn-success action-btn">
+                            <i class="bi bi-credit-card me-1"></i> Thanh toán ngay
+                        </a>
                         <form action="{{ route('bookings.cancel', $booking) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-outline-danger action-btn" onclick="return confirm('Bạn chắc chắn muốn hủy đặt sân này?')">
