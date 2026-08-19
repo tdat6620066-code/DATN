@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             NewsSeeder::class,
             RefundRequestDemoSeeder::class,
             AdminSeeder::class,
+            ReviewSeeder::class,
         ]);
 
         // Create test user

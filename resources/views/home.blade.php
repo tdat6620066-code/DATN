@@ -264,7 +264,7 @@
         /* COURT DETAIL MODAL */
         .court-detail-modal .modal-dialog { max-width: 980px; }
         .court-detail-modal .modal-content { position: relative; overflow: hidden; border: 0; border-radius: 20px; box-shadow: 0 30px 80px rgba(6, 32, 44, .32); }
-        .court-detail-modal .btn-close { position: absolute; top: 16px; right: 16px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; background: #fff; box-shadow: 0 6px 18px rgba(6, 32, 44, .18); opacity: 1; }
+        .court-detail-modal .btn-close { position: absolute; top: 16px; right: 16px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; background: #fff url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center / 1.1em no-repeat; box-shadow: 0 6px 18px rgba(6, 32, 44, .18); opacity: 1; }
         .court-detail-modal .btn-close:hover { transform: rotate(90deg); }
         .court-detail-modal .btn-close, .court-detail-modal .btn-close:focus { transition: .25s; }
         .court-detail-modal .modal-body { padding: 0; }
