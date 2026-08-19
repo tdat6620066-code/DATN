@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\UpdateProfileRequest;
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,10 +16,33 @@ class ProfileController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index()
+    public function index(Request $request)
     {
+        $user = auth()->user()->loadCount('bookings');
+
+        $bookings = Booking::where('user_id', $user->id)
+            ->with('bookingDetails.court', 'bookingDetails.timeSlot', 'payment')
+            ->when($request->filled('status'), function ($query) use ($request) {
+                return $query->where('status', $request->status);
+            })
+            ->when($request->filled('date_from'), function ($query) use ($request) {
+                return $query->whereDate('created_at', '>=', $request->date_from);
+            })
+            ->when($request->filled('date_to'), function ($query) use ($request) {
+                return $query->whereDate('created_at', '<=', $request->date_to);
+            })
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('profile.index', [
-            'user' => auth()->user(),
+            'user' => $user,
+            'bookings' => $bookings,
+            'filters' => [
+                'status' => $request->status,
+                'date_from' => $request->date_from,
+                'date_to' => $request->date_to,
+            ],
         ]);
     }
 

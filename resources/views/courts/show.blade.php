@@ -902,18 +902,8 @@
 </head>
 
 <body>
+    @include('partials.site-header')
     <header class="header">
-        <nav class="shell nav">
-            <a class="brand" href="{{ route('home') }}"><img src="{{ asset('images/logo.png') }}" alt="SmashZone"></a>
-            <div class="menu"><a href="{{ route('home') }}">Trang chủ</a><a class="active"
-                    href="{{ route('courts.index') }}">Sân cầu lông</a><a href="{{ route('home') }}#offers">Khuyến
-                    mãi</a><a href="{{ route('home') }}#news">Tin tức</a><a href="{{ route('home') }}#why">Giới
-                    thiệu</a></div>
-            <div class="actions">@auth<a class="user"
-            href="{{ route('bookings.index') }}">{{ Str::limit(Auth::user()->name, 16) }}</a>@else<a class="user"
-                    href="{{ route('login') }}">Đăng nhập</a>@endauth<a class="cta" href="#booking">Đặt sân ngay</a>
-            </div>
-        </nav>
         <section class="hero">
             <div class="shell">
                 <div class="crumb"><a href="{{ route('home') }}">Trang chủ</a><i class="bi bi-chevron-right"></i><a
@@ -1082,26 +1072,7 @@
         </section>
     </main>
 
-    <footer class="footer">
-        <div class="shell">
-            <div class="footer-grid">
-                <div><a class="brand" href="{{ route('home') }}"><img src="{{ asset('images/logo.png') }}"
-                            alt="SmashZone" style="height:40px;border-radius:10px;margin-right:8px"></a>
-                    <p class="copy">Nền tảng đặt sân cầu lông đơn giản, nhanh chóng và tiện lợi.</p>
-                </div>
-                <div>
-                    <h4>Khám phá</h4><a href="{{ route('home') }}">Trang chủ</a><a
-                        href="{{ route('courts.index') }}">Sân cầu lông</a><a href="{{ route('home') }}#news">Tin
-                        tức</a>
-                </div>
-                <div>
-                    <h4>Liên hệ</h4><a href="mailto:hello@smashzone.vn">hello@smashzone.vn</a><a
-                        href="tel:0982949974">0982 949 974</a><a href="#">Hà Nội, Việt Nam</a>
-                </div>
-            </div>
-            <div class="bottom">© {{ now()->year }} SmashZone. All rights reserved.</div>
-        </div>
-    </footer>
+    @include('partials.site-footer')
 
     <div class="selection-bar" id="selectionBar"><span id="selectionSummary"></span><button type="submit"
             form="bookingForm" class="btn-book">@auth Tiếp tục @else Đăng nhập để đặt @endauth</button></div>

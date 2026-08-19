@@ -242,8 +242,8 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
-        <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary btn-sm mb-3 rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Danh sách đặt sân
+        <a href="{{ request('from') === 'profile' ? route('profile') . '#history' : route('bookings.index') }}" class="btn btn-outline-secondary btn-sm mb-3 rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> {{ request('from') === 'profile' ? 'Quay lại lịch sử đặt sân' : 'Danh sách đặt sân' }}
         </a>
 
         <!-- Hero status -->

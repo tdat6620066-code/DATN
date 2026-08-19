@@ -77,6 +77,33 @@
         .btn-ghost:hover { background: rgba(255, 255, 255, .22); }
         .nav-user { color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600; }
 
+        /* Dropdown tài khoản hiển thị khi hover */
+        .nav-user-menu { position: relative; }
+        .nav-user-trigger {
+            display: inline-flex; align-items: center; gap: 7px;
+            color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600;
+            background: none; border: 0; cursor: pointer; padding: 4px 0;
+        }
+        .nav-user-trigger:hover { color: #5eead4; }
+        .nav-user-trigger .caret { font-size: 11px; transition: transform .2s; }
+        .nav-user-menu:hover .nav-user-trigger .caret { transform: rotate(180deg); }
+        .nav-user-dropdown {
+            position: absolute; top: 100%; right: 0; min-width: 220px;
+            padding: 8px; background: #fff; border-radius: 12px;
+            box-shadow: 0 16px 40px rgba(2, 24, 35, .22);
+            opacity: 0; visibility: hidden; transform: translateY(8px);
+            transition: opacity .2s, transform .2s, visibility .2s; z-index: 60;
+        }
+        .nav-user-menu:hover .nav-user-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-user-dropdown a, .nav-user-dropdown button {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 10px 12px; border: 0; background: none; border-radius: 9px;
+            color: #1f2937; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+        }
+        .nav-user-dropdown a:hover, .nav-user-dropdown button:hover { background: #f1f5f9; color: #0b8a5a; }
+        .nav-user-dropdown i { color: #64748b; width: 16px; text-align: center; }
+        .nav-user-dropdown .dropdown-divider { height: 1px; background: #e5e7eb; margin: 6px 0; }
+
         /* HERO */
         .hero {
             position: relative;
@@ -318,7 +345,20 @@
         </nav>
         <div class="nav-actions">
             @auth
-                <span class="nav-user">{{ Str::limit(Auth::user()->name, 16) }}</span>
+                <div class="nav-user-menu">
+                    <button type="button" class="nav-user-trigger">
+                        <i class="bi bi-person-circle"></i> {{ Str::limit(Auth::user()->name, 16) }}
+                        <i class="bi bi-chevron-down caret"></i>
+                    </button>
+                    <div class="nav-user-dropdown">
+                        <a href="{{ route('profile') }}"><i class="bi bi-person"></i> Thông tin tài khoản</a>
+                        <div class="dropdown-divider"></div>
+                        <form action="{{ route('logout') }}" method="POST" style="margin:0;">
+                            @csrf
+                            <button type="submit"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+                        </form>
+                    </div>
+                </div>
             @else
                 <a class="nav-user" href="{{ route('login') }}">Đăng nhập</a>
             @endauth

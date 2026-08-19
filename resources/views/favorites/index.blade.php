@@ -17,9 +17,16 @@
         rel="stylesheet"
     >
 
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+        rel="stylesheet"
+    >
+
 </head>
 
 <body>
+
+@include('partials.site-header')
 
 <div class="container py-5">
 
@@ -108,6 +115,8 @@
     {{ $favorites->links() }}
 
 </div>
+
+@include('partials.site-footer')
 
 </body>
 

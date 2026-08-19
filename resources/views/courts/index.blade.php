@@ -13,11 +13,7 @@
 </head>
 <body>
 <header class="header">
-    <nav class="shell nav">
-        <a class="brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a>
-        <div class="menu"><a href="{{ route('home') }}">Trang chủ</a><a class="active" href="{{ route('courts.index') }}">Sân cầu lông</a><a href="{{ route('home') }}#offers">Khuyến mãi</a><a href="{{ route('home') }}#news">Tin tức</a><a href="{{ route('home') }}#why">Giới thiệu</a></div>
-        <div class="actions"><button class="search" onclick="document.getElementById('keyword').focus()" aria-label="Tìm kiếm"><i class="bi bi-search"></i></button>@auth<a class="user" href="{{ route('bookings.index') }}">{{ Str::limit(Auth::user()->name,16) }}</a>@else<a class="user" href="{{ route('login') }}">Đăng nhập</a>@endauth<a class="cta" href="#court-list">Đặt sân ngay</a></div>
-    </nav>
+    @include('partials.site-header')
     <section class="hero"><div class="shell"><div class="crumb"><a href="{{ route('home') }}">Trang chủ</a><i class="bi bi-chevron-right"></i><span>Sân cầu lông</span></div><p class="eyebrow">KHÁM PHÁ SÂN</p><h1>Chọn sân phù hợp cho trận đấu của bạn.</h1><p>Tìm kiếm, so sánh và đặt sân cầu lông yêu thích chỉ trong vài bước đơn giản.</p></div></section>
 </header>
 <main class="shell content" id="court-list"><div class="layout">
@@ -41,7 +37,7 @@
     @endif
     </section>
 </div></main>
-<footer class="footer"><div class="shell"><div class="footer-grid"><div><a class="brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a><p class="copy">Nền tảng đặt sân cầu lông đơn giản, nhanh chóng và tiện lợi.</p></div><div><h4>Khám phá</h4><a href="{{ route('home') }}">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="{{ route('home') }}#news">Tin tức</a></div><div><h4>Liên hệ</h4><a href="mailto:hello@smashzone.vn">hello@smashzone.vn</a><a href="tel:0982949974">0982 949 974</a><a href="#">Hà Nội, Việt Nam</a></div></div><div class="bottom">© {{ now()->year }} SmashZone. All rights reserved.</div></div></footer>
+@include('partials.site-footer')
 <div class="court-preview" id="courtPreview" aria-hidden="true"><div class="court-preview-panel"><button class="court-preview-close" type="button" aria-label="Đóng">×</button><div id="courtPreviewContent"></div></div></div>
 <script>
 const courtPreviewData = @json($courtPreviewData);
