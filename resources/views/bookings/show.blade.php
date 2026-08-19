@@ -431,12 +431,23 @@
                             </button>
                         </form>
                     </div>
-                @elseif(in_array($booking->status, ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']))
+                @elseif(in_array($booking->status, ['CONFIRMED', 'CHECKED_IN']))
+                    <div class="alert alert-success d-flex align-items-center border-0 rounded-3" style="background: #e8f9f1;">
+                        <i class="bi bi-check-circle-fill fs-4 me-3" style="color: var(--brand);"></i>
+                        <div class="flex-grow-1">
+                            <strong>Đặt sân đã được xác nhận.</strong>
+                            <div class="small text-muted">Vui lòng đến sân đúng giờ. Chúc bạn có buổi chơi vui vẻ!</div>
+                        </div>
+                        <a href="{{ route('bookings.qr', $booking) }}" class="btn btn-success action-btn">
+                            <i class="bi bi-qr-code me-1"></i> Mã QR
+                        </a>
+                    </div>
+                @elseif($booking->status === 'COMPLETED')
                     <div class="alert alert-success d-flex align-items-center mb-0 border-0 rounded-3" style="background: #e8f9f1;">
                         <i class="bi bi-check-circle-fill fs-4 me-3" style="color: var(--brand);"></i>
                         <div>
-                            <strong>Đặt sân đã được xác nhận.</strong>
-                            <div class="small text-muted">Vui lòng đến sân đúng giờ. Chúc bạn có buổi chơi vui vẻ!</div>
+                            <strong>Đặt sân đã hoàn thành.</strong>
+                            <div class="small text-muted">Cảm ơn bạn đã sử dụng dịch vụ của SmashZone!</div>
                         </div>
                     </div>
                 @elseif($booking->status === 'CANCELLED')

@@ -156,6 +156,31 @@ class BookingController extends Controller
     }
 
     /**
+     * Hiển thị mã QR booking để khách hàng check-in.
+     * QR chỉ hợp lệ với booking hợp lệ và chưa hoàn thành/hủy.
+     */
+    public function showQr(Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
+        $booking->load('bookingDetails.court', 'bookingDetails.timeSlot', 'user');
+
+        // Luồng ngoại lệ: booking không hợp lệ → không tạo QR
+        if (! in_array($booking->status, ['CONFIRMED', 'CHECKED_IN'], true)) {
+            return redirect()
+                ->route('bookings.show', $booking)
+                ->with('error', 'Mã QR chỉ khả dụng cho booking đã xác nhận và chưa hoàn thành/hủy.');
+        }
+
+        $qrCode = $this->qrService->generateQRCode($booking);
+
+        return view('bookings.qr', [
+            'booking' => $booking,
+            'qr_code' => $qrCode,
+        ]);
+    }
+
+    /**
      * UC21 - Create recurring booking form
      */
     public function createRecurring(Request $request)
@@ -232,7 +257,7 @@ class BookingController extends Controller
 
             return view('bookings.success', [
                 'booking' => $booking->refresh(),
-                'qr_code' => base64_encode($qrCode),
+                'qr_code' => $qrCode,
             ])->with('success', 'Thanh toán thành công!');
 
         } catch (\Exception $e) {

@@ -302,6 +302,7 @@ Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
     Route::post('/booking/recurring', [BookingController::class, 'storeRecurring'])->name('bookings.store-recurring');
 
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::get('/booking/{booking}/qr', [BookingController::class, 'showQr'])->name('bookings.qr');
     Route::post('/booking/{booking}/confirm-payment', [BookingController::class, 'confirmPayment'])->name('bookings.confirm-payment');
     Route::get('/booking/{booking}/vnpay', [BookingController::class, 'vnpayCreate'])->name('bookings.vnpay');
     Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
