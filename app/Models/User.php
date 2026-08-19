@@ -82,8 +82,26 @@ class User extends Authenticatable implements MustVerifyEmail, CanResetPasswordC
         return $this->role === 'CUSTOMER';
     }
 
+    public function isEmployee(): bool
+    {
+        return $this->role === 'EMPLOYEE';
+    }
+
     public function isLocked(): bool
     {
         return $this->status === 'LOCKED';
+    }
+
+    /**
+     * Xác định người dùng có quyền thao tác hay không.
+     * Admin luôn có toàn quyền; các vai trò khác kiểm tra theo mảng quyền.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->role === 'ADMIN') {
+            return true;
+        }
+
+        return in_array($permission, $this->permissions ?? [], true);
     }
 }

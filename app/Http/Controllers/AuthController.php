@@ -250,7 +250,7 @@ class AuthController extends Controller
             ]);
 
             return redirect()->intended(
-                route('home')
+                $this->dashboardRouteFor($user)
             );
         }
 
@@ -259,6 +259,18 @@ class AuthController extends Controller
             ->withErrors([
                 'login' => 'Thông tin đăng nhập không chính xác.',
             ]);
+    }
+
+    /**
+     * Xác định trang đích sau khi đăng nhập theo vai trò.
+     */
+    private function dashboardRouteFor(User $user): string
+    {
+        return match ($user->role) {
+            'ADMIN' => route('admin.dashboard'),
+            'EMPLOYEE' => route('employee.dashboard'),
+            default => route('home'),
+        };
     }
 
     /*

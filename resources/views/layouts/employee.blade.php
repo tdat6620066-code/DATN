@@ -21,7 +21,7 @@
             @if(Auth::user()->hasPermission('employee.dashboard'))
             <a class="{{ request()->routeIs('employee.dashboard') ? 'active' : '' }}" href="{{ route('employee.dashboard') }}"><i class="bi bi-grid-1x2"></i>Tổng quan</a>
             @endif
-            <a href="{{ route('courts.index') }}"><i class="bi bi-calendar3"></i>Lịch sân</a>
+            <a class="{{ request()->routeIs('employee.schedule') ? 'active' : '' }}" href="{{ route('employee.schedule') }}"><i class="bi bi-calendar3"></i>Lịch sân</a>
             @if(Auth::user()->hasPermission('courts.status.manage'))
             <a class="{{ request()->routeIs('employee.courts.*') ? 'active' : '' }}" href="{{ route('employee.courts.index') }}"><i class="bi bi-columns-gap"></i>Quản lý sân</a>
             @endif

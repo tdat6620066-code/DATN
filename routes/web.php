@@ -203,6 +203,7 @@ Route::get('/courts/{court}/availability', [CourtController::class, 'availabilit
 
 Route::middleware(['auth', 'active', 'role:EMPLOYEE'])->prefix('employee')->name('employee.')->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->middleware('permission:employee.dashboard')->name('dashboard');
+    Route::get('/schedule', [EmployeeDashboardController::class, 'schedule'])->middleware('permission:employee.dashboard')->name('schedule');
     Route::middleware('permission:courts.status.manage')->group(function () {
         Route::get('/courts', [EmployeeCourtController::class, 'index'])->name('courts.index');
         Route::get('/courts/{court}/edit', [EmployeeCourtController::class, 'edit'])->name('courts.edit');
