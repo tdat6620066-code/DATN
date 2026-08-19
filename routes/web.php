@@ -179,43 +179,17 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth')->group(function () {
+// Xác thực tài khoản bằng mã 4 số gửi qua Email
+Route::get('/verify-code', [AuthController::class, 'showVerificationCode'])
+    ->name('verification.code');
 
-    Route::get('/email/verify', function () {
-        return view('auth.verify-email');
-    })->name('verification.notice');
+Route::post('/verify-code', [AuthController::class, 'verifyCode'])
+    ->middleware('throttle:6,1')
+    ->name('verification.code.verify');
 
-    Route::get(
-        '/email/verify/{id}/{hash}',
-        function (
-            \Illuminate\Foundation\Auth\EmailVerificationRequest $request
-        ) {
-            $request->fulfill();
-
-            return redirect()
-                ->route('home')
-                ->with(
-                    'success',
-                    'Email của bạn đã được xác thực thành công.'
-                );
-        }
-    )->middleware('signed')
-     ->name('verification.verify');
-
-    Route::post(
-        '/email/verification-notification',
-        function (\Illuminate\Http\Request $request) {
-
-            $request->user()->sendEmailVerificationNotification();
-
-            return back()->with(
-                'success',
-                'Đã gửi lại Email xác thực.'
-            );
-        }
-    )->middleware('throttle:6,1')
-     ->name('verification.send');
-});
+Route::post('/verify-code/resend', [AuthController::class, 'resendVerificationCode'])
+    ->middleware('throttle:3,1')
+    ->name('verification.code.resend');
 
 
 

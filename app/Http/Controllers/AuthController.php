@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Mail\VerificationCodeMail;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
@@ -36,21 +37,16 @@ class AuthController extends Controller
                 'status' => 'ACTIVE',
             ]);
 
-            /*
-             * Laravel sẽ gửi email verification
-             * thông qua Registered event.
-             */
-            event(new Registered($user));
+            // Tạo và gửi mã xác thực 4 số về Email.
+            $this->sendVerificationCode($user);
 
-            Auth::login($user);
-
-            $request->session()->regenerate();
+            session(['verification_email' => $user->email]);
 
             return redirect()
-                ->route('verification.notice')
+                ->route('verification.code')
                 ->with(
                     'success',
-                    'Đăng ký thành công. Vui lòng kiểm tra Email để xác thực tài khoản.'
+                    'Đăng ký thành công. Chúng tôi đã gửi mã xác thực 4 số đến Email của bạn.'
                 );
 
         } catch (Throwable $e) {
@@ -63,6 +59,117 @@ class AuthController extends Controller
                     'register' => 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.',
                 ]);
         }
+    }
+
+    /**
+     * Hiển thị form nhập mã xác thực 4 số.
+     */
+    public function showVerificationCode()
+    {
+        $email = session('verification_email');
+
+        if (! $email) {
+            return redirect()->route('login');
+        }
+
+        return view('auth.verify-code', ['email' => $email]);
+    }
+
+    /**
+     * Xác thực mã 4 số và kích hoạt tài khoản.
+     */
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'code' => ['required', 'digits:4'],
+        ], [
+            'code.required' => 'Vui lòng nhập mã xác thực.',
+            'code.digits' => 'Mã xác thực phải gồm 4 chữ số.',
+        ]);
+
+        $email = session('verification_email');
+
+        if (! $email) {
+            return redirect()
+                ->route('login')
+                ->withErrors(['code' => 'Phiên xác thực đã hết hạn. Vui lòng đăng nhập lại.']);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            return redirect()
+                ->route('login')
+                ->withErrors(['code' => 'Không tìm thấy tài khoản.']);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            Auth::login($user);
+            $request->session()->regenerate();
+            session()->forget('verification_email');
+
+            return redirect()
+                ->route('home')
+                ->with('success', 'Tài khoản của bạn đã được kích hoạt.');
+        }
+
+        if (! $user->verification_code || $user->verification_code !== $request->code) {
+            return back()
+                ->withErrors(['code' => 'Mã xác thực không đúng.'])
+                ->withInput();
+        }
+
+        if ($user->verification_code_expires_at < now()) {
+            return back()
+                ->withErrors(['code' => 'Mã xác thực đã hết hạn. Vui lòng gửi lại mã mới.'])
+                ->withInput();
+        }
+
+        $user->forceFill([
+            'email_verified_at' => now(),
+            'verification_code' => null,
+            'verification_code_expires_at' => null,
+        ])->save();
+
+        Auth::login($user);
+        $request->session()->regenerate();
+        session()->forget('verification_email');
+
+        return redirect()
+            ->route('home')
+            ->with('success', 'Tài khoản đã được kích hoạt thành công. Chào mừng bạn đến với SmashZone!');
+    }
+
+    /**
+     * Gửi lại mã xác thực 4 số.
+     */
+    public function resendVerificationCode()
+    {
+        $email = session('verification_email');
+        $user = $email ? User::where('email', $email)->first() : null;
+
+        if (! $user || $user->hasVerifiedEmail()) {
+            return redirect()->route('login');
+        }
+
+        $this->sendVerificationCode($user);
+
+        return back()->with('success', 'Mã xác thực mới đã được gửi đến Email của bạn.');
+    }
+
+    /**
+     * Tạo mã 4 số, lưu vào user và gửi Email.
+     */
+    private function sendVerificationCode(User $user): void
+    {
+        $code = (string) random_int(1000, 9999);
+
+        $user->forceFill([
+            'verification_code' => $code,
+            'verification_code_expires_at' => now()->addMinutes(10),
+        ])->save();
+
+        Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
     }
 
     /*
@@ -119,10 +226,12 @@ class AuthController extends Controller
          * Kiểm tra email verification
          */
         if (!$user->hasVerifiedEmail()) {
-            return back()
-                ->withInput($request->only('login'))
+            session(['verification_email' => $user->email]);
+
+            return redirect()
+                ->route('verification.code')
                 ->withErrors([
-                    'login' => 'Email chưa được xác thực. Vui lòng kiểm tra Email.',
+                    'code' => 'Tài khoản chưa được kích hoạt. Vui lòng nhập mã xác thực đã gửi đến Email.',
                 ]);
         }
 

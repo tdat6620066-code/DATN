@@ -81,12 +81,12 @@ class ReviewSeeder extends Seeder
     private function createReviewers(): array
     {
         $profiles = [
-            ['email' => 'minh.nguyen@example.com', 'name' => 'Nguyễn Minh'],
-            ['email' => 'thao.tran@example.com', 'name' => 'Trần Thu Thảo'],
-            ['email' => 'duc.pham@example.com', 'name' => 'Phạm Minh Đức'],
-            ['email' => 'linh.hoang@example.com', 'name' => 'Hoàng Khánh Linh'],
-            ['email' => 'quan.le@example.com', 'name' => 'Lê Anh Quân'],
-            ['email' => 'huyen.vu@example.com', 'name' => 'Vũ Thanh Huyền'],
+            ['email' => 'minh.nguyen@example.com', 'name' => 'Nguyễn Minh', 'phone' => '0911110001'],
+            ['email' => 'thao.tran@example.com', 'name' => 'Trần Thu Thảo', 'phone' => '0911110002'],
+            ['email' => 'duc.pham@example.com', 'name' => 'Phạm Minh Đức', 'phone' => '0911110003'],
+            ['email' => 'linh.hoang@example.com', 'name' => 'Hoàng Khánh Linh', 'phone' => '0911110004'],
+            ['email' => 'quan.le@example.com', 'name' => 'Lê Anh Quân', 'phone' => '0911110005'],
+            ['email' => 'huyen.vu@example.com', 'name' => 'Vũ Thanh Huyền', 'phone' => '0911110006'],
         ];
 
         $reviewers = [];
@@ -98,6 +98,7 @@ class ReviewSeeder extends Seeder
                     'name' => $profile['name'],
                     'password' => bcrypt('password'),
                     'role' => 'CUSTOMER',
+                    'phone' => $profile['phone'],
                 ]
             );
         }
