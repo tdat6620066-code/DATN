@@ -14,18 +14,22 @@ class CourtSeeder extends Seeder
         $courtTypes = CourtType::all();
         $amenities = Amenity::all();
 
+        if ($courtTypes->isEmpty() || $amenities->isEmpty()) {
+            return;
+        }
+
         $courts = [
             [
                 'name' => 'Sân số 1 - Tiêu chuẩn',
                 'code' => 'COURT001',
-                'court_type_id' => $courtTypes->first()->id,
+                'court_type_id' => $courtTypes->where('name', 'Sân cầu lông tiêu chuẩn')->first()->id,
                 'description' => 'Sân cầu lông tiêu chuẩn, điều hòa, đèn LED',
                 'status' => 'ACTIVE',
             ],
             [
                 'name' => 'Sân số 2 - Tiêu chuẩn',
                 'code' => 'COURT002',
-                'court_type_id' => $courtTypes->first()->id,
+                'court_type_id' => $courtTypes->where('name', 'Sân cầu lông tiêu chuẩn')->first()->id,
                 'description' => 'Sân cầu lông tiêu chuẩn, điều hòa, đèn LED',
                 'status' => 'ACTIVE',
             ],
@@ -46,7 +50,7 @@ class CourtSeeder extends Seeder
             [
                 'name' => 'Sân số 5 - Tiêu chuẩn',
                 'code' => 'COURT005',
-                'court_type_id' => $courtTypes->first()->id,
+                'court_type_id' => $courtTypes->where('name', 'Sân cầu lông tiêu chuẩn')->first()->id,
                 'description' => 'Sân cầu lông tiêu chuẩn, điều hòa, đèn LED',
                 'status' => 'ACTIVE',
             ],
@@ -60,11 +64,14 @@ class CourtSeeder extends Seeder
         ];
 
         foreach ($courts as $courtData) {
-            $court = Court::create($courtData);
+            $court = Court::updateOrCreate(
+                ['code' => $courtData['code']],
+                $courtData
+            );
 
             // Attach random amenities (3-7 per court)
             $randomAmenities = $amenities->random(rand(3, 7));
-            $court->amenities()->attach($randomAmenities->pluck('id'));
+            $court->amenities()->sync($randomAmenities->pluck('id'));
         }
     }
 }

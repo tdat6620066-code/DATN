@@ -23,7 +23,7 @@ class AmenitySeeder extends Seeder
         ];
 
         foreach ($amenities as $amenity) {
-            Amenity::create($amenity);
+            Amenity::updateOrCreate(['name' => $amenity['name']], $amenity);
         }
     }
 }

@@ -1,39 +1,4 @@
-@extends('layouts.app')
-
-
-@section('title', 'Trang chủ - SmashZone')
-
-@section('content')
-
-<div class="container py-5">
-
-    <h1>
-        Chào mừng đến với SmashZone
-    </h1>
-
-    <p>
-        Hệ thống đặt sân cầu lông trực tuyến.
-    </p>
-
-</div>
-
-@endsection
-
-@section('title', 'SmashZone – Đặt sân cầu lông nhanh chóng')
-
-@push('styles')
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-body:has(.pro-home){background:#f7f9f8;color:#10293a;font-family:'Plus Jakarta Sans','Segoe UI',sans-serif}body:has(.pro-home)>.navbar,body:has(.pro-home)>footer,body:has(.pro-home)>.container.mt-4:not(main){display:none}body:has(.pro-home) main.container{max-width:none;margin:0!important;padding:0}.pro-home{overflow:hidden}.pro-home a{text-decoration:none}.home-shell{width:min(1180px,calc(100% - 40px));margin:auto}.home-nav{position:absolute;top:0;left:0;right:0;z-index:20;padding:18px 0;transition:.25s}.home-nav.scrolled{position:fixed;background:rgba(10,28,41,.91);backdrop-filter:blur(16px);box-shadow:0 8px 25px rgba(0,0,0,.15);padding:11px 0}.home-nav-inner{display:flex;align-items:center;justify-content:space-between;gap:28px}.home-brand{color:#fff;font-size:23px;font-weight:800;letter-spacing:-1px}.home-brand i{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#00ca72;margin-right:8px;font-size:17px}.home-menu{display:flex;gap:26px}.home-menu a{color:rgba(255,255,255,.85);font-size:14px;font-weight:600}.home-menu a:hover{color:#4ff49f}.home-nav-actions{display:flex;align-items:center;gap:12px}.home-icon{border:0;background:transparent;color:#fff;font-size:18px}.home-login{color:#fff;font-size:14px;font-weight:700}.home-nav-cta,.hero-primary{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:11px;background:#08d67c;color:#06311f;padding:12px 17px;font-size:14px;font-weight:800;transition:.2s}.home-nav-cta:hover,.hero-primary:hover{background:#4ff49f;color:#06311f;transform:translateY(-1px)}.mobile-menu{display:none}
-.hero{min-height:650px;position:relative;display:flex;align-items:center;color:#fff;background:#102b3c center/cover no-repeat;isolation:isolate}.hero:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(5,23,35,.93) 0%,rgba(8,33,47,.77) 46%,rgba(8,33,47,.37)),linear-gradient(0deg,rgba(3,20,31,.42),transparent)}.hero-content{padding:145px 0 190px;max-width:670px}.hero-kicker{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid rgba(255,255,255,.24);border-radius:100px;background:rgba(255,255,255,.1);font-size:13px;font-weight:700}.hero-kicker i{color:#46ef98}.hero h1{font-size:clamp(42px,5vw,66px);line-height:1.08;letter-spacing:-3px;margin:20px 0 20px;font-weight:800}.hero h1 b{color:#45ed98}.hero p{max-width:595px;margin:0;color:#dce6e9;font-size:17px;line-height:1.7}.hero-actions{display:flex;gap:12px;margin-top:29px}.hero-secondary{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.46);border-radius:11px;color:#fff;padding:12px 17px;font-size:14px;font-weight:700}.hero-secondary:hover{background:#fff;color:#10293a}.quick-booking{position:relative;z-index:3;margin:-75px auto 0;padding:22px 24px;display:grid;grid-template-columns:1.45fr 1fr 1fr 1fr auto;gap:12px;align-items:end;border-radius:20px;background:#fff;box-shadow:0 22px 55px rgba(24,49,43,.15)}.quick-field{min-width:0}.quick-field label{display:block;margin:0 0 7px;color:#607280;font-size:12px;font-weight:800}.quick-field label i{color:#07c871;margin-right:5px}.quick-field input,.quick-field select{width:100%;height:45px;border:1px solid #dce4e2;border-radius:9px;background:#f9fbfa;color:#1a3342;padding:0 11px;font:600 13px inherit;outline:none}.quick-field input:focus,.quick-field select:focus{border-color:#00c873;box-shadow:0 0 0 3px rgba(0,200,115,.12)}.quick-submit{height:45px;border:0;border-radius:9px;padding:0 20px;background:#0d2d3f;color:#fff;font:800 13px inherit;white-space:nowrap}.quick-submit:hover{background:#08ba6a}
-.trust-strip{display:grid;grid-template-columns:repeat(4,1fr);padding:46px 0 22px}.stat-card{padding:0 30px;border-right:1px solid #dce6e1}.stat-card:first-child{padding-left:0}.stat-card:last-child{border:0}.stat-card strong{display:block;color:#092a3a;font-size:31px;letter-spacing:-1px}.stat-card span{color:#788992;font-size:13px;font-weight:600}.home-section{padding:86px 0}.home-section.alt{background:#eef4f0}.home-section-heading{display:flex;flex-direction:column;align-items:flex-start;max-width:620px;margin-bottom:32px}.home-section-heading>span{margin-bottom:7px;color:#00b969;font-size:12px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase}.home-section-heading h2{margin:0;color:#10293a;font-size:35px;letter-spacing:-1.6px;font-weight:800}.home-section-heading p{margin:11px 0 0;color:#6d7d87;font-size:15px;line-height:1.7}.section-top{display:flex;justify-content:space-between;align-items:end}.section-link{margin-bottom:32px;color:#008d50;font-size:14px;font-weight:800}.courts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.pro-court-card{overflow:hidden;border:1px solid #e0e8e3;border-radius:16px;background:#fff;transition:.24s}.pro-court-card:hover{transform:translateY(-6px);box-shadow:0 18px 35px rgba(20,56,43,.12)}.pro-court-image{height:215px;position:relative;overflow:hidden;background:#dceae1}.pro-court-image img{width:100%;height:100%;object-fit:cover;transition:.4s}.pro-court-card:hover .pro-court-image img{transform:scale(1.06)}.court-image-fallback{height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#0b4b4d,#2acb78);color:#fff;font-size:40px}.court-tag,.court-rank{position:absolute;top:13px;border-radius:100px;padding:6px 10px;font-size:10px;font-weight:800}.court-tag{right:13px;background:#fff;color:#08794c}.court-rank{left:13px;background:#102c3d;color:#fff}.pro-court-body{padding:18px}.court-rating{color:#f3a316;font-size:12px;font-weight:800}.court-rating small{color:#8c9ba2;font-weight:600}.pro-court-body h3{margin:8px 0 7px;font-size:18px;letter-spacing:-.5px;font-weight:800}.court-location{display:flex;align-items:center;gap:6px;min-height:21px;margin:0;color:#71818a;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.court-location i{color:#00ba69}.court-amenities-mini{display:flex;gap:5px;flex-wrap:wrap;margin:13px 0}.court-amenities-mini span{border-radius:5px;background:#eff7f2;color:#477161;padding:4px 6px;font-size:10px;font-weight:700}.court-card-bottom{display:flex;align-items:end;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid #edf0ee}.court-card-bottom small{display:block;color:#89969c;font-size:10px;font-weight:700;text-transform:uppercase}.court-card-bottom strong{color:#00aa61;font-size:16px}.court-card-bottom strong span{color:#87949a;font-size:10px;font-weight:500}.court-card-bottom button{border:0;background:transparent;color:#0c3950;font-size:12px;font-weight:800}.court-card-bottom button:hover{color:#00aa61}
-.promotion-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.promotion-card{overflow:hidden;border-radius:16px;background:#fff;box-shadow:0 8px 25px rgba(25,55,43,.06)}.promotion-visual{height:128px;display:flex;align-items:start;padding:14px;background:linear-gradient(135deg,#053848,#00aa68) center/cover}.promotion-visual span{padding:6px 9px;border-radius:6px;background:#ffd155;color:#473400;font-size:10px;font-weight:800}.promotion-card>div:last-child{padding:17px}.promotion-card small,.news-card small{color:#819198;font-size:11px;font-weight:700}.promotion-card h3{margin:7px 0;font-size:17px;font-weight:800}.promotion-card p{margin:0 0 12px;color:#70808a;font-size:12px;line-height:1.6}.promotion-card a,.news-card a{color:#008e50;font-size:12px;font-weight:800}.booking-cta{position:relative;overflow:hidden;border-radius:22px;padding:58px 60px;background:#102f3e center/cover;color:#fff}.booking-cta:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,29,39,.95),rgba(4,29,39,.58))}.booking-cta>*{position:relative}.booking-cta span{color:#58ed9e;font-size:12px;font-weight:800;letter-spacing:1px}.booking-cta h2{max-width:570px;margin:10px 0;font-size:39px;letter-spacing:-1.6px;font-weight:800}.booking-cta p{max-width:570px;color:#d7e4e4;line-height:1.7}.booking-cta .hero-primary{margin-top:12px}.news-layout{display:grid;grid-template-columns:1.05fr 1fr;gap:25px}.news-card{display:flex;gap:15px;padding:13px;border-bottom:1px solid #e3ebe6}.news-card:first-child{border:1px solid #dfe8e2;border-radius:14px;display:block;padding:0;overflow:hidden}.news-card:first-child .news-image{height:230px;width:100%}.news-card:first-child>div:last-child{padding:20px}.news-image{display:grid;place-items:center;flex:0 0 132px;height:95px;overflow:hidden;border-radius:10px;background:#deeee5;color:#07935b;font-size:28px}.news-image img{width:100%;height:100%;object-fit:cover}.news-card h3{margin:5px 0;font-size:15px;font-weight:800;line-height:1.4}.news-card p{margin:0 0 8px;color:#718089;font-size:12px;line-height:1.55}.review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.review-card-pro{padding:21px;border:1px solid #dfe9e2;border-radius:15px;background:#fff}.review-card-top{display:flex;align-items:center;gap:9px}.review-avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#dff6e8;color:#087b4b;font-weight:800}.review-card-top strong,.review-card-top small{display:block;font-size:12px}.review-card-top small{margin-top:2px;color:#819099}.review-card-top>span{margin-left:auto;align-self:start;color:#a1aab0;font-size:10px}.review-stars{margin:17px 0 9px;color:#f3b31d;font-size:12px}.review-card-pro p{margin:0;color:#586a74;font-size:13px;line-height:1.65}.why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.why-card{padding:23px;border-radius:14px;background:#fff}.why-icon{display:grid;place-items:center;width:43px;height:43px;margin-bottom:17px;border-radius:11px;background:#dff7e9;color:#00a660;font-size:20px}.why-card h3{font-size:15px;font-weight:800}.why-card p{margin:7px 0 0;color:#75848c;font-size:12px;line-height:1.6}.home-footer{padding:60px 0 22px;background:#082536;color:#d5e2e5}.footer-grid{display:grid;grid-template-columns:1.5fr repeat(3,1fr);gap:35px}.footer-brand{color:#fff;font-size:22px;font-weight:800}.footer-brand i{color:#3eea97}.footer-grid p,.footer-grid a{display:block;margin:12px 0;color:#a8bdc4;font-size:12px;line-height:1.7}.footer-grid h4{margin:5px 0 13px;color:#fff;font-size:13px;font-weight:800}.footer-bottom{margin-top:35px;padding-top:20px;border-top:1px solid rgba(255,255,255,.13);color:#8ca4ae;font-size:11px}.floating-book{position:fixed;right:22px;bottom:22px;z-index:12;border-radius:100px;background:#07ca72;color:#06311f;padding:12px 16px;box-shadow:0 10px 25px rgba(0,169,94,.35);font-size:13px;font-weight:800}.floating-book i{margin-right:6px}
-@media(max-width:991px){.home-menu{display:none}.mobile-menu{display:block}.quick-booking{grid-template-columns:repeat(2,1fr)}.quick-submit{width:100%}.courts-grid{grid-template-columns:repeat(2,1fr)}.why-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.home-shell{width:min(100% - 28px,1180px)}.home-nav{padding:13px 0}.home-brand{font-size:20px}.home-brand i{width:30px;height:30px}.home-login{display:none}.home-nav-cta{padding:9px 10px;font-size:12px}.hero{min-height:615px}.hero-content{padding:122px 0 170px}.hero h1{font-size:41px;letter-spacing:-2px}.hero p{font-size:15px}.hero-actions{flex-direction:column}.hero-actions a{width:100%}.quick-booking{margin-top:-65px;padding:17px;grid-template-columns:1fr;border-radius:15px}.trust-strip{grid-template-columns:repeat(2,1fr);gap:26px;padding:37px 0}.stat-card{padding:0 15px;border-right:0}.stat-card strong{font-size:25px}.home-section{padding:60px 0}.home-section-heading h2{font-size:28px}.section-top{display:block}.section-link{display:inline-block;margin:0 0 22px}.courts-grid,.promotion-grid,.review-grid{display:flex;overflow-x:auto;margin-right:-14px;padding-right:14px;scroll-snap-type:x mandatory}.pro-court-card,.promotion-card,.review-card-pro{flex:0 0 82%;scroll-snap-align:start}.pro-court-image{height:210px}.booking-cta{padding:38px 25px}.booking-cta h2{font-size:29px}.news-layout{grid-template-columns:1fr}.news-card:first-child .news-image{height:190px}.why-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr 1fr;gap:25px}.footer-grid>div:first-child{grid-column:span 2}.floating-book{right:14px;bottom:14px}}
-</style>
-@endpush
-
-@section('content')
-@php
+<?php
     $currentRole = Auth::user()?->role;
     $primaryRoute = $currentRole === 'ADMIN'
         ? route('admin.dashboard')
@@ -41,66 +6,551 @@ body:has(.pro-home){background:#f7f9f8;color:#10293a;font-family:'Plus Jakarta S
     $primaryLabel = $currentRole === 'ADMIN'
         ? 'Vào quản trị'
         : ($currentRole === 'EMPLOYEE' ? 'Vào vận hành' : 'Đặt sân ngay');
-    $canBook = ! Auth::check() || $currentRole === 'CUSTOMER' || $currentRole === null;
-@endphp
-<div class="pro-home">
-    <header class="home-nav" id="homeNav"><div class="home-shell home-nav-inner"><a class="home-brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i>SmashZone</a><nav class="home-menu"><a href="#home">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="#offers">Khuyến mãi</a><a href="#news">Tin tức</a><a href="#why">Giới thiệu</a></nav><div class="home-nav-actions"><button class="home-icon"><i class="bi bi-search"></i></button>@auth <a class="home-login" href="{{ $primaryRoute }}">{{ Str::limit(Auth::user()->name, 16) }}</a> @else <a class="home-login" href="{{ route('login') }}">Đăng nhập</a> @endauth<a class="home-nav-cta" href="{{ $primaryRoute }}">{{ $primaryLabel }}</a><button class="home-icon mobile-menu" type="button" onclick="document.querySelector('.home-menu').classList.toggle('open')"><i class="bi bi-list"></i></button></div></div></header>
-    <main id="home">
-        <section class="hero" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif><div class="home-shell hero-content"><span class="hero-kicker"><i class="bi bi-shield-check"></i> Nền tảng đặt sân tin cậy</span><h1>Đặt sân dễ dàng.<br><b>Tận hưởng từng trận đấu.</b></h1><p>Tìm sân cầu lông phù hợp, chọn khung giờ yêu thích và đặt sân nhanh chóng cùng SmashZone.</p><div class="hero-actions"><a class="hero-primary" href="{{ $primaryRoute }}">{{ $primaryLabel }} <i class="bi bi-arrow-right ms-2"></i></a><a class="hero-secondary" href="#featured">Khám phá sân</a></div></div></section>
-        @if($canBook)
-        <form class="quick-booking home-shell" action="{{ route('courts.index') }}" method="GET"><div class="quick-field"><label><i class="bi bi-geo-alt"></i>Bạn muốn chơi ở đâu?</label><input name="keyword" placeholder="Tên sân hoặc khu vực"></div><div class="quick-field"><label><i class="bi bi-calendar3"></i>Chọn ngày</label><input name="booking_date" type="date" min="{{ now()->toDateString() }}"></div><div class="quick-field"><label><i class="bi bi-clock"></i>Khung giờ</label><select name="time_slot_id"><option value="">Chọn giờ</option>@foreach($timeSlots as $slot)<option value="{{ $slot->id }}">{{ \Carbon\Carbon::parse($slot->start_time)->format('H:i') }}</option>@endforeach</select></div><div class="quick-field"><label><i class="bi bi-wallet2"></i>Khoảng giá</label><select name="price_max"><option value="">Mọi mức giá</option><option value="100000">Dưới 100.000đ</option><option value="150000">Dưới 150.000đ</option><option value="200000">Dưới 200.000đ</option></select></div><button class="quick-submit" type="submit">Tìm sân <i class="bi bi-arrow-right ms-1"></i></button></form>
-        @endif
-        <section class="home-shell trust-strip"><x-stat-card :value="$statistics['bookings']" suffix="+" label="Lượt đặt sân"/><x-stat-card :value="$statistics['courts']" suffix="+" label="Sân đang hoạt động"/><x-stat-card :value="$statistics['customers']" suffix="+" label="Khách hàng"/><x-stat-card :value="$statistics['rating'] ?: '—'" suffix="/5" label="Đánh giá trung bình"/></section>
-        <section class="home-section" id="featured"><div class="home-shell"><div class="section-top"><x-section-heading eyebrow="SÂN NỔI BẬT" title="Được khách hàng yêu thích" description="Những sân được cộng đồng SmashZone lựa chọn nhiều trong thời gian gần đây."/><a class="section-link" href="{{ route('courts.index') }}">Xem tất cả <i class="bi bi-arrow-right"></i></a></div>@if($featured_courts->isNotEmpty())<div class="courts-grid">@foreach($featured_courts as $court)<x-court-card :court="$court" :modal-id="'featuredCourt'.$court->id"/>@include('components.court-detail-modal',['court'=>$court,'modalId'=>'featuredCourt'.$court->id])@endforeach</div>@else<div class="text-muted">Hiện chưa có sân phù hợp.</div>@endif</div></section>
-        <section class="home-section alt"><div class="home-shell"><x-section-heading eyebrow="PHỔ BIẾN" title="Sân được đặt nhiều" description="Những lựa chọn phổ biến nhất trong cộng đồng người chơi cầu lông."/>@if($most_booked_courts->isNotEmpty())<div class="courts-grid">@foreach($most_booked_courts->take(3) as $court)<x-court-card :court="$court" :rank="$loop->iteration" :modal-id="'popularCourt'.$court->id"/>@include('components.court-detail-modal',['court'=>$court,'modalId'=>'popularCourt'.$court->id])@endforeach</div>@endif</div></section>
-        @if($promotions->isNotEmpty())<section class="home-section" id="offers"><div class="home-shell"><x-section-heading eyebrow="ƯU ĐÃI" title="Ưu đãi dành cho bạn" description="Sẵn sàng cho những trận cầu nhiều cảm hứng với các ưu đãi đang diễn ra."/><div class="promotion-grid">@foreach($promotions->take(3) as $promotion)<x-promotion-card :promotion="$promotion"/>@endforeach</div></div></section>@endif
-        @if($canBook)<section class="home-section"><div class="home-shell"><div class="booking-cta" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif><span>SMASHZONE BOOKING</span><h2>Trận đấu tiếp theo của bạn đã sẵn sàng.</h2><p>Chọn sân yêu thích và bắt đầu đặt sân chỉ trong vài phút.</p><a class="hero-primary" href="{{ route('courts.index') }}">Đặt sân ngay <i class="bi bi-arrow-right ms-2"></i></a></div></div></section>@endif
-        @if($news->isNotEmpty())<section class="home-section alt" id="news"><div class="home-shell"><x-section-heading eyebrow="CỘNG ĐỒNG" title="Tin tức & Cẩm nang cầu lông" description="Cập nhật mẹo chơi, hoạt động và những thông tin hữu ích từ SmashZone."/><div class="news-layout">@foreach($news->take(4) as $item)<x-news-card :news="$item"/>@endforeach</div></div></section>@endif
-        @if($reviews->isNotEmpty())<section class="home-section"><div class="home-shell"><x-section-heading eyebrow="TRẢI NGHIỆM" title="Khách hàng nói gì về SmashZone?" description="Những chia sẻ thật từ cộng đồng người chơi của chúng tôi."/><div class="review-grid">@foreach($reviews->take(3) as $review)<x-review-card :review="$review"/>@endforeach</div></div></section>@endif
-        <section class="home-section alt" id="why"><div class="home-shell"><x-section-heading eyebrow="SMASHZONE" title="Tại sao chọn SmashZone?" description="Một trải nghiệm đơn giản, minh bạch và sẵn sàng cho mọi trận đấu."/><div class="why-grid"><article class="why-card"><i class="why-icon bi bi-lightning-charge"></i><h3>Đặt sân nhanh</h3><p>Chọn sân và khung giờ yêu thích chỉ trong vài bước.</p></article><article class="why-card"><i class="why-icon bi bi-clock-history"></i><h3>Cập nhật thời gian thực</h3><p>Biết ngay khung giờ nào còn trống trước khi đặt.</p></article><article class="why-card"><i class="why-icon bi bi-shield-check"></i><h3>Thanh toán tiện lợi</h3><p>Quy trình thanh toán rõ ràng, nhanh chóng và an toàn.</p></article><article class="why-card"><i class="why-icon bi bi-calendar2-check"></i><h3>Quản lý dễ dàng</h3><p>Theo dõi lịch đặt sân của bạn bất cứ lúc nào.</p></article></div></div></section>
-    </main>
-    <footer class="home-footer"><div class="home-shell"><div class="footer-grid"><div><a class="footer-brand" href="{{ route('home') }}"><i class="bi bi-lightning-charge-fill"></i> SmashZone</a><p>Nền tảng đặt sân cầu lông đơn giản, nhanh chóng và tiện lợi.</p></div><div><h4>Khám phá</h4><a href="#home">Trang chủ</a><a href="{{ route('courts.index') }}">Sân cầu lông</a><a href="#offers">Khuyến mãi</a><a href="#news">Tin tức</a></div><div><h4>Hỗ trợ</h4><a href="#">Liên hệ</a><a href="#">Câu hỏi thường gặp</a><a href="#">Điều khoản</a><a href="#">Chính sách</a></div><div><h4>Liên hệ</h4><p>Hotline: 0982 949 974<br>Email: hello@smashzone.vn<br>Hà Nội, Việt Nam</p></div></div><div class="footer-bottom">© {{ now()->year }} SmashZone. All rights reserved.</div></div></footer>
-    <a class="floating-book" href="{{ $primaryRoute }}"><i class="bi {{ $canBook ? 'bi-calendar2-plus' : 'bi-speedometer2' }}"></i>{{ $primaryLabel }}</a>
-</div>
-@endsection
+    $canBook = ! Auth::check() || in_array($currentRole, ['CUSTOMER', null], true);
+?>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmashZone – Đặt sân cầu lông nhanh chóng</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand: #0ea36b;
+            --brand-dark: #0b8a5a;
+            --ink: #111827;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --surface: #ffffff;
+            --bg: #f8fafc;
+        }
 
-@push('styles')
-<style>
-.home-brand i,
-.footer-brand i {
-    background: url('{{ asset('images/logo.png') }}?v=4') center/contain no-repeat;
-    color: transparent !important;
-    overflow: hidden;
-}
-.home-brand i {
-    width: 185px;
-    height: 70px;
-    margin-right: 0;
-    border-radius: 10px;
-    box-shadow: 0 3px 14px rgba(0, 0, 0, .3);
-}
-.footer-brand i {
-    display: inline-block;
-    width: 190px;
-    height: 78px;
-    margin-right: 0;
-    border-radius: 10px;
-    vertical-align: middle;
-}
-.home-brand,
-.footer-brand {
-    font-size: 0 !important;
-}
-.court-detail-modal .modal-dialog{max-width:980px}.court-detail-modal .modal-content{position:relative;overflow:hidden;border:0;border-radius:20px;background:#fff;box-shadow:0 30px 80px rgba(6,32,44,.32)}.court-detail-modal .btn-close{position:absolute;top:16px;right:16px;z-index:5;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.94);box-shadow:0 6px 18px rgba(6,32,44,.18);opacity:1}.court-detail-modal .btn-close:hover{background:#fff;transform:rotate(90deg)}.court-detail-modal .btn-close,.court-detail-modal .btn-close:focus{transition:.25s}.court-detail-modal .modal-body{padding:0}.cdm-grid{display:grid;grid-template-columns:1.05fr 1fr;min-height:480px}.cdm-gallery{background:#0e2c3a;padding:22px}.cdm-main{position:relative;border-radius:14px;overflow:hidden;height:340px;background:#0a2230}.cdm-main img{width:100%;height:100%;object-fit:cover;transition:.4s}.cdm-fallback{height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#0b4b4d,#2acb78);color:#fff;font-size:56px}.cdm-type{position:absolute;left:14px;bottom:14px;border-radius:100px;background:rgba(6,32,44,.85);backdrop-filter:blur(8px);color:#eaffee;padding:7px 12px;font-size:12px;font-weight:700}.cdm-thumbs{display:flex;gap:10px;margin-top:12px;overflow-x:auto;padding-bottom:2px}.cdm-thumb{flex:0 0 86px;height:64px;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:transparent;opacity:.62;transition:.2s}.cdm-thumb img{width:100%;height:100%;object-fit:cover}.cdm-thumb.active,.cdm-thumb:hover{border-color:#34e699;opacity:1}.cdm-info{padding:30px 28px 8px;overflow-y:auto}.cdm-kicker{display:inline-block;margin-bottom:8px;color:#00b969;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase}.cdm-info h2{margin:0 0 12px;color:#10293a;font-size:26px;letter-spacing:-1px;line-height:1.2;font-weight:800}.cdm-rating{display:flex;align-items:center;gap:7px;margin-bottom:18px}.cdm-rating .stars{color:#f6b725;font-size:13px}.cdm-rating>span{color:#10293a;font-weight:800;font-size:14px}.cdm-rating small{color:#849199;font-size:12px;font-weight:600}.cdm-contact{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:12px;background:#f4f8f6}.cdm-contact p{display:flex;gap:10px;margin:0;color:#536771;font-size:13px;line-height:1.5}.cdm-contact i{margin-top:2px;color:#00b969;font-size:14px}.cdm-contact strong{color:#203a4b}.cdm-contact span{flex:1}.cdm-amenities h3,.cdm-desc h3{display:flex;align-items:center;gap:8px;margin:22px 0 10px;color:#10293a;font-size:14px;font-weight:800}.cdm-amenities h3:before,.cdm-desc h3:before{content:'';width:4px;height:16px;border-radius:3px;background:#08d67c}.cdm-amenities>div{display:flex;flex-wrap:wrap;gap:7px}.cdm-amenities span{display:inline-flex;align-items:center;gap:5px;border-radius:100px;background:#edf9f2;color:#3e6d5c;padding:6px 10px;font-size:12px;font-weight:700}.cdm-amenities i{color:#00b969;font-size:12px}.cdm-desc p{margin:0;color:#5b6f7a;font-size:13px;line-height:1.7}.cdm-footer{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 28px;border-top:1px solid #edf1ef;background:#fff}.cdm-footer small{display:block;color:#89969c;font-size:11px;font-weight:800;letter-spacing:.4px}.cdm-footer strong{display:block;color:#00ad63;font-size:24px;letter-spacing:-.5px}.cdm-footer em{color:#89969c;font-size:12px;font-style:normal;font-weight:600}.cdm-footer .btn{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:13px 22px;background:#08d67c;color:#05311e;font-weight:800;font-size:14px;box-shadow:0 10px 22px rgba(8,214,124,.35)}.cdm-footer .btn:hover{background:#05b968;color:#fff}.cdm-footer .btn i{transition:.2s}.cdm-footer .btn:hover i{transform:translateX(3px)}
-@media(max-width:767px){.cdm-grid{grid-template-columns:1fr;min-height:0}.cdm-main{height:230px}.cdm-info{padding:22px 18px 6px}.cdm-footer{flex-direction:column;padding:14px 18px 18px}.cdm-footer .btn{width:100%;justify-content:center}}
-@media(max-width:991px){.home-menu.open{position:absolute;top:62px;left:14px;right:14px;display:flex;flex-direction:column;gap:0;padding:10px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:#0b2a3a;box-shadow:0 16px 35px rgba(0,0,0,.25)}.home-menu.open a{padding:11px 10px}}
-</style>
-@endpush
+        * { box-sizing: border-box; }
 
-@push('scripts')
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        .container-wide { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
+
+        /* NAV */
+        .nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 50;
+            padding: 16px 0;
+            transition: background .25s, box-shadow .25s, padding .25s;
+        }
+        .nav.scrolled {
+            background: rgba(8, 34, 51, .94);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .18);
+            padding: 10px 0;
+        }
+        .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+        .brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 21px; letter-spacing: -.5px; }
+        .brand img { height: 44px; border-radius: 10px; }
+        .nav-links { display: flex; gap: 28px; }
+        .nav-links a { color: rgba(255, 255, 255, .88); font-size: 14px; font-weight: 600; transition: color .2s; }
+        .nav-links a:hover { color: #5eead4; }
+        .nav-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-pill {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 11px 20px; border-radius: 999px; font-weight: 700; font-size: 14px;
+            border: 0; cursor: pointer; transition: all .2s; white-space: nowrap;
+        }
+        .btn-primary { background: var(--brand); color: #fff; }
+        .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
+        .btn-ghost { background: rgba(255, 255, 255, .12); color: #fff; }
+        .btn-ghost:hover { background: rgba(255, 255, 255, .22); }
+        .nav-user { color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600; }
+
+        /* HERO */
+        .hero {
+            position: relative;
+            min-height: 640px;
+            display: flex;
+            align-items: center;
+            padding: 150px 0 120px;
+            color: #fff;
+            background: #0b2f45 center/cover no-repeat;
+            isolation: isolate;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0; z-index: -1;
+            background: linear-gradient(90deg, rgba(4, 23, 35, .93), rgba(5, 30, 44, .72) 55%, rgba(5, 30, 44, .35));
+        }
+        .hero h1 { font-size: clamp(38px, 5.4vw, 60px); line-height: 1.08; font-weight: 800; letter-spacing: -2px; margin: 0 0 18px; }
+        .hero h1 span { color: #4ade80; }
+        .hero p { font-size: 17px; line-height: 1.7; color: #d5e3e8; max-width: 560px; margin: 0; }
+        .hero-actions { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+
+        .quick-booking {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+            padding: 20px;
+            margin-top: 40px;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(2, 24, 35, .28);
+        }
+        .quick-field label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px; }
+        .quick-field label i { color: var(--brand); margin-right: 5px; }
+        .quick-field input, .quick-field select {
+            width: 100%; height: 46px; padding: 0 13px;
+            border: 1px solid var(--line); border-radius: 10px;
+            background: #f9fafb; font: inherit; font-size: 14px; color: var(--ink);
+            outline: none; transition: border .2s, box-shadow .2s;
+        }
+        .quick-field input:focus, .quick-field select:focus {
+            border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14, 163, 107, .12); background: #fff;
+        }
+
+        /* SECTIONS */
+        .section { padding: 72px 0; }
+        .section-alt { background: #fff; }
+        .section-head { max-width: 640px; margin-bottom: 34px; }
+        .eyebrow { display: inline-block; color: var(--brand); font-size: 12px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; margin-bottom: 8px; }
+        .section-head h2 { font-size: 32px; line-height: 1.2; font-weight: 800; letter-spacing: -1px; margin: 0 0 10px; }
+        .section-head p { color: var(--muted); font-size: 15px; line-height: 1.65; margin: 0; }
+        .section-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 34px; }
+        .section-link { color: var(--brand); font-size: 14px; font-weight: 700; white-space: nowrap; }
+        .section-link:hover { color: var(--brand-dark); }
+
+        .stats {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            padding: 44px 0 8px;
+        }
+        .stat { text-align: center; padding: 10px 20px; }
+        .stat strong { display: block; font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--ink); }
+        .stat span { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+        /* COURT CARDS */
+        .courts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .pro-court-card {
+            background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+            transition: transform .25s, box-shadow .25s;
+        }
+        .pro-court-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(15, 23, 42, .1); }
+        .pro-court-image { position: relative; height: 210px; overflow: hidden; background: #e2e8f0; }
+        .pro-court-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+        .pro-court-card:hover .pro-court-image img { transform: scale(1.05); }
+        .court-image-fallback { height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #0b4b4d, #2acb78); color: #fff; font-size: 44px; }
+        .court-tag, .court-rank { position: absolute; top: 12px; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 800; }
+        .court-tag { right: 12px; background: #fff; color: var(--brand-dark); }
+        .court-rank { left: 12px; background: var(--ink); color: #fff; }
+        .pro-court-body { padding: 18px; }
+        .court-rating { font-size: 13px; font-weight: 700; color: #f59e0b; }
+        .court-rating small { color: #94a3b8; font-weight: 600; }
+        .pro-court-body h3 { margin: 8px 0 6px; font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+        .court-location { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .court-location i { color: var(--brand); }
+        .court-amenities-mini { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+        .court-amenities-mini span { background: #f0fdf4; color: #15803d; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; }
+        .court-card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
+        .court-card-bottom small { display: block; color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .court-card-bottom strong { color: var(--brand); font-size: 17px; font-weight: 800; }
+        .court-card-bottom strong span { color: #94a3b8; font-size: 11px; font-weight: 500; }
+        .court-card-bottom button { background: none; border: 0; color: #0f172a; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .court-card-bottom button:hover { color: var(--brand); }
+
+        /* PROMOTIONS */
+        .promotion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .promotion-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+        .promotion-visual { height: 130px; display: flex; align-items: flex-start; padding: 14px; background: linear-gradient(135deg, #053848, #00aa68); }
+        .promotion-visual span { background: #fbbf24; color: #78350f; font-size: 11px; font-weight: 800; padding: 5px 9px; border-radius: 6px; }
+        .promotion-card > div:last-child { padding: 18px; }
+        .promotion-card small, .news-card small { color: #94a3b8; font-size: 12px; font-weight: 600; }
+        .promotion-card h3 { margin: 8px 0; font-size: 17px; font-weight: 700; }
+        .promotion-card p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 14px; }
+        .promotion-card a, .news-card a { color: var(--brand); font-size: 13px; font-weight: 700; }
+
+        /* CTA */
+        .booking-cta {
+            position: relative; overflow: hidden; border-radius: 20px; padding: 56px 60px;
+            color: #fff; background: #0b2f45 center/cover no-repeat; isolation: isolate;
+        }
+        .booking-cta::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(4, 24, 37, .95), rgba(4, 24, 37, .6)); }
+        .booking-cta span { color: #4ade80; font-size: 12px; font-weight: 800; letter-spacing: 1px; }
+        .booking-cta h2 { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin: 10px 0; }
+        .booking-cta p { color: #d5e3e8; line-height: 1.7; max-width: 560px; }
+        .booking-cta .btn-pill { margin-top: 8px; }
+
+        /* NEWS */
+        .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .news-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+        .news-image { height: 170px; display: grid; place-items: center; background: #dcfce7; color: #15803d; font-size: 34px; }
+        .news-image img { width: 100%; height: 100%; object-fit: cover; }
+        .news-card > div:last-child { padding: 18px; }
+        .news-card h3 { margin: 8px 0; font-size: 16px; font-weight: 700; line-height: 1.4; }
+        .news-card p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 14px; }
+
+        /* REVIEWS */
+        .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .review-card-pro { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+        .review-card-top { display: flex; align-items: center; gap: 10px; }
+        .review-avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: #dcfce7; color: #15803d; font-weight: 800; }
+        .review-card-top strong, .review-card-top small { display: block; font-size: 13px; }
+        .review-card-top small { color: var(--muted); margin-top: 2px; }
+        .review-card-top > span { margin-left: auto; align-self: flex-start; color: #94a3b8; font-size: 11px; }
+        .review-stars { margin: 16px 0 10px; color: #fbbf24; font-size: 13px; }
+        .review-card-pro p { margin: 0; color: #475569; font-size: 13px; line-height: 1.7; }
+
+        /* WHY */
+        .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .why-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
+        .why-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 11px; background: #dcfce7; color: #15803d; font-size: 21px; margin-bottom: 16px; }
+        .why-card h3 { font-size: 15px; font-weight: 700; margin: 0; }
+        .why-card p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0; }
+
+        /* FOOTER */
+        .footer { background: #082536; color: #d5e2e5; padding: 56px 0 24px; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 36px; }
+        .footer-brand { color: #fff; font-size: 20px; font-weight: 800; }
+        .footer-brand img { height: 40px; border-radius: 8px; margin-right: 8px; vertical-align: middle; }
+        .footer-grid p, .footer-grid a { display: block; color: #a8bdc4; font-size: 13px; line-height: 1.7; margin: 12px 0; }
+        .footer-grid h4 { color: #fff; font-size: 13px; font-weight: 800; margin: 4px 0 14px; }
+        .footer-bottom { margin-top: 34px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .12); color: #8ca4ae; font-size: 12px; }
+
+        .floating-book {
+            position: fixed; right: 22px; bottom: 22px; z-index: 40;
+            background: var(--brand); color: #fff; padding: 13px 18px; border-radius: 999px;
+            font-size: 14px; font-weight: 700; box-shadow: 0 12px 28px rgba(14, 163, 107, .4);
+        }
+        .floating-book:hover { background: var(--brand-dark); color: #fff; }
+
+        /* COURT DETAIL MODAL */
+        .court-detail-modal .modal-dialog { max-width: 980px; }
+        .court-detail-modal .modal-content { position: relative; overflow: hidden; border: 0; border-radius: 20px; box-shadow: 0 30px 80px rgba(6, 32, 44, .32); }
+        .court-detail-modal .btn-close { position: absolute; top: 16px; right: 16px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; background: #fff; box-shadow: 0 6px 18px rgba(6, 32, 44, .18); opacity: 1; }
+        .court-detail-modal .btn-close:hover { transform: rotate(90deg); }
+        .court-detail-modal .btn-close, .court-detail-modal .btn-close:focus { transition: .25s; }
+        .court-detail-modal .modal-body { padding: 0; }
+        .cdm-grid { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 480px; }
+        .cdm-gallery { background: #0e2c3a; padding: 22px; }
+        .cdm-main { position: relative; border-radius: 14px; overflow: hidden; height: 340px; background: #0a2230; }
+        .cdm-main img { width: 100%; height: 100%; object-fit: cover; transition: .4s; }
+        .cdm-fallback { height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #0b4b4d, #2acb78); color: #fff; font-size: 56px; }
+        .cdm-type { position: absolute; left: 14px; bottom: 14px; border-radius: 100px; background: rgba(6, 32, 44, .85); color: #eaffee; padding: 7px 12px; font-size: 12px; font-weight: 700; }
+        .cdm-thumbs { display: flex; gap: 10px; margin-top: 12px; overflow-x: auto; padding-bottom: 2px; }
+        .cdm-thumb { flex: 0 0 86px; height: 64px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: transparent; opacity: .62; transition: .2s; cursor: pointer; }
+        .cdm-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .cdm-thumb.active, .cdm-thumb:hover { border-color: #34e699; opacity: 1; }
+        .cdm-info { padding: 30px 28px 8px; overflow-y: auto; }
+        .cdm-kicker { display: inline-block; margin-bottom: 8px; color: var(--brand); font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+        .cdm-info h2 { margin: 0 0 12px; color: var(--ink); font-size: 26px; letter-spacing: -1px; line-height: 1.2; font-weight: 800; }
+        .cdm-rating { display: flex; align-items: center; gap: 7px; margin-bottom: 18px; }
+        .cdm-rating .stars { color: #f6b725; font-size: 13px; }
+        .cdm-rating > span { color: var(--ink); font-weight: 800; font-size: 14px; }
+        .cdm-rating small { color: #94a3b8; font-size: 12px; font-weight: 600; }
+        .cdm-contact { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 12px; background: #f4f8f6; }
+        .cdm-contact p { display: flex; gap: 10px; margin: 0; color: #536771; font-size: 13px; line-height: 1.5; }
+        .cdm-contact i { margin-top: 2px; color: var(--brand); font-size: 14px; }
+        .cdm-contact strong { color: #203a4b; }
+        .cdm-contact span { flex: 1; }
+        .cdm-amenities h3, .cdm-desc h3 { display: flex; align-items: center; gap: 8px; margin: 22px 0 10px; color: var(--ink); font-size: 14px; font-weight: 800; }
+        .cdm-amenities h3::before, .cdm-desc h3::before { content: ''; width: 4px; height: 16px; border-radius: 3px; background: #08d67c; }
+        .cdm-amenities > div { display: flex; flex-wrap: wrap; gap: 7px; }
+        .cdm-amenities span { display: inline-flex; align-items: center; gap: 5px; border-radius: 100px; background: #edf9f2; color: #3e6d5c; padding: 6px 10px; font-size: 12px; font-weight: 700; }
+        .cdm-amenities i { color: var(--brand); font-size: 12px; }
+        .cdm-desc p { margin: 0; color: #5b6f7a; font-size: 13px; line-height: 1.7; }
+        .cdm-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 28px; border-top: 1px solid #edf1ef; background: #fff; }
+        .cdm-footer small { display: block; color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: .4px; }
+        .cdm-footer strong { display: block; color: var(--brand); font-size: 24px; letter-spacing: -.5px; }
+        .cdm-footer em { color: #94a3b8; font-size: 12px; font-style: normal; font-weight: 600; }
+        .cdm-footer .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; padding: 13px 22px; background: var(--brand); color: #fff; font-weight: 800; font-size: 14px; box-shadow: 0 10px 22px rgba(14, 163, 107, .35); }
+        .cdm-footer .btn:hover { background: var(--brand-dark); }
+
+        /* RESPONSIVE */
+        @media (max-width: 991px) {
+            .nav-links { display: none; }
+            .cdm-grid { grid-template-columns: 1fr; min-height: 0; }
+            .cdm-main { height: 230px; }
+            .cdm-info { padding: 22px 18px 6px; }
+            .cdm-footer { flex-direction: column; padding: 14px 18px 18px; }
+            .cdm-footer .btn { width: 100%; justify-content: center; }
+            .quick-booking { grid-template-columns: repeat(2, 1fr); }
+            .courts-grid, .promotion-grid, .news-grid, .review-grid { grid-template-columns: repeat(2, 1fr); }
+            .why-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .hero { min-height: 580px; padding: 130px 0 100px; }
+            .hero h1 { font-size: 36px; letter-spacing: -1px; }
+            .quick-booking { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+            .courts-grid, .promotion-grid, .news-grid, .review-grid { grid-template-columns: 1fr; }
+            .why-grid { grid-template-columns: 1fr; }
+            .booking-cta { padding: 38px 26px; }
+            .booking-cta h2 { font-size: 27px; }
+            .footer-grid { grid-template-columns: 1fr 1fr; gap: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav" id="nav">
+    <div class="container-wide nav-inner">
+        <a class="brand" href="{{ route('home') }}">
+            <img src="{{ asset('images/logo.png') }}" alt="SmashZone logo">
+        </a>
+        <nav class="nav-links">
+            <a href="#home">Trang chủ</a>
+            <a href="{{ route('courts.index') }}">Sân cầu lông</a>
+            <a href="#offers">Khuyến mãi</a>
+            <a href="#news">Tin tức</a>
+            <a href="#why">Giới thiệu</a>
+        </nav>
+        <div class="nav-actions">
+            @auth
+                <span class="nav-user">{{ Str::limit(Auth::user()->name, 16) }}</span>
+            @else
+                <a class="nav-user" href="{{ route('login') }}">Đăng nhập</a>
+            @endauth
+            <a class="btn-pill btn-primary" href="{{ $primaryRoute }}">{{ $primaryLabel }}</a>
+        </div>
+    </div>
+</header>
+
+<main id="home">
+    <!-- HERO -->
+    <section class="hero" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif>
+        <div class="container-wide">
+            <h1>Đặt sân cầu lông<br><span>nhanh chóng và tiện lợi.</span></h1>
+            <p>Tìm sân, chọn khung giờ yêu thích và đặt sân chỉ trong vài phút cùng SmashZone.</p>
+            <div class="hero-actions">
+                <a class="btn-pill btn-primary" href="{{ $primaryRoute }}">{{ $primaryLabel }} <i class="bi bi-arrow-right"></i></a>
+                <a class="btn-pill btn-ghost" href="#featured">Khám phá sân</a>
+            </div>
+
+            @if($canBook)
+            <form class="quick-booking" action="{{ route('courts.index') }}" method="GET">
+                <div class="quick-field">
+                    <label><i class="bi bi-geo-alt"></i>Khu vực</label>
+                    <input name="keyword" placeholder="Tên sân hoặc địa điểm">
+                </div>
+                <div class="quick-field">
+                    <label><i class="bi bi-calendar3"></i>Ngày</label>
+                    <input type="date" name="booking_date" min="{{ now()->toDateString() }}">
+                </div>
+                <div class="quick-field">
+                    <label><i class="bi bi-clock"></i>Khung giờ</label>
+                    <select name="time_slot_id">
+                        <option value="">Chọn giờ</option>
+                        @foreach($timeSlots as $slot)
+                            <option value="{{ $slot->id }}">{{ \Carbon\Carbon::parse($slot->start_time)->format('H:i') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="quick-field">
+                    <label><i class="bi bi-wallet2"></i>Khoảng giá</label>
+                    <select name="price_max">
+                        <option value="">Mọi mức giá</option>
+                        <option value="100000">Dưới 100.000đ</option>
+                        <option value="150000">Dưới 150.000đ</option>
+                        <option value="200000">Dưới 200.000đ</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-pill btn-primary">Tìm sân <i class="bi bi-arrow-right"></i></button>
+            </form>
+            @endif
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <div class="container-wide">
+        <div class="stats">
+            <div class="stat"><strong data-counter="{{ $statistics['bookings'] }}" data-suffix="+">{{ $statistics['bookings'] }}+</strong><span>Lượt đặt sân</span></div>
+            <div class="stat"><strong data-counter="{{ $statistics['courts'] }}" data-suffix="+">{{ $statistics['courts'] }}+</strong><span>Sân hoạt động</span></div>
+            <div class="stat"><strong data-counter="{{ $statistics['customers'] }}" data-suffix="+">{{ $statistics['customers'] }}+</strong><span>Khách hàng</span></div>
+            <div class="stat"><strong>{{ $statistics['rating'] ?: '—' }}</strong><span>Đánh giá trung bình</span></div>
+        </div>
+    </div>
+
+    <!-- FEATURED COURTS -->
+    <section class="section" id="featured">
+        <div class="container-wide">
+            <div class="section-top">
+                <div class="section-head" style="margin-bottom:0;">
+                    <span class="eyebrow">Sân nổi bật</span>
+                    <h2>Được khách hàng yêu thích</h2>
+                    <p>Những sân được cộng đồng SmashZone lựa chọn nhiều nhất.</p>
+                </div>
+                <a class="section-link" href="{{ route('courts.index') }}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+            </div>
+            @if($featured_courts->isNotEmpty())
+                <div class="courts-grid">
+                    @foreach($featured_courts as $court)
+                        <x-court-card :court="$court" :modal-id="'featuredCourt'.$court->id"/>
+                        @include('components.court-detail-modal', ['court' => $court, 'modalId' => 'featuredCourt'.$court->id])
+                    @endforeach
+                </div>
+            @else
+                <p class="text-muted">Hiện chưa có sân phù hợp.</p>
+            @endif
+        </div>
+    </section>
+
+    <!-- PROMOTIONS -->
+    @if($promotions->isNotEmpty())
+    <section class="section section-alt" id="offers">
+        <div class="container-wide">
+            <div class="section-head">
+                <span class="eyebrow">Ưu đãi</span>
+                <h2>Ưu đãi dành cho bạn</h2>
+                <p>Sẵn sàng cho những trận cầu nhiều cảm hứng với các ưu đãi đang diễn ra.</p>
+            </div>
+            <div class="promotion-grid">
+                @foreach($promotions->take(3) as $promotion)
+                    <x-promotion-card :promotion="$promotion"/>
+                @endforeach
+            </div>
+        </div>
+    </section>
+    @endif
+
+    <!-- BOOKING CTA -->
+    @if($canBook)
+    <section class="section">
+        <div class="container-wide">
+            <div class="booking-cta" @if($heroImage) style="background-image:url('{{ $heroImage }}')" @endif>
+                <span>SMASHZONE BOOKING</span>
+                <h2>Trận đấu tiếp theo của bạn đã sẵn sàng.</h2>
+                <p>Chọn sân yêu thích và bắt đầu đặt sân chỉ trong vài phút.</p>
+                <a class="btn-pill btn-primary" href="{{ route('courts.index') }}">Đặt sân ngay <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+    @endif
+
+    <!-- NEWS -->
+    @if($news->isNotEmpty())
+    <section class="section section-alt" id="news">
+        <div class="container-wide">
+            <div class="section-head">
+                <span class="eyebrow">Cộng đồng</span>
+                <h2>Tin tức & Cẩm nang cầu lông</h2>
+                <p>Cập nhật mẹo chơi, hoạt động và thông tin hữu ích từ SmashZone.</p>
+            </div>
+            <div class="news-grid">
+                @foreach($news->take(3) as $item)
+                    <x-news-card :news="$item"/>
+                @endforeach
+            </div>
+        </div>
+    </section>
+    @endif
+
+    <!-- REVIEWS -->
+    @if($reviews->isNotEmpty())
+    <section class="section">
+        <div class="container-wide">
+            <div class="section-head">
+                <span class="eyebrow">Trải nghiệm</span>
+                <h2>Khách hàng nói gì về SmashZone?</h2>
+                <p>Những chia sẻ thật từ cộng đồng người chơi của chúng tôi.</p>
+            </div>
+            <div class="review-grid">
+                @foreach($reviews->take(3) as $review)
+                    <x-review-card :review="$review"/>
+                @endforeach
+            </div>
+        </div>
+    </section>
+    @endif
+
+    <!-- WHY -->
+    <section class="section section-alt" id="why">
+        <div class="container-wide">
+            <div class="section-head">
+                <span class="eyebrow">SmashZone</span>
+                <h2>Tại sao chọn SmashZone?</h2>
+                <p>Một trải nghiệm đơn giản, minh bạch và sẵn sàng cho mọi trận đấu.</p>
+            </div>
+            <div class="why-grid">
+                <div class="why-card"><i class="why-icon bi bi-lightning-charge"></i><h3>Đặt sân nhanh</h3><p>Chọn sân và khung giờ yêu thích chỉ trong vài bước.</p></div>
+                <div class="why-card"><i class="why-icon bi bi-clock-history"></i><h3>Cập nhật thời gian thực</h3><p>Biết ngay khung giờ nào còn trống trước khi đặt.</p></div>
+                <div class="why-card"><i class="why-icon bi bi-shield-check"></i><h3>Thanh toán tiện lợi</h3><p>Quy trình thanh toán rõ ràng, nhanh chóng và an toàn.</p></div>
+                <div class="why-card"><i class="why-icon bi bi-calendar2-check"></i><h3>Quản lý dễ dàng</h3><p>Theo dõi lịch đặt sân của bạn bất cứ lúc nào.</p></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container-wide">
+        <div class="footer-grid">
+            <div>
+                <a class="footer-brand" href="{{ route('home') }}">
+                    <img src="{{ asset('images/logo.png') }}" alt="SmashZone logo">
+                </a>
+                <p>Nền tảng đặt sân cầu lông đơn giản, nhanh chóng và tiện lợi.</p>
+            </div>
+            <div>
+                <h4>Khám phá</h4>
+                <a href="#home">Trang chủ</a>
+                <a href="{{ route('courts.index') }}">Sân cầu lông</a>
+                <a href="#offers">Khuyến mãi</a>
+                <a href="#news">Tin tức</a>
+            </div>
+            <div>
+                <h4>Hỗ trợ</h4>
+                <a href="#">Liên hệ</a>
+                <a href="#">Câu hỏi thường gặp</a>
+                <a href="#">Điều khoản</a>
+                <a href="#">Chính sách</a>
+            </div>
+            <div>
+                <h4>Liên hệ</h4>
+                <p>Hotline: 0982 949 974<br>Email: hello@smashzone.vn<br>Hà Nội, Việt Nam</p>
+            </div>
+        </div>
+        <div class="footer-bottom">© {{ now()->year }} SmashZone. All rights reserved.</div>
+    </div>
+</footer>
+
+<a class="floating-book" href="{{ $primaryRoute }}"><i class="bi {{ $canBook ? 'bi-calendar2-plus' : 'bi-speedometer2' }}"></i> {{ $primaryLabel }}</a>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+@stack('scripts')
 <script>
-const nav=document.getElementById('homeNav');window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20),{passive:true});
-document.querySelectorAll('[data-counter]').forEach(el=>{const target=Number(el.dataset.counter);if(!Number.isFinite(target)||target===0)return;const suffix=el.dataset.suffix;let started=false;new IntersectionObserver(entries=>{if(!entries[0].isIntersecting||started)return;started=true;const start=performance.now(),duration=700;const tick=now=>{el.textContent=Math.round(target*Math.min((now-start)/duration,1)).toLocaleString('vi-VN')+suffix;if(now-start<duration)requestAnimationFrame(tick)};requestAnimationFrame(tick)}).observe(el)});
-</script>
-@endpush
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 24), { passive: true });
 
+    document.querySelectorAll('[data-counter]').forEach((el) => {
+        const target = Number(el.dataset.counter);
+        if (!Number.isFinite(target) || target === 0) return;
+        const suffix = el.dataset.suffix || '';
+        let started = false;
+        new IntersectionObserver((entries) => {
+            if (!entries[0].isIntersecting || started) return;
+            started = true;
+            const start = performance.now();
+            const duration = 700;
+            const tick = (now) => {
+                const progress = Math.min((now - start) / duration, 1);
+                el.textContent = Math.round(target * progress).toLocaleString('vi-VN') + suffix;
+                if (progress < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        }).observe(el);
+    });
+</script>
+</body>
+</html>

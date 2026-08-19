@@ -19,7 +19,7 @@ class CourtPriceSeeder extends Seeder
             foreach ($timeSlots as $timeSlot) {
                 // Different pricing for different courts and time slots
                 $basePrice = 100000; // Base price in VND
-                
+
                 // Peak hours (18-23) cost more
                 $hour = (int) explode(':', $timeSlot->start_time)[0];
                 if ($hour >= 18) {
@@ -37,14 +37,19 @@ class CourtPriceSeeder extends Seeder
 
                 $price = $basePrice * $multiplier;
 
-                CourtPrice::create([
-                    'court_id' => $court->id,
-                    'time_slot_id' => $timeSlot->id,
-                    'price' => $price,
-                    'effective_from' => Carbon::now()->startOfDay(),
-                    'effective_to' => null,
-                    'status' => 'ACTIVE',
-                ]);
+                CourtPrice::updateOrCreate(
+                    [
+                        'court_id' => $court->id,
+                        'time_slot_id' => $timeSlot->id,
+                        'day_type' => 'WEEKDAY',
+                    ],
+                    [
+                        'price' => $price,
+                        'effective_from' => Carbon::now()->startOfDay(),
+                        'effective_to' => null,
+                        'status' => 'ACTIVE',
+                    ]
+                );
             }
         }
     }
