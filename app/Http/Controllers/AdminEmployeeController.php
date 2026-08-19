@@ -10,7 +10,7 @@ use Illuminate\Validation\Rules\Password;
 
 class AdminEmployeeController extends Controller
 {
-    public const PERMISSIONS = ['employee.dashboard' => 'Xem dashboard vận hành', 'bookings.checkout' => 'Check-out khách hàng', 'refunds.manage' => 'Xử lý hủy / hoàn tiền', 'courts.status.manage' => 'Quản lý trạng thái sân'];
+    public const PERMISSIONS = ['employee.dashboard' => 'Xem dashboard vận hành', 'bookings.manage' => 'Quản lý booking', 'bookings.checkout' => 'Check-out khách hàng', 'refunds.manage' => 'Xử lý hủy / hoàn tiền', 'courts.status.manage' => 'Quản lý trạng thái sân'];
 
     public function index(Request $request)
     {
