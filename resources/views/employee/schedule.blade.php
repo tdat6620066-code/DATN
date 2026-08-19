@@ -60,6 +60,36 @@
         font-weight: 800;
         color: #153443;
     }
+    .schedule-datepicker {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+    .schedule-datepicker i {
+        position: absolute;
+        left: 12px;
+        z-index: 1;
+        pointer-events: none;
+        color: #08b96b;
+        font-size: 15px;
+    }
+    .schedule-datepicker input[type="date"] {
+        height: 38px;
+        padding: 0 12px 0 36px;
+        border: 1px solid #dbe5e1;
+        border-radius: 9px;
+        background: #fff;
+        color: #153443;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        outline: none;
+    }
+    .schedule-datepicker input[type="date"]:focus {
+        border-color: #08b96b;
+        box-shadow: 0 0 0 3px rgba(8, 185, 107, .12);
+    }
     .schedule-wrap {
         overflow-x: auto;
         border: 1px solid #dfe8e4;
@@ -200,6 +230,11 @@
         <a class="{{ $mode === 'month' ? 'active' : '' }}" href="{{ route('employee.schedule', ['mode' => 'month', 'date' => $date->toDateString()]) }}">Tháng</a>
     </div>
 
+    <div class="schedule-datepicker">
+        <i class="bi bi-calendar3"></i>
+        <input type="date" id="scheduleDateInput" value="{{ $date->toDateString() }}">
+    </div>
+
     <div class="schedule-nav">
         @if($mode === 'day')
             <a href="{{ route('employee.schedule', ['mode' => 'day', 'date' => $date->copy()->subDay()->toDateString()]) }}"><i class="bi bi-chevron-left"></i></a>
@@ -271,3 +306,13 @@
     <span><i class="legend-dot" style="background:#64748b"></i>Đã hoàn thành</span>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.getElementById('scheduleDateInput')?.addEventListener('change', function () {
+        if (this.value) {
+            window.location.href = "{{ route('employee.schedule') }}?mode={{ $mode }}&date=" + this.value;
+        }
+    });
+</script>
+@endpush
