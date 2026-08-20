@@ -1,6 +1,6 @@
 @php
     $minimumPrice = $court->prices->min('price') ?? 0;
-    $image = $court->images->first()?->image;
+    $image = $court->images->first()?->url;
     $rating = $court->approved_rating ? number_format($court->approved_rating, 1) : null;
 @endphp
 <article class="pro-court-card">

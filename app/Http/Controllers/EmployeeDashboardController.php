@@ -14,8 +14,6 @@ class EmployeeDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless($request->user()->hasPermission('employee.dashboard'), 403);
-
         $todayBookingsQuery = Booking::query()->whereHas(
             'bookingDetails',
             fn ($query) => $query->whereDate('booking_date', today())

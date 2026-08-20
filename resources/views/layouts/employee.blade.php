@@ -18,14 +18,18 @@
         <a class="staff-logo" href="{{ route('employee.dashboard') }}"><img src="{{ asset('images/logo.png') }}?v=4" alt="SmashZone"></a>
         <div class="staff-section-label">VẬN HÀNH</div>
         <nav class="staff-nav">
-            @if(Auth::user()->hasPermission('employee.dashboard'))
             <a class="{{ request()->routeIs('employee.dashboard') ? 'active' : '' }}" href="{{ route('employee.dashboard') }}"><i class="bi bi-grid-1x2"></i>Tổng quan</a>
+            @if(Auth::user()->hasPermission('bookings.view'))
+            <a class="{{ request()->routeIs('employee.bookings.*') ? 'active' : '' }}" href="{{ route('employee.bookings.index') }}"><i class="bi bi-calendar3"></i>Lịch sân & đơn đặt</a>
             @endif
             <a class="{{ request()->routeIs('employee.schedule') ? 'active' : '' }}" href="{{ route('employee.schedule') }}"><i class="bi bi-calendar3"></i>Lịch sân</a>
             @if(Auth::user()->hasPermission('courts.status.manage'))
             <a class="{{ request()->routeIs('employee.courts.*') ? 'active' : '' }}" href="{{ route('employee.courts.index') }}"><i class="bi bi-columns-gap"></i>Quản lý sân</a>
             @endif
         </nav>
+        @if(Auth::user()->hasPermission('incidents.manage'))
+        <div class="staff-section-label">SỰ CỐ</div><nav class="staff-nav"><a class="{{ request()->routeIs('employee.incidents.*') ? 'active' : '' }}" href="{{ route('employee.incidents.index') }}"><i class="bi bi-exclamation-triangle"></i>Báo cáo sự cố</a></nav>
+        @endif
         @if(Auth::user()->hasPermission('refunds.manage'))
         <div class="staff-section-label">KHÁCH HÀNG</div>
         <nav class="staff-nav">

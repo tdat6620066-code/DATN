@@ -34,7 +34,7 @@ body{background:#f4f7f6}.employee-dashboard{color:#123044}.employee-hero{positio
                     <div class="booking-customer"><strong>{{ $booking->user->name }}</strong><small>{{ $booking->booking_code }}</small></div>
                     <div class="booking-court">{{ $detail?->court?->name ?? '—' }}<small>{{ $detail?->timeSlot?->name ?? 'Chưa có giờ' }}</small></div>
                     <span class="status-chip {{ $booking->status === 'CHECKED_IN' ? 'checked' : '' }}">{{ $booking->status }}</span>
-                    <div>@if($booking->status === 'CHECKED_IN')<form method="POST" action="{{ route('bookings.checkout', $booking) }}">@csrf<button class="checkout-btn" onclick="return confirm('Xác nhận khách kết thúc sử dụng sân?')">Check-out</button></form>@else<span class="text-muted small">—</span>@endif</div>
+                    <div>@if($booking->status === 'CHECKED_IN' && Auth::user()->hasPermission('bookings.checkout'))<form method="POST" action="{{ route('employee.bookings.complete', $booking) }}">@csrf<button class="checkout-btn" onclick="return confirm('Xác nhận khách kết thúc sử dụng sân?')">Check-out</button></form>@else<span class="text-muted small">—</span>@endif</div>
                 </div>
             @empty
                 <div class="empty-state"><i class="bi bi-calendar-x fs-3 d-block mb-2"></i>Chưa có booking hôm nay.</div>
@@ -42,15 +42,15 @@ body{background:#f4f7f6}.employee-dashboard{color:#123044}.employee-hero{positio
         </section>
 
         <section class="dashboard-card">
-            <header class="dashboard-card-head"><h2>Hoàn tiền cần xử lý</h2><a href="{{ route('employee.refund-requests.index') }}">Xem tất cả →</a></header>
+            <header class="dashboard-card-head"><h2>Hoàn tiền cần xử lý</h2>@if(Auth::user()->hasPermission('refunds.manage'))<a href="{{ route('employee.refund-requests.index') }}">Xem tất cả →</a>@endif</header>
             @forelse($refundRequests as $item)
-                <div class="refund-item"><div class="refund-top"><strong>{{ $item->requester->name }}</strong><span>{{ number_format($item->amount) }}đ</span></div><p>{{ Str::limit($item->reason, 75) }}</p><a href="{{ route('employee.refund-requests.show', $item) }}">Mở yêu cầu #{{ $item->id }} →</a></div>
+                <div class="refund-item"><div class="refund-top"><strong>{{ $item->requester->name }}</strong><span>{{ number_format($item->amount) }}đ</span></div><p>{{ Str::limit($item->reason, 75) }}</p>@if(Auth::user()->hasPermission('refunds.manage'))<a href="{{ route('employee.refund-requests.show', $item) }}">Mở yêu cầu #{{ $item->id }} →</a>@endif</div>
             @empty
                 <div class="empty-state"><i class="bi bi-check2-circle fs-3 d-block mb-2"></i>Không có yêu cầu tồn đọng.</div>
             @endforelse
         </section>
     </div>
 
-    <div class="quick-actions"><a class="quick-action" href="{{ route('employee.refund-requests.index') }}"><i class="bi bi-cash-coin"></i>Quản lý hoàn tiền</a><a class="quick-action" href="{{ route('courts.index') }}"><i class="bi bi-grid"></i>Xem danh sách sân</a></div>
+    <div class="quick-actions">@if(Auth::user()->hasPermission('refunds.manage'))<a class="quick-action" href="{{ route('employee.refund-requests.index') }}"><i class="bi bi-cash-coin"></i>Quản lý hoàn tiền</a>@endif @if(Auth::user()->hasPermission('bookings.view'))<a class="quick-action" href="{{ route('employee.bookings.index') }}"><i class="bi bi-calendar3"></i>Lịch sân & đơn đặt</a>@endif @if(Auth::user()->hasPermission('courts.status.manage'))<a class="quick-action" href="{{ route('employee.courts.index') }}"><i class="bi bi-grid"></i>Trạng thái sân</a>@endif</div>
 </div>
 @endsection

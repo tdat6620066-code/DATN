@@ -399,7 +399,7 @@ class BookingController extends Controller
         abort_unless($request->user()->hasPermission('bookings.checkout'), 403);
 
         try {
-            $booking = $this->bookingService->checkoutBooking($booking);
+            $booking = $this->bookingService->checkoutBooking($booking, $request->user()->id);
 
             if ($request->expectsJson()) {
                 return response()->json([

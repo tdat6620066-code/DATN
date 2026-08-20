@@ -1,0 +1,5 @@
+@extends('layouts.admin')
+@section('page_heading','Quản lý sự cố sân')
+@section('content')
+<div class="card border-0 shadow-sm table-responsive"><table class="table mb-0"><thead><tr><th>Mã</th><th>Sân / người báo</th><th>Nội dung</th><th>Mức độ</th><th>Xử lý</th></tr></thead><tbody>@foreach($incidents as $incident)<tr><td>{{ $incident->incident_code }}</td><td>{{ $incident->court->name }}<br><small>{{ $incident->reporter->name }}</small></td><td><strong>{{ $incident->type }}</strong><br>{{ Str::limit($incident->description,80) }}</td><td>{{ $incident->severity }}</td><td><form method="POST" action="{{ route('admin.incidents.update',$incident) }}">@csrf @method('PUT')<select name="status" class="form-select form-select-sm mb-1">@foreach(['OPEN','IN_PROGRESS','RESOLVED','CLOSED'] as $s)<option @selected($incident->status===$s)>{{ $s }}</option>@endforeach</select><input name="resolution_note" value="{{ $incident->resolution_note }}" class="form-control form-control-sm mb-1" placeholder="Ghi chú xử lý"><button class="btn btn-sm btn-success">Lưu</button></form></td></tr>@endforeach</tbody></table></div><div class="mt-3">{{ $incidents->links() }}</div>
+@endsection
