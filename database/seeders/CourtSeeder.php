@@ -60,11 +60,11 @@ class CourtSeeder extends Seeder
         ];
 
         foreach ($courts as $courtData) {
-            $court = Court::create($courtData);
+            $court = Court::updateOrCreate(['code' => $courtData['code']], $courtData);
 
             // Attach random amenities (3-7 per court)
             $randomAmenities = $amenities->random(rand(3, 7));
-            $court->amenities()->attach($randomAmenities->pluck('id'));
+            $court->amenities()->syncWithoutDetaching($randomAmenities->pluck('id'));
         }
     }
 }

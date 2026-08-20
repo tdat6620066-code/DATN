@@ -21,7 +21,7 @@ class CourtAvailabilityService
         // Check if court exists and is active
         $court = Court::find($courtId);
         if (! $court || $court->status !== 'ACTIVE' || $court->operational_status !== 'AVAILABLE') {
-            return null;
+            return self::STATUS_MAINTENANCE;
         }
 
         // Check maintenance schedule
@@ -90,8 +90,7 @@ class CourtAvailabilityService
             ->where('booking_date', $date->toDateString())
             ->where('time_slot_id', $timeSlotId)
             ->whereHas('booking', function ($query) {
-                $query->where('status', 'CONFIRMED')
-                    ->orWhere('status', 'COMPLETED');
+                $query->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']);
             })
             ->exists();
     }

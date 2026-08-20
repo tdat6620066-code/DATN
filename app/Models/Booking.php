@@ -9,7 +9,7 @@ class Booking extends Model
     protected $fillable = [
         'booking_code', 'user_id', 'subtotal', 'discount', 'total_amount',
         'status', 'payment_status', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
-        'checked_in_at', 'checked_out_at'
+        'checked_in_at', 'checked_in_by', 'checked_out_at', 'checked_out_by'
     ];
 
     protected $casts = [
@@ -52,6 +52,10 @@ class Booking extends Model
     {
         return $this->hasMany(BookingAuditLog::class);
     }
+
+    public function services() { return $this->hasMany(BookingService::class); }
+    public function checkedInBy() { return $this->belongsTo(User::class, 'checked_in_by'); }
+    public function checkedOutBy() { return $this->belongsTo(User::class, 'checked_out_by'); }
 
     public function isHoldExpired()
     {

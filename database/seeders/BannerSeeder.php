@@ -10,8 +10,7 @@ class BannerSeeder extends Seeder
 {
     public function run(): void
     {
-        Banner::create([
-            'title' => 'SmashZone - Sân cầu lông hàng đầu',
+        Banner::updateOrCreate(['title' => 'SmashZone - Sân cầu lông hàng đầu'], [
             'image' => 'https://via.placeholder.com/1200x400?text=SmashZone+Banner+1',
             'link' => '/courts',
             'start_at' => Carbon::now(),
@@ -20,8 +19,7 @@ class BannerSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        Banner::create([
-            'title' => 'Ưu đãi 20% cho khách hàng mới',
+        Banner::updateOrCreate(['title' => 'Ưu đãi 20% cho khách hàng mới'], [
             'image' => 'https://via.placeholder.com/1200x400?text=SmashZone+Banner+2',
             'link' => '/courts',
             'start_at' => Carbon::now(),
@@ -30,8 +28,7 @@ class BannerSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        Banner::create([
-            'title' => 'Sân VIP mới - Trải nghiệm tuyệt vời',
+        Banner::updateOrCreate(['title' => 'Sân VIP mới - Trải nghiệm tuyệt vời'], [
             'image' => 'https://via.placeholder.com/1200x400?text=SmashZone+VIP',
             'link' => '/courts',
             'start_at' => Carbon::now(),

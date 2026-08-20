@@ -31,12 +31,12 @@ class DatabaseSeeder extends Seeder
             NewsSeeder::class,
             RefundRequestDemoSeeder::class,
             AdminSeeder::class,
+            ServiceItemSeeder::class,
         ]);
 
         // Create test user
-        User::factory()->create([
+        User::updateOrCreate(['email' => 'test@example.com'], [
             'name' => 'Test User',
-            'email' => 'test@example.com',
             'password' => bcrypt('password'),
         ]);
     }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\{AdminBookingController, AdminCourtController, AdminCourtTypeController, AdminCustomerController, AdminDashboardController, AdminEmployeeController, AdminMaintenanceController, AdminPaymentController, AdminPricingController, AdminVoucherController, AuthController, BookingController, CourtController, EmployeeCourtController, EmployeeDashboardController, HomeController, RefundRequestController};
+use App\Http\Controllers\{AdminAnnouncementController, AdminBookingController, AdminCourtController, AdminCourtTypeController, AdminCustomerController, AdminDashboardController, AdminEmployeeController, AdminIncidentController, AdminMaintenanceController, AdminPaymentController, AdminPricingController, AdminVoucherController, AuthController, BookingController, CourtController, EmployeeBookingController, EmployeeCourtController, EmployeeDashboardController, EmployeeIncidentController, HomeController, RefundRequestController};
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -20,7 +20,18 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'active', 'role:EMPLOYEE'])->prefix('employee')->name('employee.')->group(function () {
-    Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->middleware('permission:employee.dashboard')->name('dashboard');
+    Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+    Route::middleware('permission:bookings.view')->group(function () {
+        Route::get('/bookings', [EmployeeBookingController::class, 'index'])->name('bookings.index');
+        Route::get('/bookings/{booking}', [EmployeeBookingController::class, 'show'])->name('bookings.show');
+    });
+    Route::post('/bookings/{booking}/check-in', [EmployeeBookingController::class, 'checkIn'])->middleware('permission:bookings.checkin')->name('bookings.check-in');
+    Route::post('/bookings/{booking}/complete', [EmployeeBookingController::class, 'complete'])->middleware('permission:bookings.checkout')->name('bookings.complete');
+    Route::post('/bookings/{booking}/payment', [EmployeeBookingController::class, 'pay'])->middleware('permission:payments.counter')->name('bookings.payment');
+    Route::post('/bookings/{booking}/services', [EmployeeBookingController::class, 'addService'])->middleware('permission:services.manage')->name('bookings.services.store');
+    Route::delete('/bookings/{booking}/services/{service}', [EmployeeBookingController::class, 'removeService'])->middleware('permission:services.manage')->name('bookings.services.destroy');
+    Route::get('/incidents', [EmployeeIncidentController::class, 'index'])->middleware('permission:incidents.manage')->name('incidents.index');
+    Route::post('/incidents', [EmployeeIncidentController::class, 'store'])->middleware('permission:incidents.manage')->name('incidents.store');
     Route::middleware('permission:courts.status.manage')->group(function () {
         Route::get('/courts', [EmployeeCourtController::class, 'index'])->name('courts.index');
         Route::get('/courts/{court}/edit', [EmployeeCourtController::class, 'edit'])->name('courts.edit');
@@ -69,6 +80,11 @@ Route::middleware(['auth', 'active', 'role:ADMIN'])->prefix('admin')->name('admi
     Route::put('refunds/{refund}/process', [AdminPaymentController::class, 'processRefund'])->name('payments.refunds.process');
     Route::resource('vouchers', AdminVoucherController::class)->except('show');
     Route::put('vouchers/{voucher}/toggle', [AdminVoucherController::class, 'toggle'])->name('vouchers.toggle');
+    Route::get('announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('announcements', [AdminAnnouncementController::class, 'store'])->name('announcements.store');
+    Route::delete('announcements/{announcement}', [AdminAnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    Route::get('incidents', [AdminIncidentController::class, 'index'])->name('incidents.index');
+    Route::put('incidents/{incident}', [AdminIncidentController::class, 'update'])->name('incidents.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware(['auth', 'active'])->name('logout');

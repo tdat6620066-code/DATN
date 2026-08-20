@@ -390,9 +390,9 @@ class BookingService
     /**
      * UC38 - Check out a customer who is currently using the court.
      */
-    public function checkoutBooking(Booking $booking): Booking
+    public function checkoutBooking(Booking $booking, ?int $employeeId = null): Booking
     {
-        return DB::transaction(function () use ($booking) {
+        return DB::transaction(function () use ($booking, $employeeId) {
             $lockedBooking = Booking::query()
                 ->with('bookingDetails')
                 ->lockForUpdate()
@@ -407,6 +407,7 @@ class BookingService
             $lockedBooking->update([
                 'status' => 'COMPLETED',
                 'checked_out_at' => $checkedOutAt,
+                'checked_out_by' => $employeeId,
             ]);
 
             $lockedBooking->bookingDetails()->update(['status' => 'COMPLETED']);

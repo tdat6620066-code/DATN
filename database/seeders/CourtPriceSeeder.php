@@ -37,9 +37,11 @@ class CourtPriceSeeder extends Seeder
 
                 $price = $basePrice * $multiplier;
 
-                CourtPrice::create([
+                CourtPrice::updateOrCreate([
                     'court_id' => $court->id,
                     'time_slot_id' => $timeSlot->id,
+                    'day_type' => 'WEEKDAY',
+                ], [
                     'price' => $price,
                     'effective_from' => Carbon::now()->startOfDay(),
                     'effective_to' => null,
