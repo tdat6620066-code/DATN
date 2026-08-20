@@ -139,6 +139,9 @@ class CourtController extends Controller
                 'price' => $court->prices->min('price') ?? 0,
                 'images' => $court->images->map(fn ($image) => $image->url)->values(),
                 'amenities' => $court->amenities->pluck('name')->values(),
+                'type' => $court->courtType?->name,
+                'rating' => $court->approved_rating ? number_format($court->approved_rating, 1) : null,
+                'reviews_count' => $court->approved_reviews_count ?? 0,
             ];
         })->keyBy('id');
         

@@ -2,73 +2,106 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail, CanResetPasswordContract
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, CanResetPassword;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role',
-        'phone',
         'status',
-        'permissions',
-        'refund_approval_limit',
+        'avatar',
+        'address',
+        'google_id',
+        'last_login_at',
+        'verification_code',
+        'verification_code_expires_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
-            'refund_approval_limit' => 'decimal:2',
             'permissions' => 'array',
+            'verification_code_expires_at' => 'datetime',
         ];
     }
 
-    // Relationships
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);
     }
 
-    public function reviews()
+    public function userNotifications()
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(Notification::class);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Helper
+    |--------------------------------------------------------------------------
+    */
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'ADMIN';
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'CUSTOMER';
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->role === 'EMPLOYEE';
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->status === 'LOCKED';
+    }
+
+    /**
+     * Xác định người dùng có quyền thao tác hay không.
+     * Admin luôn có toàn quyền; các vai trò khác kiểm tra theo mảng quyền.
+     */
     public function hasPermission(string $permission): bool
     {
-        return $this->role === 'ADMIN'
-            || ($this->role === 'EMPLOYEE' && $this->permissions === null)
-            || in_array($permission, $this->permissions ?? [], true);
+        if ($this->role === 'ADMIN') {
+            return true;
+        }
+
+        return in_array($permission, $this->permissions ?? [], true);
     }
 }

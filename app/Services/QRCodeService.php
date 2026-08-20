@@ -8,19 +8,20 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 class QRCodeService
 {
     /**
-     * Generate QR code for booking
+     * Generate QR code for booking.
+     *
+     * Dùng SVG để không phụ thuộc extension Imagick (không có trên máy chủ).
      */
     public function generateQRCode(Booking $booking)
     {
         // Build QR code data
         $qrData = $this->buildQRData($booking);
 
-        // Generate QR code
-        $qrCode = QrCode::size(300)
-            ->format('png')
+        // Generate QR code (SVG markup)
+        return QrCode::size(300)
+            ->margin(1)
+            ->format('svg')
             ->generate($qrData);
-
-        return $qrCode;
     }
 
     /**
@@ -30,7 +31,7 @@ class QRCodeService
     {
         $qrData = $this->buildQRData($booking);
         
-        $filename = 'qr_' . $booking->booking_code . '.png';
+        $filename = 'qr_' . $booking->booking_code . '.svg';
         $path = storage_path('app/public/qrcodes/' . $filename);
 
         // Create directory if not exists
@@ -39,8 +40,9 @@ class QRCodeService
         }
 
         QrCode::size(300)
-            ->format('png')
-            ->save($path);
+            ->margin(1)
+            ->format('svg')
+            ->generate($qrData, $path);
 
         return [
             'path' => $path,

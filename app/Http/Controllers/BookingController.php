@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\{StoreBookingRequest, StoreRecurringBookingRequest};
 use App\Models\{Booking, Court, TimeSlot};
-use App\Services\{BookingService, CourtAvailabilityService, PaymentService, QRCodeService};
+use App\Services\{BookingService, CourtAvailabilityService, PaymentService, QRCodeService, VnPayService};
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,15 +14,18 @@ class BookingController extends Controller
     private BookingService $bookingService;
     private PaymentService $paymentService;
     private QRCodeService $qrService;
+    private VnPayService $vnpayService;
 
     public function __construct(
         BookingService $bookingService,
         PaymentService $paymentService,
-        QRCodeService $qrService
+        QRCodeService $qrService,
+        VnPayService $vnpayService
     ) {
         $this->bookingService = $bookingService;
         $this->paymentService = $paymentService;
         $this->qrService = $qrService;
+        $this->vnpayService = $vnpayService;
     }
 
     /**
@@ -153,6 +156,31 @@ class BookingController extends Controller
     }
 
     /**
+     * Hiển thị mã QR booking để khách hàng check-in.
+     * QR chỉ hợp lệ với booking hợp lệ và chưa hoàn thành/hủy.
+     */
+    public function showQr(Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
+        $booking->load('bookingDetails.court', 'bookingDetails.timeSlot', 'user');
+
+        // Luồng ngoại lệ: booking không hợp lệ → không tạo QR
+        if (! in_array($booking->status, ['CONFIRMED', 'CHECKED_IN'], true)) {
+            return redirect()
+                ->route('bookings.show', $booking)
+                ->with('error', 'Mã QR chỉ khả dụng cho booking đã xác nhận và chưa hoàn thành/hủy.');
+        }
+
+        $qrCode = $this->qrService->generateQRCode($booking);
+
+        return view('bookings.qr', [
+            'booking' => $booking,
+            'qr_code' => $qrCode,
+        ]);
+    }
+
+    /**
      * UC21 - Create recurring booking form
      */
     public function createRecurring(Request $request)
@@ -229,12 +257,121 @@ class BookingController extends Controller
 
             return view('bookings.success', [
                 'booking' => $booking->refresh(),
-                'qr_code' => base64_encode($qrCode),
+                'qr_code' => $qrCode,
             ])->with('success', 'Thanh toán thành công!');
 
         } catch (\Exception $e) {
             return back()->with('error', 'Lỗi xử lý thanh toán: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Tạo URL thanh toán VNPay và chuyển hướng user sang trang thanh toán.
+     */
+    public function vnpayCreate(Booking $booking)
+    {
+        $this->authorize('confirmPayment', $booking);
+
+        if ($booking->status !== 'PENDING_PAYMENT') {
+            return back()->with('error', 'Booking này không thể thanh toán.');
+        }
+
+        $returnUrl = route('bookings.vnpay.return');
+        $paymentUrl = $this->vnpayService->createPaymentUrl($booking, $returnUrl);
+
+        return redirect()->away($paymentUrl);
+    }
+
+    /**
+     * VNPay redirect user về đây sau khi thanh toán.
+     * Trạng thái thật được IPN cập nhật; tại đây chỉ hiển thị kết quả cho user.
+     */
+    public function vnpayReturn(Request $request)
+    {
+        $data = $request->all();
+
+        if (! $this->vnpayService->verifyResponse($data)) {
+            return redirect()->route('bookings.index')
+                ->with('error', 'Chữ ký thanh toán VNPay không hợp lệ.');
+        }
+
+        $booking = $this->resolveBookingFromTxnRef($data['vnp_TxnRef'] ?? null);
+
+        if (! $booking) {
+            return redirect()->route('bookings.index')
+                ->with('error', 'Không tìm thấy đơn đặt sân tương ứng.');
+        }
+
+        if (($data['vnp_ResponseCode'] ?? null) === '00') {
+            // Đảm bảo trạng thái PAID nếu IPN chưa kịp chạy (idempotent).
+            if ($booking->payment && $booking->payment->status !== 'PAID') {
+                $this->paymentService->markAsPaid(
+                    $booking->payment,
+                    $data['vnp_TransactionNo'] ?? $data['vnp_TxnRef'],
+                    'vnpay'
+                );
+            }
+
+            return redirect()->route('bookings.show', $booking)
+                ->with('success', 'Thanh toán VNPay thành công.');
+        }
+
+        return redirect()->route('bookings.show', $booking)
+            ->with('error', 'Thanh toán VNPay thất bại hoặc đã bị hủy.');
+    }
+
+    /**
+     * IPN URL: VNPay gọi trực tiếp để xác nhận kết quả giao dịch.
+     */
+    public function vnpayIpn(Request $request)
+    {
+        $data = $request->all();
+
+        if (! $this->vnpayService->verifyResponse($data)) {
+            return response()->json(['RspCode' => '97', 'Message' => 'Invalid Checksum']);
+        }
+
+        $booking = $this->resolveBookingFromTxnRef($data['vnp_TxnRef'] ?? null);
+
+        if (! $booking) {
+            return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
+        }
+
+        if (($data['vnp_ResponseCode'] ?? null) !== '00') {
+            return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
+        }
+
+        // Xác nhận số tiền khớp với booking.
+        $expectedAmount = (int) round((float) $booking->total_amount * 100);
+        $receivedAmount = (int) ($data['vnp_Amount'] ?? 0);
+
+        if ($receivedAmount !== $expectedAmount) {
+            return response()->json(['RspCode' => '04', 'Message' => 'Invalid amount']);
+        }
+
+        if ($booking->payment && $booking->payment->status !== 'PAID') {
+            $this->paymentService->markAsPaid(
+                $booking->payment,
+                $data['vnp_TransactionNo'] ?? $data['vnp_TxnRef'],
+                'vnpay'
+            );
+        }
+
+        return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
+    }
+
+    /**
+     * Phân giải booking từ vnp_TxnRef ({booking_code}_{YmdHis}).
+     */
+    private function resolveBookingFromTxnRef(?string $txnRef): ?Booking
+    {
+        if (! $txnRef) {
+            return null;
+        }
+
+        $bookingCode = explode('_', $txnRef)[0] ?? $txnRef;
+
+        return Booking::where('booking_code', $bookingCode)->first();
     }
 
     /**

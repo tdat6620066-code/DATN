@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,6 +42,12 @@
 
         .navbar-brand > span {
             display: none;
+        }
+
+        /* Dropdown tài khoản hiển thị khi hover */
+        .nav-item.dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
         }
         
         .btn-primary {
@@ -186,70 +192,7 @@
     @stack('styles')
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <img class="navbar-brand-logo" src="{{ asset('images/logo.png') }}?v=4" alt="Logo SmashZone">
-                <span>SmashZone</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Trang chủ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/courts">Danh sách sân</a>
-                    </li>
-                    @auth
-                    @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
-                    <li class="nav-item">
-                        <a class="nav-link" href="/bookings">Đặt sân của tôi</a>
-                    </li>
-                    @elseif(Auth::user()->role === 'EMPLOYEE')
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('employee.dashboard') }}">Tổng quan</a>
-                    </li>
-                    @if(Auth::user()->hasPermission('refunds.manage'))
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('employee.refund-requests.index') }}">Xử lý hoàn tiền</a>
-                    </li>
-                    @endif
-                    @elseif(Auth::user()->role === 'ADMIN')
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.dashboard') }}">Quản trị hệ thống</a>
-                    </li>
-                    @endif
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="/profile">Hồ sơ</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form action="/logout" method="POST" style="display:inline;">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item">Đăng xuất</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                    @else
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login">Đăng nhập</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/register">Đăng ký</a>
-                    </li>
-                    @endauth
-                </ul>
-            </div>
-        </div>
-    </nav>
+    @include('partials.site-header')
 
     <!-- Messages -->
     <div class="container mt-4">
@@ -285,34 +228,7 @@
         @yield('content')
     </main>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <h5>SmashZone</h5>
-                    <p>Nền tảng đặt sân cầu lông hàng đầu tại Việt Nam</p>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5>Liên hệ</h5>
-                    <p>
-                        Email: info@smashzone.vn<br>
-                        Điện thoại: (84) 0123 456 789
-                    </p>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5>Theo dõi</h5>
-                    <a href="#" class="text-white me-3"><i class="bi bi-facebook"></i></a>
-                    <a href="#" class="text-white me-3"><i class="bi bi-twitter"></i></a>
-                    <a href="#" class="text-white"><i class="bi bi-instagram"></i></a>
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <p class="mb-0">&copy; 2024 SmashZone. Tất cả quyền được bảo lưu.</p>
-            </div>
-        </div>
-    </footer>
+    @include('partials.site-footer')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/status-labels.js') }}?v=2"></script>

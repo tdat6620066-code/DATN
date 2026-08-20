@@ -1,7 +1,199 @@
 <?php
 
 use App\Http\Controllers\{AdminAnnouncementController, AdminBookingController, AdminCourtController, AdminCourtTypeController, AdminCustomerController, AdminDashboardController, AdminEmployeeController, AdminIncidentController, AdminMaintenanceController, AdminPaymentController, AdminPricingController, AdminVoucherController, AuthController, BookingController, CourtController, EmployeeBookingController, EmployeeCourtController, EmployeeDashboardController, EmployeeIncidentController, HomeController, RefundRequestController};
+use App\Http\Controllers\{AdminBookingController, AdminCourtController, AdminCourtTypeController, AdminCustomerController, AdminDashboardController, AdminEmployeeController, AdminMaintenanceController, AdminPaymentController, AdminPricingController, AdminVoucherController, AuthController, BookingController, CourtController, EmployeeCourtController, EmployeeDashboardController, HomeController, RefundRequestController};
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
+
+
+/*
+|--------------------------------------------------------------------------
+| HOME
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
+| GUEST
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')->group(function () {
+
+    /*
+     * UC01 - Register
+     */
+    Route::get('/register', [
+        AuthController::class,
+        'showRegister'
+    ])->name('register');
+
+    Route::post('/register', [
+        AuthController::class,
+        'register'
+    ])->name('register.store');
+
+
+    /*
+     * UC02 - Login
+     */
+    Route::get('/login', [
+        AuthController::class,
+        'showLogin'
+    ])->name('login');
+
+    Route::post('/login', [
+        AuthController::class,
+        'login'
+    ])->middleware('throttle:5,1')
+      ->name('login.store');
+
+
+    /*
+     * UC04 - Forgot password
+     */
+    Route::get('/forgot-password', [
+        AuthController::class,
+        'showForgotPassword'
+    ])->name('password.request');
+
+    Route::post('/forgot-password', [
+        AuthController::class,
+        'sendResetLink'
+    ])->middleware('throttle:3,1')
+      ->name('password.email');
+
+    Route::get('/reset-password/{token}', [
+        AuthController::class,
+        'showResetPassword'
+    ])->name('password.reset');
+
+    Route::post('/reset-password', [
+        AuthController::class,
+        'resetPassword'
+    ])->name('password.update');
+
+
+    /*
+     * UC10 - Google
+     */
+    Route::get('/auth/google', [
+        AuthController::class,
+        'redirectGoogle'
+    ])->name('google.redirect');
+
+    Route::get('/auth/google/callback', [
+        AuthController::class,
+        'googleCallback'
+    ])->name('google.callback');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTHENTICATED
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    /*
+     * UC03 - Logout
+     */
+    Route::post('/logout', [
+        AuthController::class,
+        'logout'
+    ])->name('logout');
+
+
+    /*
+     * UC05 - Profile
+     */
+    Route::get('/profile', [
+        ProfileController::class,
+        'index'
+    ])->name('profile');
+
+    Route::put('/profile', [
+        ProfileController::class,
+        'update'
+    ])->name('profile.update');
+
+
+    /*
+     * UC06 - Change password
+     */
+    Route::get('/profile/change-password', [
+        ProfileController::class,
+        'showChangePassword'
+    ])->name('password.change');
+
+    Route::put('/profile/change-password', [
+        ProfileController::class,
+        'changePassword'
+    ])->name('password.change.update');
+
+
+    /*
+     * UC08 - Favorites
+     */
+    Route::get('/favorites', [
+        FavoriteController::class,
+        'index'
+    ])->name('favorites.index');
+
+    Route::post('/favorites/{court}', [
+        FavoriteController::class,
+        'store'
+    ])->name('favorites.store');
+
+    Route::delete('/favorites/{court}', [
+        FavoriteController::class,
+        'destroy'
+    ])->name('favorites.destroy');
+
+
+    /*
+     * UC09 - Notifications
+     */
+    Route::get('/notifications', [
+        NotificationController::class,
+        'index'
+    ])->name('notifications.index');
+
+    Route::patch('/notifications/{notification}/read', [
+        NotificationController::class,
+        'markAsRead'
+    ])->name('notifications.read');
+
+    Route::patch('/notifications/read-all', [
+        NotificationController::class,
+        'markAllAsRead'
+    ])->name('notifications.read-all');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| EMAIL VERIFICATION
+|--------------------------------------------------------------------------
+*/
+
+// Xác thực tài khoản bằng mã 4 số gửi qua Email
+Route::get('/verify-code', [AuthController::class, 'showVerificationCode'])
+    ->name('verification.code');
+
+Route::post('/verify-code', [AuthController::class, 'verifyCode'])
+    ->middleware('throttle:6,1')
+    ->name('verification.code.verify');
+
+Route::post('/verify-code/resend', [AuthController::class, 'resendVerificationCode'])
+    ->middleware('throttle:3,1')
+    ->name('verification.code.resend');
+
+
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home'); // UC11
@@ -10,14 +202,6 @@ Route::get('/', [HomeController::class, 'index'])->name('home'); // UC11
 Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
 Route::get('/courts/{court}', [CourtController::class, 'show'])->name('courts.show');
 Route::get('/courts/{court}/availability', [CourtController::class, 'availability'])->name('courts.availability');
-
-// Authentication routes
-Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-});
 
 Route::middleware(['auth', 'active', 'role:EMPLOYEE'])->prefix('employee')->name('employee.')->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
@@ -32,6 +216,8 @@ Route::middleware(['auth', 'active', 'role:EMPLOYEE'])->prefix('employee')->name
     Route::delete('/bookings/{booking}/services/{service}', [EmployeeBookingController::class, 'removeService'])->middleware('permission:services.manage')->name('bookings.services.destroy');
     Route::get('/incidents', [EmployeeIncidentController::class, 'index'])->middleware('permission:incidents.manage')->name('incidents.index');
     Route::post('/incidents', [EmployeeIncidentController::class, 'store'])->middleware('permission:incidents.manage')->name('incidents.store');
+    Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->middleware('permission:employee.dashboard')->name('dashboard');
+    Route::get('/schedule', [EmployeeDashboardController::class, 'schedule'])->middleware('permission:employee.dashboard')->name('schedule');
     Route::middleware('permission:courts.status.manage')->group(function () {
         Route::get('/courts', [EmployeeCourtController::class, 'index'])->name('courts.index');
         Route::get('/courts/{court}/edit', [EmployeeCourtController::class, 'edit'])->name('courts.edit');
@@ -98,6 +284,10 @@ Route::get('/bookings', function (\Illuminate\Http\Request $request) {
     };
 })->middleware(['auth', 'active'])->name('bookings.index');
 
+// VNPay return & IPN callbacks (public - được gọi bởi VNPay / trình duyệt)
+Route::get('/booking/vnpay/return', [BookingController::class, 'vnpayReturn'])->name('bookings.vnpay.return');
+Route::get('/booking/vnpay/ipn', [BookingController::class, 'vnpayIpn'])->name('bookings.vnpay.ipn');
+
 Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
     Route::get('/booking', [BookingController::class, 'create'])->name('bookings.create');
     Route::get('/booking/create', [BookingController::class, 'create']);
@@ -106,7 +296,9 @@ Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
     Route::post('/booking/recurring', [BookingController::class, 'storeRecurring'])->name('bookings.store-recurring');
 
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::get('/booking/{booking}/qr', [BookingController::class, 'showQr'])->name('bookings.qr');
     Route::post('/booking/{booking}/confirm-payment', [BookingController::class, 'confirmPayment'])->name('bookings.confirm-payment');
+    Route::get('/booking/{booking}/vnpay', [BookingController::class, 'vnpayCreate'])->name('bookings.vnpay');
     Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/refund-requests', [RefundRequestController::class, 'store'])->name('refund-requests.store');
 });
@@ -114,3 +306,4 @@ Route::middleware(['auth', 'active', 'role:CUSTOMER'])->group(function () {
 Route::post('/booking/{booking}/checkout', [BookingController::class, 'checkout'])
     ->middleware(['auth', 'active', 'role:EMPLOYEE', 'permission:bookings.checkout'])
     ->name('bookings.checkout');
+

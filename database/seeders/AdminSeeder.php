@@ -13,6 +13,7 @@ class AdminSeeder extends Seeder
             'name' => 'Quản trị SmashZone',
             'password' => bcrypt('password'),
             'role' => 'ADMIN',
+            'phone' => '0900000001',
             'refund_approval_limit' => 999999999,
         ]);
     }

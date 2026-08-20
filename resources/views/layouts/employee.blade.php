@@ -22,6 +22,7 @@
             @if(Auth::user()->hasPermission('bookings.view'))
             <a class="{{ request()->routeIs('employee.bookings.*') ? 'active' : '' }}" href="{{ route('employee.bookings.index') }}"><i class="bi bi-calendar3"></i>Lịch sân & đơn đặt</a>
             @endif
+            <a class="{{ request()->routeIs('employee.schedule') ? 'active' : '' }}" href="{{ route('employee.schedule') }}"><i class="bi bi-calendar3"></i>Lịch sân</a>
             @if(Auth::user()->hasPermission('courts.status.manage'))
             <a class="{{ request()->routeIs('employee.courts.*') ? 'active' : '' }}" href="{{ route('employee.courts.index') }}"><i class="bi bi-columns-gap"></i>Quản lý sân</a>
             @endif

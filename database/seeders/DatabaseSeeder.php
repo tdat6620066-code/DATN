@@ -39,5 +39,17 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'password' => bcrypt('password'),
         ]);
+            ReviewSeeder::class,
+        ]);
+
+        // Create test user
+        User::updateOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => bcrypt('password'),
+                'phone' => '0900000000',
+            ]
+        );
     }
 }

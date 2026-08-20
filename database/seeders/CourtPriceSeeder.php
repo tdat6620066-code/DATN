@@ -19,7 +19,7 @@ class CourtPriceSeeder extends Seeder
             foreach ($timeSlots as $timeSlot) {
                 // Different pricing for different courts and time slots
                 $basePrice = 100000; // Base price in VND
-                
+
                 // Peak hours (18-23) cost more
                 $hour = (int) explode(':', $timeSlot->start_time)[0];
                 if ($hour >= 18) {

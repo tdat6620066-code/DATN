@@ -25,12 +25,13 @@ class PaymentService
     /**
      * Mark payment as paid
      */
-    public function markAsPaid(Payment $payment, $transactionId = null)
+    public function markAsPaid(Payment $payment, $transactionId = null, $paymentMethod = null)
     {
         $payment->update([
             'status' => 'PAID',
             'paid_at' => now(),
             'transaction_id' => $transactionId ?? $payment->transaction_id,
+            'payment_method' => $paymentMethod ?? $payment->payment_method,
         ]);
 
         // Update booking status to CONFIRMED

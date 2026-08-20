@@ -92,7 +92,9 @@
                 <h5 class="mb-0"><i class="bi bi-qr-code"></i> Mã QR để check-in</h5>
             </div>
             <div class="card-body text-center">
-                <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code" style="max-width: 250px; margin: 20px 0;">
+                <div style="max-width: 250px; margin: 20px auto;">
+                    {!! $qrCode !!}
+                </div>
                 <p class="text-muted small">Xuất trình mã QR này tại sân để check-in</p>
             </div>
         </div>
