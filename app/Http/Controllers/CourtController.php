@@ -137,7 +137,7 @@ class CourtController extends Controller
                 'closing' => $court->closing_time ? Carbon::parse($court->closing_time)->format('H:i') : null,
                 'description' => $court->description,
                 'price' => $court->prices->min('price') ?? 0,
-                'images' => $court->images->pluck('image')->values(),
+                'images' => $court->images->map(fn ($image) => $image->url)->values(),
                 'amenities' => $court->amenities->pluck('name')->values(),
                 'type' => $court->courtType?->name,
                 'rating' => $court->approved_rating ? number_format($court->approved_rating, 1) : null,

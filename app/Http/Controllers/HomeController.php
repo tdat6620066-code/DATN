@@ -44,7 +44,12 @@ class HomeController extends Controller
                 ->whereHas('booking', fn ($booking) => $booking->where('created_at', '>=', now()->subDays($featuredPeriodDays)))])
             ->withCount(['reviews as approved_reviews_count' => fn ($query) => $query->where('status', 'APPROVED')])
             ->withAvg(['reviews as approved_rating' => fn ($query) => $query->where('status', 'APPROVED')], 'rating')
+            // Ưu tiên sân được admin đánh dấu nổi bật. Khi số lượt đặt bằng
+            // nhau, sân mới tạo phải xuất hiện trước thay vì bị giới hạn khỏi
+            // danh sách 6 sân đầu tiên theo thứ tự ID cũ.
+            ->orderByDesc('is_featured')
             ->orderByDesc('booking_count')
+            ->orderByDesc('courts.created_at')
             ->limit(6)
             ->get();
 
@@ -55,6 +60,7 @@ class HomeController extends Controller
             ->withCount(['reviews as approved_reviews_count' => fn ($query) => $query->where('status', 'APPROVED')])
             ->withAvg(['reviews as approved_rating' => fn ($query) => $query->where('status', 'APPROVED')], 'rating')
             ->orderByDesc('booking_count')
+            ->orderByDesc('courts.created_at')
             ->limit(8)
             ->get();
 
@@ -88,7 +94,7 @@ class HomeController extends Controller
         ];
 
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->orderBy('start_time')->get(['id', 'name', 'start_time']);
-        $heroImage = $banners->first()?->image ?? $featuredCourts->first()?->images->first()?->image;
+        $heroImage = $banners->first()?->image ?? $featuredCourts->first()?->images->first()?->url;
 
         return view('home', [
             'banners' => $banners,

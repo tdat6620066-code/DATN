@@ -16,6 +16,8 @@ class RefundRequestDemoSeeder extends Seeder
     {
         $employee = User::updateOrCreate(['email' => 'employee@smashzone.test'], [
             'name' => 'Nhân viên SmashZone', 'password' => bcrypt('password'),
+            'role' => 'EMPLOYEE', 'refund_approval_limit' => 1000000,
+            'permissions' => ['bookings.view', 'bookings.checkin', 'bookings.checkout', 'payments.counter', 'services.manage', 'incidents.manage', 'refunds.manage', 'courts.status.manage'],
             'role' => 'EMPLOYEE', 'phone' => '0900000002', 'refund_approval_limit' => 1000000,
             'permissions' => ['employee.dashboard', 'bookings.checkout', 'refunds.manage', 'courts.status.manage'],
         ]);

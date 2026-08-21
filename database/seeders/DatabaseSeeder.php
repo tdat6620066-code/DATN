@@ -31,6 +31,14 @@ class DatabaseSeeder extends Seeder
             NewsSeeder::class,
             RefundRequestDemoSeeder::class,
             AdminSeeder::class,
+            ServiceItemSeeder::class,
+        ]);
+
+        // Create test user
+        User::updateOrCreate(['email' => 'test@example.com'], [
+            'name' => 'Test User',
+            'password' => bcrypt('password'),
+        ]);
             ReviewSeeder::class,
         ]);
 
