@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\{Banner, Booking, Court, News, Promotion, Review, TimeSlot, User};
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
@@ -12,16 +11,8 @@ class HomeController extends Controller
     /**
      * UC11 - Display home page
      */
-    public function index(Request $request)
+    public function index()
     {
-        if ($request->user()?->role === 'ADMIN') {
-            return redirect()->route('admin.dashboard');
-        }
-
-        if ($request->user()?->role === 'EMPLOYEE') {
-            return redirect()->route('employee.dashboard');
-        }
-
         // Get active banners
         $banners = Banner::where('status', 'ACTIVE')
             ->where('start_at', '<=', now())

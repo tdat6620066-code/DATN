@@ -32,88 +32,22 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
-
-            // Validate dữ liệu
-            $validated = $request->validate([
-                'name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
-
-                'email' => [
-                    'required',
-                    'string',
-                    'email',
-                    'max:255',
-                    'unique:users,email',
-                ],
-
-                'phone' => [
-                    'required',
-                    'string',
-                    'regex:/^(0|\+84)[0-9]{9,10}$/',
-                    'unique:users,phone',
-                ],
-
-                'password' => [
-                    'required',
-                    'confirmed',
-                    Password::min(8),
-                ],
-
-                'terms' => [
-                    'required',
-                    'accepted',
-                ],
-            ], [
-
-                'name.required' =>
-                    'Vui lòng nhập họ tên.',
-
-                'name.max' =>
-                    'Họ tên không được vượt quá 255 ký tự.',
-
-                'email.required' =>
-                    'Vui lòng nhập Email.',
-
-                'email.email' =>
-                    'Email không đúng định dạng.',
-
-                'email.unique' =>
-                    'Email này đã được sử dụng.',
-
-                'phone.required' =>
-                    'Vui lòng nhập số điện thoại.',
-
-                'phone.regex' =>
-                    'Số điện thoại không hợp lệ.',
-
-                'phone.unique' =>
-                    'Số điện thoại này đã được sử dụng.',
-
-                'password.required' =>
-                    'Vui lòng nhập mật khẩu.',
-
-                'password.confirmed' =>
-                    'Mật khẩu xác nhận không khớp.',
-
-                'password.min' =>
-                    'Mật khẩu phải có ít nhất 8 ký tự.',
-
-                'terms.required' =>
-                    'Bạn phải đồng ý với điều khoản sử dụng.',
-
-                'terms.accepted' =>
-                    'Bạn phải đồng ý với điều khoản sử dụng.',
+            $user = User::create([
+                'name' => $request->name,
+                'email' => strtolower($request->email),
+                'phone' => $request->phone,
+                'password' => $request->password,
+                'role' => 'CUSTOMER',
+                'status' => 'ACTIVE',
+                'email_verified_at' => now(),
             ]);
 
+            Auth::login($user);
+            $request->session()->regenerate();
 
-            // Chuẩn hóa Email
-            $email = strtolower(trim($validated['email']));
-
-            // Chuẩn hóa số điện thoại
-            $phone = trim($validated['phone']);
+            return redirect()
+                ->route('home')
+                ->with('success', 'Đăng ký thành công. Chào mừng bạn đến với SmashZone!');
 
 
             // Kiểm tra lại Email

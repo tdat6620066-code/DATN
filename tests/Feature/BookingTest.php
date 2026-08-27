@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\BookingDetail;
 use App\Models\Court;
 use App\Models\CourtType;
 use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Services\CourtAvailabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -201,14 +203,17 @@ class BookingTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'testuser@example.com',
+            'phone' => '0987654321',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            'terms' => '1',
         ]);
 
         $response->assertRedirect('/');
         $this->assertDatabaseHas('users', [
             'email' => 'testuser@example.com',
         ]);
+        $this->assertNotNull(User::where('email', 'testuser@example.com')->value('email_verified_at'));
     }
 
     /**
@@ -222,11 +227,80 @@ class BookingTest extends TestCase
         ]);
 
         $response = $this->post('/login', [
-            'email' => 'user@example.com',
+            'login' => 'user@example.com',
             'password' => 'password123',
         ]);
 
         $response->assertRedirect('/');
         $this->assertAuthenticated();
+    }
+
+    public function test_weekly_preview_reports_a_conflict_with_an_existing_daily_booking()
+    {
+        $user = User::factory()->create();
+        $court = Court::firstOrFail();
+        $slot = TimeSlot::firstOrFail();
+        $date = now()->startOfDay()->addDays(7);
+
+        $this->createConfirmedDetail($user, $court, $slot, $date);
+        $this->assertSame(CourtAvailabilityService::STATUS_BOOKED, app(CourtAvailabilityService::class)->checkAvailability($court->id, $date, $slot->id));
+
+        $response = $this->actingAs($user)->post(route('bookings.recurring.preview'), [
+            'from_court' => true,
+            'court_id' => $court->id,
+            'booking_type' => 'weekly',
+            'start_date' => $date->toDateString(),
+            'end_date' => $date->copy()->addWeek()->toDateString(),
+            'days_of_week' => [$date->dayOfWeek],
+            'time_slot_ids' => [$slot->id],
+        ]);
+
+        $response->assertRedirect(route('courts.show', $court));
+        $response->assertSessionHas('recurring_preview.conflicts', fn (array $conflicts) => count($conflicts) >= 1);
+    }
+
+    public function test_monthly_preview_reports_a_conflict_with_an_existing_daily_booking()
+    {
+        $user = User::factory()->create();
+        $court = Court::firstOrFail();
+        $slot = TimeSlot::firstOrFail();
+        $date = now()->startOfDay()->addDays(14);
+
+        $this->createConfirmedDetail($user, $court, $slot, $date);
+
+        $response = $this->actingAs($user)->post(route('bookings.recurring.preview'), [
+            'from_court' => true,
+            'court_id' => $court->id,
+            'booking_type' => 'monthly',
+            'start_date' => $date->toDateString(),
+            'end_date' => $date->copy()->addMonth()->toDateString(),
+            'days_of_month' => [$date->day],
+            'time_slot_ids' => [$slot->id],
+        ]);
+
+        $response->assertRedirect(route('courts.show', $court));
+        $response->assertSessionHas('recurring_preview.conflicts', fn (array $conflicts) => count($conflicts) >= 1);
+    }
+
+    private function createConfirmedDetail(User $user, Court $court, TimeSlot $slot, \Carbon\Carbon $date): void
+    {
+        $booking = Booking::create([
+            'booking_code' => 'BK'.str()->upper(str()->random(10)),
+            'user_id' => $user->id,
+            'subtotal' => 150000,
+            'total_amount' => 150000,
+            'status' => 'CONFIRMED',
+            'payment_status' => 'PAID',
+        ]);
+
+        BookingDetail::create([
+            'booking_id' => $booking->id,
+            'court_id' => $court->id,
+            'booking_date' => $date->toDateString(),
+            'time_slot_id' => $slot->id,
+            'price' => 150000,
+            'subtotal' => 150000,
+            'status' => 'CONFIRMED',
+        ]);
     }
 }

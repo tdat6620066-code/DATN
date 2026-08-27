@@ -798,7 +798,6 @@ Route::get('/bookings', function (\Illuminate\Http\Request $request) {
     ->middleware(['auth', 'active'])
     ->name('bookings.index');
 
-
 /*
 |--------------------------------------------------------------------------
 | VNPay
@@ -859,6 +858,11 @@ Route::middleware([
         'store'
     ])->name('bookings.store');
 
+    Route::post('/booking/{booking}/note', [
+        BookingController::class,
+        'updateNote'
+    ])->name('bookings.update-note');
+
 
     /*
     | Booking định kỳ
@@ -868,6 +872,11 @@ Route::middleware([
         BookingController::class,
         'createRecurring'
     ])->name('bookings.create-recurring');
+
+    Route::post('/booking/recurring/preview', [
+        BookingController::class,
+        'previewRecurring'
+    ])->name('bookings.recurring.preview');
 
     Route::post('/booking/recurring', [
         BookingController::class,
@@ -935,13 +944,6 @@ Route::middleware([
     ])->name('refund-requests.store');
 
 });
-
-
-/*
-|--------------------------------------------------------------------------
-| EMPLOYEE CHECKOUT
-|--------------------------------------------------------------------------
-*/
 
 Route::post('/booking/{booking}/checkout', [
     BookingController::class,

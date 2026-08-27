@@ -8,14 +8,16 @@ class Booking extends Model
 {
     protected $fillable = [
         'booking_code', 'user_id', 'subtotal', 'discount', 'total_amount',
-        'status', 'payment_status', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
-        'checked_in_at', 'checked_in_by', 'checked_out_at', 'checked_out_by'
+        'status', 'payment_status', 'booking_type', 'start_date', 'end_date', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
+        'checked_in_at', 'checked_out_at'
     ];
 
     protected $casts = [
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'start_date' => 'date',
+        'end_date' => 'date',
         'hold_expires_at' => 'datetime',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',

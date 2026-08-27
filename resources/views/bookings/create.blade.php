@@ -253,7 +253,7 @@
                             <tr>
                                 <th style="position: sticky; left: 0; background: #f8f9fa; z-index: 11; min-width: 60px;">Sân</th>
                                 @foreach($timeSlots as $slot)
-                                <th>{{ \Carbon\Carbon::createFromFormat('H:i:s', $slot->start_time)->format('H:i') }}</th>
+                                <th>{{ \Carbon\Carbon::parse($slot->start_time)->format('H:i') }}</th>
                                 @endforeach
                             </tr>
                         </thead>

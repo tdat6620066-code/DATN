@@ -10,6 +10,24 @@
     <style>
         .court-preview{position:fixed;inset:0;z-index:9999;display:none;background:rgba(3,18,26,.82);align-items:center;justify-content:center;padding:24px}.court-preview.open{display:flex}.court-preview-panel{position:relative;width:min(980px,100%);max-height:calc(100vh - 48px);overflow:auto;border-radius:20px;background:#fff;box-shadow:0 30px 80px rgba(6,32,44,.4)}.court-preview-close{position:absolute;top:16px;right:16px;z-index:5;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.94);box-shadow:0 6px 18px rgba(6,32,44,.18);color:#20414f;font-size:20px;line-height:1;cursor:pointer;transition:.25s}.court-preview-close:hover{background:#fff;transform:rotate(90deg)}.cp-grid{display:grid;grid-template-columns:1.05fr 1fr}.cp-gallery{background:#0e2c3a;padding:22px}.cp-main{position:relative;height:340px;overflow:hidden;border-radius:14px;background:#0a2230}.cp-main img{width:100%;height:100%;object-fit:cover}.cp-fallback{display:grid;place-items:center;height:100%;color:#fff;font-size:56px;background:linear-gradient(135deg,#0b4b4d,#2acb78)}.cp-type{position:absolute;left:14px;bottom:14px;padding:7px 12px;border-radius:100px;background:rgba(6,32,44,.85);color:#eaffee;font-size:12px;font-weight:700}.cp-thumbs{display:flex;gap:10px;overflow-x:auto;margin-top:12px;padding-bottom:2px}.cp-thumb{flex:0 0 86px;height:64px;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:transparent;opacity:.62;cursor:pointer;transition:.2s}.cp-thumb img{width:100%;height:100%;object-fit:cover}.cp-thumb.active,.cp-thumb:hover{border-color:#34e699;opacity:1}.cp-info{padding:30px 28px 8px;overflow-y:auto}.cp-kicker{display:inline-block;margin-bottom:8px;color:#00b969;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase}.cp-info h2{margin:0 0 12px;color:#10293a;font-size:26px;letter-spacing:-1px;line-height:1.2;font-weight:800}.cp-rating{display:flex;align-items:center;gap:7px;margin-bottom:18px}.cp-rating .stars{color:#f6b725;font-size:13px}.cp-rating>span{color:#10293a;font-size:14px;font-weight:800}.cp-rating small{color:#849199;font-size:12px;font-weight:600}.cp-contact{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:12px;background:#f4f8f6}.cp-meta{display:flex;gap:10px;margin:0;color:#536771;font-size:13px;line-height:1.5}.cp-meta i{margin-top:2px;color:#00b969;font-size:14px}.cp-meta strong{color:#203a4b}.cp-meta span{flex:1}.cp-block h3{display:flex;align-items:center;gap:8px;margin:22px 0 10px;color:#10293a;font-size:14px;font-weight:800}.cp-block h3:before{content:'';width:4px;height:16px;border-radius:3px;background:#05d381}.cp-amenities{display:flex;flex-wrap:wrap;gap:7px}.cp-amenities span{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:100px;background:#edf9f2;color:#3e6d5c;font-size:12px;font-weight:700}.cp-amenities i{color:#00b969;font-size:12px}.cp-desc p{margin:0;color:#5b6f7a;font-size:13px;line-height:1.7}.court-preview-footer{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 28px;border-top:1px solid #edf1ef;background:#fff}.court-preview-price small{display:block;color:#89969c;font-size:11px;font-weight:800;letter-spacing:.4px}.court-preview-price strong{color:#00ad63;font-size:24px;letter-spacing:-.5px}.court-preview-price em{color:#89969c;font-size:12px;font-style:normal;font-weight:600}.court-preview-book{display:inline-flex;align-items:center;gap:8px;border-radius:12px;background:#05d381;color:#05311e;padding:13px 22px;text-align:center;font-size:14px;font-weight:800;text-decoration:none;box-shadow:0 10px 22px rgba(5,211,129,.35)}.court-preview-book:hover{background:#00b967;color:#fff}.court-preview-book i{transition:.2s}.court-preview-book:hover i{transform:translateX(3px)}@media(max-width:767px){.court-preview{padding:12px}.cp-grid{grid-template-columns:1fr}.cp-main{height:230px}.cp-info{padding:22px 18px 6px}.court-preview-footer{flex-direction:column;padding:14px 18px 18px}.court-preview-book{width:100%;justify-content:center}.court-preview-close{top:12px;right:12px}}
     </style>
+    <style>
+        .booking-type-picker{min-height:500px;padding:42px;background:linear-gradient(135deg,#006b3c,#05a761);color:#fff}.booking-type-back{border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer}.booking-type-card{width:min(510px,100%);margin:105px auto 0;padding:28px;border-radius:14px;background:#fff;color:#12382a}.booking-type-card h2{margin:0 0 20px;text-align:center;font-size:23px}.booking-type-option{display:flex;align-items:center;gap:13px;margin:14px 0;padding:13px;border:1px solid #dce8e2;border-radius:10px;cursor:pointer;font-weight:700}.booking-type-option:has(input:checked){border-color:#05d381;background:#edfff5}.booking-type-option input{width:20px;height:20px;accent-color:#009e5b}.booking-type-continue{width:100%;margin-top:18px;padding:13px;border:0;border-radius:12px;background:#007b43;color:#fff;font:inherit;font-weight:800;cursor:pointer}@media(max-width:767px){.booking-type-picker{min-height:calc(100vh - 24px);padding:22px}.booking-type-card{margin-top:80px;padding:22px}}
+    </style>
+    <style>
+        /* Shared public-site palette: mirrors the home page. */
+        :root { --navy: #081527; --green: #08dc6b; --green-dark: #00b957; --bg: #f5faf1; --line: #d8e0da; --muted: #58708b; }
+        .hero {
+            background: radial-gradient(circle at 75% 20%, rgba(8, 220, 107, .18), transparent 30%), #eaf6e9;
+        }
+        .crumb { color: var(--muted); }
+        .crumb a { color: #405b73; }
+        .eyebrow { color: var(--green-dark); }
+        .hero h1 { color: var(--navy); }
+        .hero p:last-child { color: var(--muted); }
+        .image, .fallback { background: linear-gradient(135deg, #00b957, #08dc6b); }
+        .card:hover { box-shadow: 0 16px 28px rgba(0, 185, 87, .16); }
+        .footer { background: var(--navy); }
+    </style>
 </head>
 <body>
 <header class="header">
@@ -77,7 +95,19 @@ function openCourtPreview(id, bookingUrl) {
             </div>
         </div>
         <div class="court-preview-footer"><div class="court-preview-price"><small>GIÁ THUÊ TỪ</small><strong>${Number(court.price).toLocaleString('vi-VN')}đ <em>/giờ</em></strong></div><a class="court-preview-book" href="${escapeHtml(bookingUrl)}">Đặt sân ngay <i class="bi bi-arrow-right"></i></a></div>`;
+    previewContent.querySelector('.court-preview-book').addEventListener('click', event => { event.preventDefault(); showBookingTypePicker(bookingUrl, id); });
     preview.classList.add('open'); preview.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden';
+}
+function showBookingTypePicker(bookingUrl, courtId) {
+    previewContent.innerHTML = `<div class="booking-type-picker"><button class="booking-type-back" type="button" onclick="openCourtPreview(${courtId}, '${bookingUrl}')" aria-label="Quay lại"><i class="bi bi-chevron-left"></i></button><div class="booking-type-card"><h2>Chọn hình thức đặt sân</h2><label class="booking-type-option"><input type="radio" name="booking_type" value="daily" checked> Đặt theo ngày</label><label class="booking-type-option"><input type="radio" name="booking_type" value="weekly"> Đặt theo tuần</label><label class="booking-type-option"><input type="radio" name="booking_type" value="monthly"> Đặt theo tháng</label><button class="booking-type-continue" type="button">TIẾP TỤC</button></div></div>`;
+    previewContent.querySelector('.booking-type-continue').addEventListener('click', () => {
+        const type = previewContent.querySelector('input[name="booking_type"]:checked').value;
+        if (type === 'daily') return window.location.assign(bookingUrl);
+        const url = new URL('{{ route('bookings.create-recurring') }}', window.location.origin);
+        url.searchParams.set('court_id', courtId);
+        url.searchParams.set('booking_type', type);
+        window.location.assign(url.toString());
+    });
 }
 window.switchPreviewImage = function(index, el) {
     const main = document.getElementById('cpMainImg');

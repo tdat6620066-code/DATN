@@ -150,6 +150,11 @@ class BookingController extends Controller
         // Authorize: user can only see their own bookings
         $this->authorize('view', $booking);
 
+        if ($this->expireHoldIfNeeded($booking)) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Thời gian giữ chỗ 5 phút đã hết. Khung giờ đã được giải phóng.');
+        }
+
         $booking->load('bookingDetails.court', 'bookingDetails.timeSlot', 'payment');
 
         return view('bookings.show', ['booking' => $booking]);
@@ -185,6 +190,11 @@ class BookingController extends Controller
      */
     public function createRecurring(Request $request)
     {
+        $courtId = $request->integer('court_id');
+        $selectedCourt = $courtId
+            ? Court::where('status', 'ACTIVE')->with('courtType')->findOrFail($courtId)
+            : null;
+
         $courts = Court::where('status', 'ACTIVE')
             ->with('courtType', 'images', 'prices')
             ->get();
@@ -193,8 +203,31 @@ class BookingController extends Controller
 
         return view('bookings.create-recurring', [
             'courts' => $courts,
+            'selectedCourt' => $selectedCourt,
             'timeSlots' => $timeSlots,
+            'bookingType' => $request->query('booking_type', 'weekly'),
         ]);
+    }
+
+    /**
+     * UC21 - Generate a recurring schedule without creating a booking.
+     */
+    public function previewRecurring(StoreRecurringBookingRequest $request)
+    {
+        $data = $request->validated();
+        $preview = $this->bookingService->previewRecurringBooking($data);
+
+        $courts = Court::where('status', 'ACTIVE')->with('courtType')->get();
+        $timeSlots = TimeSlot::where('status', 'ACTIVE')->get();
+        $selectedCourt = Court::where('status', 'ACTIVE')->with('courtType')->find($data['court_id']);
+
+        if ($request->boolean('from_court')) {
+            return redirect()->route('courts.show', $data['court_id'])
+                ->with('recurring_preview', $preview)
+                ->withInput();
+        }
+
+        return view('bookings.create-recurring', compact('courts', 'selectedCourt', 'timeSlots', 'preview'));
     }
 
     /**
@@ -202,6 +235,12 @@ class BookingController extends Controller
      */
     public function storeRecurring(StoreRecurringBookingRequest $request)
     {
+        $request->validate([
+            'confirmed' => ['accepted'],
+        ], [
+            'confirmed.accepted' => 'Vui lòng kiểm tra lịch dự kiến và xác nhận trước khi tạo booking.',
+        ]);
+
         try {
             $booking = $this->bookingService->createRecurringBooking(
                 Auth::id(),
@@ -210,7 +249,10 @@ class BookingController extends Controller
                     'start_date' => $request->start_date,
                     'end_date' => $request->end_date,
                     'days_of_week' => $request->days_of_week,
+                    'days_of_month' => $request->days_of_month,
+                    'time_slot_ids' => $request->time_slot_ids,
                     'time_slot_id' => $request->time_slot_id,
+                    'booking_type' => $request->booking_type ?? 'weekly',
                 ],
                 $request->voucher_code
             );
@@ -276,10 +318,53 @@ class BookingController extends Controller
             return back()->with('error', 'Booking này không thể thanh toán.');
         }
 
+        if ($this->expireHoldIfNeeded($booking)) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.');
+        }
+
         $returnUrl = route('bookings.vnpay.return');
         $paymentUrl = $this->vnpayService->createPaymentUrl($booking, $returnUrl);
 
         return redirect()->away($paymentUrl);
+    }
+
+    /** Save the owner's note from the checkout screen before payment. */
+    public function updateNote(Booking $booking, Request $request)
+    {
+        $this->authorize('confirmPayment', $booking);
+
+        if ($booking->status !== 'PENDING_PAYMENT') {
+            return back()->with('error', 'Đơn đặt sân này không thể cập nhật ghi chú.');
+        }
+
+        if ($this->expireHoldIfNeeded($booking)) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.');
+        }
+
+        $validated = $request->validate([
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $booking->update(['note' => $validated['note'] ?? null]);
+
+        return redirect()->route('bookings.vnpay', $booking);
+    }
+
+    /** Immediately expire a stale hold before allowing a payment action. */
+    private function expireHoldIfNeeded(Booking $booking): bool
+    {
+        if ($booking->status !== 'PENDING_PAYMENT' || ! $booking->isHoldExpired()) {
+            return false;
+        }
+
+        $booking->loadMissing('payment');
+        $booking->update(['status' => 'EXPIRED']);
+        $booking->bookingDetails()->update(['status' => 'CANCELLED']);
+        $booking->payment?->update(['status' => 'FAILED']);
+
+        return true;
     }
 
     /**
