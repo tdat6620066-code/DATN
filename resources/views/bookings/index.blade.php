@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Đặt sân của tôi - SmashZone')
+@section('title', 'Đặt lịch - SmashZone')
 
 @section('content')
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-list-check"></i> Đặt sân của tôi</h2>
+            <h2><i class="bi bi-list-check"></i> Đặt lịch</h2>
             <a href="/booking/create" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Đặt sân mới
             </a>

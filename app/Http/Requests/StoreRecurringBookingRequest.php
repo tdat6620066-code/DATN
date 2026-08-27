@@ -13,13 +13,20 @@ class StoreRecurringBookingRequest extends FormRequest
 
     public function rules(): array
     {
+        $lastRecurringDate = now()->addDays(config('booking.max_recurring_days', 365))->toDateString();
+
         return [
             'court_id' => 'required|exists:courts,id',
             'start_date' => 'required|date_format:Y-m-d|after_or_equal:today',
-            'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date',
-            'days_of_week' => 'required|array|min:1',
+            'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date', "before_or_equal:{$lastRecurringDate}"],
+            'booking_type' => 'nullable|in:weekly,monthly',
+            'days_of_week' => 'required_if:booking_type,weekly|array|min:1',
             'days_of_week.*' => 'integer|between:0,6',
-            'time_slot_id' => 'required|exists:time_slots,id',
+            'days_of_month' => 'required_if:booking_type,monthly|array|min:1',
+            'days_of_month.*' => 'integer|between:1,31',
+            'time_slot_ids' => 'required_without:time_slot_id|array|min:1',
+            'time_slot_ids.*' => 'exists:time_slots,id',
+            'time_slot_id' => 'nullable|exists:time_slots,id',
             'voucher_code' => 'nullable|string|max:50',
         ];
     }

@@ -853,6 +853,11 @@ Route::middleware([
         'createRecurring',
     ])->name('bookings.create-recurring');
 
+    Route::post('/booking/recurring/preview', [
+        BookingController::class,
+        'previewRecurring'
+    ])->name('bookings.recurring.preview');
+
     Route::post('/booking/recurring', [
         BookingController::class,
         'storeRecurring',

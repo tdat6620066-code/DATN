@@ -10,6 +10,7 @@ use App\Models\Holiday;
 use App\Models\TimeSlot;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class BookingService
@@ -34,11 +35,14 @@ class BookingService
      * Create booking with transaction and locking
      * UC18, UC19, UC20
      */
-    public function createBooking($userId, $bookingDetails, $voucherCode = null)
+    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [])
     {
-        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode) {
+        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata) {
             // Validate and lock all booking details
-            $validatedDetails = $this->validateAndLockBookingDetails($bookingDetails);
+            $maxDays = in_array($metadata['booking_type'] ?? 'daily', ['weekly', 'monthly'], true)
+                ? config('booking.max_recurring_days', 365)
+                : config('booking.max_days', 30);
+            $validatedDetails = $this->validateAndLockBookingDetails($bookingDetails, $maxDays);
 
             if (! empty($validatedDetails['errors'])) {
                 throw new \Exception(json_encode($validatedDetails['errors']));
@@ -71,7 +75,7 @@ class BookingService
                 'status' => 'PENDING_PAYMENT',
                 'payment_status' => 'PENDING',
                 'hold_expires_at' => now()->addMinutes(config('booking.hold_timeout', 10)),
-            ]);
+            ] + $metadata);
 
             // Create booking details
             foreach ($validatedDetails['details'] as $detail) {
@@ -102,7 +106,7 @@ class BookingService
      * Validate and lock all booking details
      * Uses SELECT FOR UPDATE to prevent race conditions
      */
-    private function validateAndLockBookingDetails($bookingDetails)
+    private function validateAndLockBookingDetails($bookingDetails, ?int $maxDays = null)
     {
         $errors = [];
         $validatedDetails = [];
@@ -145,7 +149,7 @@ class BookingService
             }
 
             // Validate booking date
-            if (! $this->isValidBookingDate($bookingDate, $timeSlot)) {
+            if (! $this->isValidBookingDate($bookingDate, $timeSlot, $maxDays)) {
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
@@ -220,9 +224,9 @@ class BookingService
     /**
      * Validate booking date
      */
-    private function isValidBookingDate(Carbon $date, TimeSlot $timeSlot)
+    private function isValidBookingDate(Carbon $date, TimeSlot $timeSlot, ?int $maxDays = null)
     {
-        $maxDays = config('booking.max_days', 30);
+        $maxDays ??= config('booking.max_days', 30);
 
         // A booking is valid for the whole current day. Comparing a date at
         // midnight with the current time previously rejected every booking made today.
@@ -249,27 +253,32 @@ class BookingService
      */
     private function getCurrentPrice($courtId, $timeSlotId, Carbon $date)
     {
-        $dayType = Holiday::whereDate('holiday_date', $date)->exists()
+        // Some existing databases predate advanced pricing and do not have a
+        // holidays table yet. They should continue to use weekday/weekend
+        // prices instead of preventing every booking.
+        $isHoliday = Schema::hasTable('holidays')
+            && Holiday::whereDate('holiday_date', $date)->exists();
+
+        $dayType = $isHoliday
             ? 'HOLIDAY'
             : ($date->isWeekend() ? 'WEEKEND' : 'WEEKDAY');
-        $price = CourtPrice::where('court_id', $courtId)
-            ->where('time_slot_id', $timeSlotId)
-            ->where('day_type', $dayType)
-            ->where('status', 'ACTIVE')
-            ->where('effective_from', '<=', $date->toDateString())
-            ->where(function ($query) use ($date) {
-                $query->whereNull('effective_to')
-                    ->orWhere('effective_to', '>=', $date->toDateString());
-            })
-            ->latest('effective_from')
-            ->first();
+        $hasDayType = Schema::hasColumn('court_prices', 'day_type');
 
-        if (! $price && $dayType !== 'WEEKDAY') {
-            $price = CourtPrice::where('court_id', $courtId)->where('time_slot_id', $timeSlotId)
-                ->where('day_type', 'WEEKDAY')->where('status', 'ACTIVE')
+        $findPrice = function (?string $type = null) use ($courtId, $timeSlotId, $date, $hasDayType) {
+            return CourtPrice::where('court_id', $courtId)
+                ->where('time_slot_id', $timeSlotId)
+                ->when($hasDayType && $type, fn ($query) => $query->where('day_type', $type))
+                ->where('status', 'ACTIVE')
                 ->where('effective_from', '<=', $date->toDateString())
                 ->where(fn ($query) => $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->toDateString()))
-                ->latest('effective_from')->first();
+                ->latest('effective_from')
+                ->first();
+        };
+
+        $price = $findPrice($dayType);
+
+        if (! $price && $hasDayType && $dayType !== 'WEEKDAY') {
+            $price = $findPrice('WEEKDAY');
         }
 
         return $price ? $price->price : null;
@@ -320,14 +329,75 @@ class BookingService
         }
 
         // Validate before creating
-        $validationResult = $this->validateAndLockBookingDetails($bookingDetails);
+        $validationResult = $this->validateAndLockBookingDetails(
+            $bookingDetails,
+            config('booking.max_recurring_days', 365)
+        );
 
         if (! empty($validationResult['errors'])) {
             throw new \Exception(json_encode($validationResult['errors']));
         }
 
         // Create single booking with multiple details
-        return $this->createBooking($userId, $bookingDetails, $voucherCode);
+        return $this->createBooking($userId, $bookingDetails, $voucherCode, [
+            'booking_type' => $recurringData['booking_type'] ?? 'weekly',
+            'start_date' => $recurringData['start_date'],
+            'end_date' => $recurringData['end_date'],
+        ]);
+    }
+
+    /**
+     * Build a recurring schedule and report every unavailable occurrence.
+     * This method is deliberately read-only: it never creates a booking or
+     * reserves a slot until the customer explicitly confirms the preview.
+     */
+    public function previewRecurringBooking(array $recurringData): array
+    {
+        $details = $this->generateRecurringBookingDetails($recurringData);
+        $court = Court::find($recurringData['court_id']);
+        $schedules = [];
+        $conflicts = [];
+        $subtotal = 0;
+
+        foreach ($details as $detail) {
+            $date = Carbon::parse($detail['booking_date']);
+            $timeSlot = TimeSlot::find($detail['time_slot_id']);
+            $reason = null;
+
+            if (! $court || $court->status !== 'ACTIVE') {
+                $reason = 'Sân hiện không hoạt động';
+            } elseif (! $timeSlot || $timeSlot->status !== 'ACTIVE') {
+                $reason = 'Khung giờ không hợp lệ';
+            } elseif (! $this->isValidBookingDate($date, $timeSlot, config('booking.max_recurring_days', 365))) {
+                $reason = 'Ngày hoặc giờ đặt không còn hợp lệ';
+            } else {
+                $availability = $this->availabilityService->checkAvailability($court->id, $date, $timeSlot->id);
+                if ($availability !== CourtAvailabilityService::STATUS_AVAILABLE) {
+                    $reason = $this->getAvailabilityErrorMessage($availability);
+                }
+            }
+
+            $price = $reason ? 0 : $this->getCurrentPrice($court->id, $timeSlot->id, $date);
+            if (! $reason && ! $price) {
+                $reason = 'Chưa có giá cho khung giờ này';
+            }
+
+            $item = [
+                'date' => $date,
+                'time_slot' => $timeSlot?->name ?? '—',
+                'price' => $price,
+                'reason' => $reason,
+            ];
+
+            if ($reason) {
+                $conflicts[] = $item;
+            } else {
+                $schedules[] = $item;
+                $subtotal += $price;
+            }
+        }
+
+        return compact('schedules', 'conflicts', 'subtotal');
     }
 
     /**
@@ -337,21 +407,28 @@ class BookingService
     {
         $startDate = Carbon::parse($recurringData['start_date']);
         $endDate = Carbon::parse($recurringData['end_date']);
-        $daysOfWeek = $recurringData['days_of_week']; // [1, 2, 3...] for Mon-Sun
-        $timeSlotId = $recurringData['time_slot_id'];
+        $bookingType = $recurringData['booking_type'] ?? 'weekly';
+        $daysOfWeek = $recurringData['days_of_week'] ?? [];
+        $daysOfMonth = $recurringData['days_of_month'] ?? [];
+        $timeSlotIds = $recurringData['time_slot_ids'] ?? [$recurringData['time_slot_id']];
         $courtId = $recurringData['court_id'];
 
         $bookingDetails = [];
         $current = $startDate->copy();
 
         while ($current <= $endDate) {
-            // Check if current day is in daysOfWeek (1=Monday, 7=Sunday)
-            if (in_array($current->dayOfWeek, $daysOfWeek)) {
-                $bookingDetails[] = [
-                    'court_id' => $courtId,
-                    'booking_date' => $current->toDateString(),
-                    'time_slot_id' => $timeSlotId,
-                ];
+            $matchesRule = $bookingType === 'monthly'
+                ? in_array($current->day, $daysOfMonth)
+                : in_array($current->dayOfWeek, $daysOfWeek);
+
+            if ($matchesRule) {
+                foreach ($timeSlotIds as $timeSlotId) {
+                    $bookingDetails[] = [
+                        'court_id' => $courtId,
+                        'booking_date' => $current->toDateString(),
+                        'time_slot_id' => $timeSlotId,
+                    ];
+                }
             }
             $current->addDay();
         }

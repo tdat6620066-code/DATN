@@ -194,6 +194,71 @@
         padding: 10px 18px;
         font-weight: 600;
     }
+
+    /* Checkout screen */
+    body:has(.booking-checkout-page) { background: var(--page); }
+    body:has(.booking-page) .navbar,
+    body:has(.booking-page) footer,
+    body:has(.booking-page) .container.mt-4 { display: none; }
+    body:has(.booking-page) main.container {
+        width: 100%; max-width: none; margin: 0 !important; padding: 0;
+    }
+    main.booking-detail-main {
+        width: 100%; max-width: none; min-height: 100vh; margin: 0; padding: 0;
+    }
+    .booking-checkout-page {
+        /* Use the same visual tokens as the public home page. */
+        --checkout-green: #f5faf1;
+        --checkout-card: #ffffff;
+        --checkout-yellow: #08dc6b;
+        --checkout-ink: #081527;
+        --checkout-muted: #58708b;
+        --checkout-line: #d8e0da;
+        min-height: 100vh;
+        color: var(--checkout-ink);
+        background: var(--checkout-green);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        padding: 24px 16px 108px;
+    }
+    .checkout-topbar { position: relative; display: flex; align-items: center; justify-content: center; max-width: 1180px; margin: 0 auto 20px; }
+    .checkout-back { position: absolute; left: 12px; color: var(--checkout-ink); font-size: 2rem; line-height: 1; text-decoration: none; }
+    .checkout-title { margin: 0; color: var(--checkout-ink); font-size: 1.55rem; font-weight: 800; text-transform: uppercase; }
+    .checkout-panel { max-width: 1180px; margin: 0 auto 22px; background: var(--checkout-card); border: 1px solid var(--checkout-line); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(2, 24, 35, .06); }
+    .checkout-panel h2 { color: #00b957; font-size: 1.25rem; font-weight: 800; margin: 0 0 12px; }
+    .checkout-panel p { font-size: 1.05rem; font-weight: 600; line-height: 1.45; margin: 0 0 18px; }
+    .checkout-panel p:last-child { margin-bottom: 2px; }
+    .checkout-schedule .schedule-date { margin-bottom: 10px; }
+    .checkout-schedule .schedule-slot { margin-left: 12px; }
+    .checkout-amount { color: #00b957; text-decoration: underline; }
+    .checkout-total-panel { padding-top: 17px; padding-bottom: 10px; margin-bottom: 24px; }
+    .checkout-discount-row, .checkout-payable-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .checkout-discount-row { padding-bottom: 20px; border-bottom: 1px solid var(--checkout-line); font-size: 1.1rem; }
+    .checkout-discount-row a { color: #00b957; font-weight: 700; }
+    .checkout-add { background: var(--checkout-yellow); color: var(--checkout-ink); border-radius: 50%; display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; font-size: 1.9rem; font-weight: 700; line-height: 1; margin-left: 12px; }
+    .checkout-payable-row { padding-top: 10px; font-size: 1.12rem; font-weight: 700; }
+    .checkout-contact { max-width: 1180px; margin: 6px auto 0; }
+    .checkout-label { display: block; margin: 0 0 10px; color: var(--checkout-ink); font-size: .9rem; font-weight: 800; text-transform: uppercase; }
+    .checkout-input { min-height: 54px; border: 1px solid var(--checkout-line); border-radius: 10px; padding: 13px 20px; font-size: 1rem; color: var(--checkout-ink); background: #fff; }
+    .checkout-input:focus { border-color: var(--checkout-yellow); box-shadow: 0 0 0 3px rgba(8, 220, 107, .16); }
+    .checkout-phone-wrap { position: relative; display: flex; align-items: center; }
+    .checkout-phone-wrap .checkout-input { padding-left: 148px; }
+    .checkout-country { position: absolute; left: 20px; color: var(--checkout-ink); z-index: 1; display: flex; align-items: center; gap: 10px; }
+    .checkout-country .flag { width: 26px; height: 26px; background: #df0027; border-radius: 50%; color: #ffe300; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; }
+    .checkout-close { position: absolute; right: 15px; color: #00b957; font-size: 1.5rem; font-weight: 700; }
+    .checkout-note { height: 70px; resize: none; }
+    .checkout-notice { max-width: 1180px; background: #eaf6e9; border: 1px solid var(--checkout-line); border-radius: 12px; padding: 18px 20px; margin: 25px auto 0; font-size: 1rem; line-height: 1.45; }
+    .checkout-notice strong { color: #00b957; }
+    .checkout-notice ul { margin: 30px 0 22px; padding-left: 25px; }
+    .checkout-notice a { color: #00b957; font-weight: 700; }
+    .checkout-submit-wrap { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; padding: 12px; background: rgba(245, 250, 241, .94); border-top: 1px solid var(--checkout-line); backdrop-filter: blur(10px); }
+    .checkout-submit { display: block; width: min(1180px, 100%); margin: 0 auto; background: var(--checkout-yellow); border: 0; border-radius: 999px; color: var(--checkout-ink); padding: 16px; font-weight: 800; font-size: 1.05rem; }
+    .checkout-submit:hover { background: #00b957; color: var(--checkout-ink); }
+    .checkout-hold { max-width: 1180px; margin: 0 auto 18px; padding: 12px 16px; border: 1px solid #bfe8cb; border-radius: 12px; background: #e8f9f1; color: #075b35; font-weight: 700; }
+    @media (max-width: 576px) {
+        .booking-checkout-page { padding-top: 15px; }
+        .checkout-title { font-size: 1.15rem; }
+        .checkout-panel p { font-size: 1rem; }
+    }
 </style>
 @endpush
 
@@ -240,7 +305,108 @@
     };
 @endphp
 
-<div class="row g-4">
+@if($booking->status === 'PENDING_PAYMENT')
+@php
+    $firstDetail = $booking->bookingDetails->first();
+    $court = $firstDetail?->court;
+    $bookingDate = $firstDetail?->booking_date;
+    $isRecurringBooking = in_array($booking->booking_type, ['weekly', 'monthly'], true);
+    $backUrl = $court
+        ? ($isRecurringBooking
+            ? route('bookings.create-recurring', ['court_id' => $court->id, 'booking_type' => $booking->booking_type])
+            : route('courts.show', $court))
+        : route('courts.index');
+    $totalMinutes = $booking->bookingDetails->sum(fn ($detail) => (int) ($detail->timeSlot->duration ?? 0));
+    $duration = $totalMinutes ? floor($totalMinutes / 60) . 'h' . ($totalMinutes % 60 ? str_pad((string) ($totalMinutes % 60), 2, '0', STR_PAD_LEFT) : '') : '—';
+@endphp
+<div class="booking-page booking-checkout-page">
+    <div class="checkout-topbar">
+        <a class="checkout-back" href="{{ $backUrl }}" aria-label="Quay lại {{ $isRecurringBooking ? 'đặt lịch định kỳ' : 'chi tiết sân' }}"><i class="bi bi-chevron-left"></i></a>
+        <h1 class="checkout-title">Đặt lịch theo sân - Trực quan</h1>
+    </div>
+    @if($booking->hold_expires_at)
+        <div class="checkout-hold"><i class="bi bi-clock-history me-2"></i>Khung giờ đang được giữ cho bạn trong <span id="hold-countdown">--:--</span>.</div>
+    @endif
+
+    <section class="checkout-panel">
+        <h2><i class="bi bi-map-fill me-2"></i>Thông tin sân</h2>
+        <p>Tên CLB: {{ $court?->name ?? '—' }}</p>
+        <p>Địa chỉ: {{ $court?->address ?? 'Đang cập nhật' }}</p>
+    </section>
+
+    <section class="checkout-panel checkout-schedule">
+        <h2><i class="bi bi-ticket-perforated-fill me-2"></i>Thông tin lịch đặt</h2>
+        <p class="schedule-date">Ngày: <strong>{{ $bookingDate ? $bookingDate->format('d/m/Y') : '—' }}</strong></p>
+        @forelse($booking->bookingDetails as $detail)
+            <p class="schedule-slot">- {{ $detail->court->name }}: {{ $detail->timeSlot->name }} | <a class="checkout-amount" href="#payment-summary">{{ number_format($detail->subtotal, 0, ',', '.') }} ₫</a></p>
+        @empty
+            <p>Chưa có khung giờ được chọn.</p>
+        @endforelse
+        <p>Đối tượng: {{ $court?->courtType?->name ?? 'Cầu lông' }}</p>
+        <p>Tổng giờ: {{ $duration }}</p>
+        <p>Tổng tiền: {{ number_format($total, 0, ',', '.') }} ₫</p>
+    </section>
+
+    <section class="checkout-panel checkout-total-panel" id="payment-summary">
+        <div class="checkout-discount-row">
+            <span>Ưu đãi</span>
+            <span><a href="#">Chọn ưu đãi áp dụng</a><span class="checkout-add">+</span></span>
+        </div>
+        <div class="checkout-payable-row">
+            <span>Số tiền cần thanh toán</span>
+            <span>{{ number_format($total, 0, ',', '.') }} ₫</span>
+        </div>
+    </section>
+
+    <form id="checkout-note-form" action="{{ route('bookings.update-note', $booking) }}" method="POST" class="checkout-contact">
+        @csrf
+        <label class="checkout-label" for="checkout-name">Tên của bạn</label>
+        <input id="checkout-name" class="form-control checkout-input" type="text" value="{{ $booking->user->name }}" readonly>
+
+        <label class="checkout-label mt-4" for="checkout-phone">Số điện thoại</label>
+        <div class="checkout-phone-wrap">
+            <span class="checkout-country"><span class="flag">★</span> +84 <i class="bi bi-caret-down-fill text-secondary"></i></span>
+            <input id="checkout-phone" class="form-control checkout-input" type="tel" value="{{ $booking->user->phone }}" readonly>
+            <span class="checkout-close"><i class="bi bi-x-circle-fill"></i></span>
+        </div>
+
+        <label class="checkout-label mt-4" for="checkout-note">Ghi chú cho chủ sân</label>
+        <textarea id="checkout-note" name="note" class="form-control checkout-input checkout-note" placeholder="Nhập ghi chú">{{ old('note', $booking->note) }}</textarea>
+    </form>
+
+    <section class="checkout-notice">
+        <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Lưu ý:</strong>
+        <ul>
+            <li>Việc thanh toán được thực hiện trực tiếp giữa bạn và chủ sân.</li>
+            <li>SmashZone đóng vai trò kết nối, hỗ trợ bạn tìm và đặt sân dễ dàng hơn.</li>
+            <li>Mỗi sân có thể có quy định và chính sách riêng, hãy dành chút thời gian đọc kỹ để đảm bảo quyền lợi cho bạn nhé!</li>
+        </ul>
+        Bằng việc bấm Xác nhận và Thanh toán, bạn xác nhận đã đọc và đồng ý với <a href="#">Điều khoản đặt sân</a> và <a href="#">Chính sách hoàn tiền và hủy lịch</a>.
+    </section>
+
+    <div class="checkout-submit-wrap">
+        <button class="checkout-submit" form="checkout-note-form" type="submit">XÁC NHẬN &amp; THANH TOÁN</button>
+    </div>
+</div>
+@if($booking->hold_expires_at)
+@push('scripts')
+<script>
+    (() => {
+        const countdown = document.getElementById('hold-countdown');
+        const deadline = new Date('{{ $booking->hold_expires_at->toIso8601String() }}').getTime();
+        const tick = () => {
+            const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            countdown.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+            if (!seconds) window.location.reload();
+        };
+        tick();
+        window.setInterval(tick, 1000);
+    })();
+</script>
+@endpush
+@endif
+@else
+<div class="booking-page row g-4">
     <div class="col-lg-8">
         <a href="{{ request('from') === 'profile' ? route('profile') . '#history' : route('bookings.index') }}" class="btn btn-outline-secondary btn-sm mb-3 rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i> {{ request('from') === 'profile' ? 'Quay lại lịch sử đặt sân' : 'Danh sách đặt sân' }}
@@ -507,4 +673,5 @@
         </div>
     </div>
 </div>
+@endif
 @endsection

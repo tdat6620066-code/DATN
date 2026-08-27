@@ -234,12 +234,6 @@ class CourtController extends Controller
 
             $status = $this->availabilityService->checkAvailability($court->id, $selectedDate, $slot->id);
 
-            // A slot held during payment must not look available. In the customer
-            // timetable it is shown with the same red state as a booked slot.
-            if ($status === CourtAvailabilityService::STATUS_HOLD) {
-                $status = CourtAvailabilityService::STATUS_BOOKED;
-            }
-
             $slotStart = Carbon::parse($selectedDate->toDateString() . ' ' . $slot->start_time);
             if ($selectedDate->isToday() && $slotStart->lte(now())) {
                 $status = CourtAvailabilityService::STATUS_MAINTENANCE;
@@ -254,6 +248,32 @@ class CourtController extends Controller
         $dateRange = collect(range(0, min(config('booking.max_days', 30), 20)))
             ->map(fn ($day) => Carbon::today()->addDays($day));
 
+        // A court detail page must only show the court in its route.
+        $court->load(['prices' => function ($query) use ($selectedDate) {
+            $query->where('status', 'ACTIVE')
+                ->where('effective_from', '<=', $selectedDate->toDateString())
+                ->where(function ($subQuery) use ($selectedDate) {
+                    $subQuery->whereNull('effective_to')
+                        ->orWhere('effective_to', '>=', $selectedDate->toDateString());
+                });
+        }]);
+        $scheduleCourts = collect([$court]);
+
+        $scheduleAvailability = [];
+        foreach ($scheduleCourts as $scheduleCourt) {
+            foreach ($timeSlots as $slot) {
+                $price = $scheduleCourt->prices->firstWhere('time_slot_id', $slot->id)?->price ?? 0;
+                $status = $this->availabilityService->checkAvailability($scheduleCourt->id, $selectedDate, $slot->id);
+
+                $slotStart = Carbon::parse($selectedDate->toDateString().' '.$slot->start_time);
+                if (($selectedDate->isToday() && $slotStart->lte(now())) || $price <= 0) {
+                    $status = CourtAvailabilityService::STATUS_MAINTENANCE;
+                }
+
+                $scheduleAvailability[$scheduleCourt->id][$slot->id] = compact('status', 'price');
+            }
+        }
+
         return view('courts.show', [
             'court' => $court,
             'reviews' => $reviews,
@@ -263,6 +283,8 @@ class CourtController extends Controller
             'dateRange' => $dateRange,
             'timeSlots' => $timeSlots,
             'availability' => $availability,
+            'scheduleCourts' => $scheduleCourts,
+            'scheduleAvailability' => $scheduleAvailability,
         ]);
     }
 
