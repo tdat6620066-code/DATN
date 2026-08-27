@@ -59,6 +59,13 @@ class BookingController extends Controller
             ? Carbon::parse($request->booking_date)
             : Carbon::today();
 
+        $selectedCourtId = $request->integer('court_id');
+        $selectedCourt = $courts->firstWhere('id', $selectedCourtId);
+        $selectedTimeSlotId = $request->integer('time_slot_id');
+        if (! $timeSlots->contains('id', $selectedTimeSlotId)) {
+            $selectedTimeSlotId = null;
+        }
+
         // Generate date range for calendar (show 30 days starting from today)
         $dateRange = collect();
         for ($i = 0; $i < 30; $i++) {
@@ -97,6 +104,8 @@ class BookingController extends Controller
             'bookingDate' => $bookingDate,
             'dateRange' => $dateRange,
             'availabilityData' => $availabilityData,
+            'selectedCourt' => $selectedCourt,
+            'selectedTimeSlotId' => $selectedTimeSlotId,
         ]);
     }
 

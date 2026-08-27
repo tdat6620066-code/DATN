@@ -12,6 +12,8 @@ class AuthorizationMatrixTest extends TestCase
 
     public function test_guest_is_redirected_from_protected_areas(): void
     {
+        $this->get(route('home'))->assertRedirect(route('login'));
+        $this->get(route('courts.index'))->assertRedirect(route('login'));
         $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
         $this->get(route('employee.dashboard'))->assertRedirect(route('login'));
         $this->get(route('bookings.index'))->assertRedirect(route('login'));

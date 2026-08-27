@@ -195,10 +195,10 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex align-items-center gap-3 mb-3">
-                <a href="/courts/1" class="btn btn-sm btn-outline-secondary">
+                <a href="{{ $selectedCourt ? route('courts.show', $selectedCourt) : route('courts.index') }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-chevron-left"></i>
                 </a>
-                <h3 class="mb-0">Sân Cầu 1991 Club</h3>
+                <h3 class="mb-0">{{ $selectedCourt?->name ?? 'Đặt sân cầu lông' }}</h3>
                 <button type="button" class="btn btn-sm btn-outline-secondary ms-auto">
                     <i class="bi bi-info-circle"></i>
                 </button>
@@ -244,8 +244,8 @@
             <form method="POST" action="/booking" id="bookingForm">
                 @csrf
                 <input type="hidden" name="booking_date" id="bookingDateInput" value="{{ $bookingDate->toDateString() }}">
-                <input type="hidden" name="court_id" id="courtIdInput" value="1">
-                <input type="hidden" name="time_slot_ids" id="timeSlotIdsInput" value="">
+                <input type="hidden" name="court_id" id="courtIdInput" value="{{ $selectedCourt?->id ?? '' }}">
+                <div id="timeSlotIdsInput"></div>
 
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
                     <table class="availability-table">
@@ -260,7 +260,7 @@
                         <tbody>
                             @foreach($courts as $court)
                             <tr>
-                                <td class="court-name" style="position: sticky; left: 0; z-index: 10;">Sân {{ $loop->iteration }}</td>
+                                <td class="court-name" style="position: sticky; left: 0; z-index: 10;">{{ $court->name }}</td>
                                 @foreach($timeSlots as $slot)
                                 @php
                                     $availability = $availabilityData[$court->id][$slot->id] ?? [];
@@ -282,6 +282,7 @@
                                     data-slot-id="{{ $slot->id }}"
                                     data-status="{{ $status }}"
                                     data-price="{{ $price }}"
+                                    data-duration="{{ $slot->duration ?? 60 }}"
                                     @if($isSelectable) onclick="toggleSlot(this)" @endif>
                                     <div>{{ $priceDisplay }}</div>
                                 </td>
@@ -359,7 +360,6 @@
 
 <script>
 let selectedSlots = [];
-const durationPerSlot = 0.5; // 30 minutes per slot
 
 function selectDate(element) {
     // Update calendar UI
@@ -377,7 +377,10 @@ function selectDate(element) {
     document.getElementById('summaryDate').textContent = dateObj.toLocaleDateString('vi-VN');
     
     // Reload page with new date
-    window.location.href = `/booking?booking_date=${selectedDate}`;
+    const courtId = document.getElementById('courtIdInput').value;
+    const params = new URLSearchParams({ booking_date: selectedDate });
+    if (courtId) params.set('court_id', courtId);
+    window.location.href = `/booking?${params.toString()}`;
 }
 
 function toggleSlot(element) {
@@ -385,6 +388,7 @@ function toggleSlot(element) {
     const slotId = element.dataset.slotId;
     const status = element.dataset.status;
     const price = parseFloat(element.dataset.price);
+    const duration = parseInt(element.dataset.duration || '60', 10);
     const key = `${courtId}-${slotId}`;
     
     // Can't select booked or maintenance slots
@@ -399,8 +403,14 @@ function toggleSlot(element) {
         selectedSlots.splice(index, 1);
         element.classList.remove('slot-selected');
     } else {
-        selectedSlots.push({ key, courtId, slotId, price });
+        // Một booking chỉ thuộc một sân. Khi đổi dòng sân, bỏ lựa chọn cũ.
+        if (selectedSlots.length && selectedSlots[0].courtId !== courtId) {
+            selectedSlots = [];
+            document.querySelectorAll('.slot-selected').forEach(cell => cell.classList.remove('slot-selected'));
+        }
+        selectedSlots.push({ key, courtId, slotId, price, duration });
         element.classList.add('slot-selected');
+        document.getElementById('courtIdInput').value = courtId;
     }
     
     updateSummary();
@@ -408,12 +418,14 @@ function toggleSlot(element) {
 
 function updateSummary() {
     // Update time slot IDs
-    const slotIds = selectedSlots.map(s => s.slotId).join(',');
-    document.getElementById('timeSlotIdsInput').value = slotIds;
+    document.getElementById('timeSlotIdsInput').innerHTML = selectedSlots
+        .map(s => `<input type="hidden" name="time_slot_ids[]" value="${s.slotId}">`)
+        .join('');
     
     // Update summary
     document.getElementById('summarySlotCount').textContent = selectedSlots.length;
-    document.getElementById('summaryDuration').textContent = (selectedSlots.length * durationPerSlot).toFixed(1) + 'h';
+    const totalMinutes = selectedSlots.reduce((sum, slot) => sum + slot.duration, 0);
+    document.getElementById('summaryDuration').textContent = (totalMinutes / 60).toLocaleString('vi-VN') + 'h';
     
     const total = selectedSlots.reduce((sum, s) => sum + s.price, 0);
     document.getElementById('totalPrice').textContent = total.toLocaleString('vi-VN') + 'đ';
@@ -421,6 +433,20 @@ function updateSummary() {
     // Enable checkout button if slots selected
     document.getElementById('checkoutBtn').disabled = selectedSlots.length === 0;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const courtId = @json($selectedCourt?->id);
+    const slotId = @json($selectedTimeSlotId);
+    if (!courtId || !slotId) return;
+
+    const cell = document.querySelector(
+        `.time-slot-cell[data-court-id="${courtId}"][data-slot-id="${slotId}"]`
+    );
+    if (cell?.dataset.status === 'AVAILABLE') {
+        toggleSlot(cell);
+        cell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }
+});
 </script>
 {{-- Legacy duplicate form kept out of the rendered page.
         <div class="card">

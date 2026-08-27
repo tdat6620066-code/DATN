@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Models\Booking;
 use App\Policies\BookingPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,9 +34,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('chatbot', function (Request $request) {
+            return Limit::perMinute((int) config('chatbot.rate_limit_per_minute', 20))
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(fn () => response()->json([
+                    'message' => 'Bạn gửi tin nhắn quá nhanh. Vui lòng chờ một chút rồi thử lại.',
+                ], 429));
+        });
+
         // Register policies
         foreach ($this->policies as $model => $policy) {
-            \Illuminate\Support\Facades\Gate::policy($model, $policy);
+            Gate::policy($model, $policy);
         }
     }
 }

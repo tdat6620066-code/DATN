@@ -10,46 +10,19 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // Seed court data first
         $this->call([
-            CourtTypeSeeder::class,
-            AmenitySeeder::class,
-            TimeSlotSeeder::class,
-            CourtSeeder::class,
-            CourtPriceSeeder::class,
+            CourtTypeSeeder::class, AmenitySeeder::class, TimeSlotSeeder::class,
+            CourtSeeder::class, CourtPriceSeeder::class, BannerSeeder::class,
+            PromotionSeeder::class, NewsSeeder::class, RefundRequestDemoSeeder::class,
+            AdminSeeder::class, ServiceItemSeeder::class, ReviewSeeder::class,
+            ChatbotKnowledgeSeeder::class,
         ]);
 
-        // Seed homepage content
-        $this->call([
-            BannerSeeder::class,
-            PromotionSeeder::class,
-            NewsSeeder::class,
-            RefundRequestDemoSeeder::class,
-            AdminSeeder::class,
-            ServiceItemSeeder::class,
-        ]);
-
-        // Create test user
         User::updateOrCreate(['email' => 'test@example.com'], [
-            'name' => 'Test User',
-            'password' => bcrypt('password'),
+            'name' => 'Test User', 'password' => bcrypt('password'),
+            'phone' => '0900000000', 'role' => 'CUSTOMER', 'status' => 'ACTIVE',
         ]);
-            ReviewSeeder::class,
-        ]);
-
-        // Create test user
-        User::updateOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => bcrypt('password'),
-                'phone' => '0900000000',
-            ]
-        );
     }
 }
