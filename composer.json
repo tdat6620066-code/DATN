@@ -50,6 +50,9 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "ai:predeploy": [
+            "@php artisan chatbot:eval --fail-under=85"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

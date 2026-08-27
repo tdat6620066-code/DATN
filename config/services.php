@@ -40,4 +40,16 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'openai' => [
+        'enabled' => env('OPENAI_ENABLED', true),
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-5.6-luna'),
+        'embedding_model' => env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+        'rag_threshold' => env('OPENAI_RAG_THRESHOLD', 0.68),
+        'rag_direct_threshold' => env('OPENAI_RAG_DIRECT_THRESHOLD', 0.84),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'timeout' => env('OPENAI_TIMEOUT', 15),
+        'attempts' => env('OPENAI_ATTEMPTS', 3),
+    ],
+
 ];

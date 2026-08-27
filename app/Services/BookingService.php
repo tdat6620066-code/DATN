@@ -56,10 +56,11 @@ class BookingService
             $voucherId = null;
             if ($voucherCode) {
                 $voucherResult = $this->voucherService->validateAndApply($voucherCode, $subtotal);
-                if ($voucherResult['valid']) {
-                    $discount = $voucherResult['discount'];
-                    $voucherId = $voucherResult['voucher_id'];
+                if (! $voucherResult['valid']) {
+                    throw new \DomainException($voucherResult['message'] ?? 'Voucher không còn hợp lệ.');
                 }
+                $discount = $voucherResult['discount'];
+                $voucherId = $voucherResult['voucher_id'];
             }
 
             $totalAmount = max(0, $subtotal - $discount);

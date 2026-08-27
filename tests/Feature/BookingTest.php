@@ -96,7 +96,7 @@ class BookingTest extends TestCase
      */
     public function test_user_can_view_courts_list()
     {
-        $response = $this->get('/courts');
+        $response = $this->actingAs(User::factory()->create())->get('/courts');
         $response->assertOk();
     }
 
@@ -106,7 +106,7 @@ class BookingTest extends TestCase
     public function test_user_can_view_court_details()
     {
         $court = Court::first();
-        $response = $this->get("/courts/{$court->id}");
+        $response = $this->actingAs(User::factory()->create())->get("/courts/{$court->id}");
         $response->assertOk();
     }
 
@@ -118,7 +118,7 @@ class BookingTest extends TestCase
         $court = Court::first();
         $court->update(['status' => 'INACTIVE']);
         
-        $response = $this->get("/courts/{$court->id}");
+        $response = $this->actingAs(User::factory()->create())->get("/courts/{$court->id}");
         // Should either be 404 or show error message
         $this->assertTrue($response->status() === 404 || $response->getStatusCode() >= 400);
     }
@@ -128,7 +128,7 @@ class BookingTest extends TestCase
      */
     public function test_home_page_loads()
     {
-        $response = $this->get('/');
+        $response = $this->actingAs(User::factory()->create())->get('/');
         $response->assertOk();
     }
 
@@ -147,7 +147,7 @@ class BookingTest extends TestCase
      */
     public function test_can_search_courts_by_keyword()
     {
-        $response = $this->get('/courts?keyword=Sân');
+        $response = $this->actingAs(User::factory()->create())->get('/courts?keyword=Sân');
         $response->assertOk();
     }
 
@@ -203,7 +203,7 @@ class BookingTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'testuser@example.com',
-            'phone' => '0987654321',
+            'phone' => '0912345678',
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'terms' => '1',
@@ -222,7 +222,7 @@ class BookingTest extends TestCase
     public function test_user_can_login()
     {
         $user = User::factory()->create([
-            'email' => 'user@example.com',
+            'login' => 'user@example.com',
             'password' => bcrypt('password123'),
         ]);
 

@@ -105,3 +105,9 @@
         </div>
     </div>
 </header>
+
+@auth
+    @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
+        @include('partials.ai-chatbot')
+    @endif
+@endauth

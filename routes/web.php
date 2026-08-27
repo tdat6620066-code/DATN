@@ -1,19 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-// Controllers
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\CourtController;
-use App\Http\Controllers\BookingController;
-use App\Http\Controllers\FavoriteController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RefundRequestController;
-
-// Admin Controllers
 use App\Http\Controllers\AdminAnnouncementController;
+// Controllers
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCourtController;
 use App\Http\Controllers\AdminCourtTypeController;
@@ -22,16 +10,30 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminEmployeeController;
 use App\Http\Controllers\AdminIncidentController;
 use App\Http\Controllers\AdminMaintenanceController;
+use App\Http\Controllers\AdminKnowledgeBaseController;
 use App\Http\Controllers\AdminPaymentController;
 use App\Http\Controllers\AdminPricingController;
 use App\Http\Controllers\AdminVoucherController;
-
-// Employee Controllers
+// Admin Controllers
+use App\Http\Controllers\AiController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ChatbotAnalyticsController;
+use App\Http\Controllers\ChatbotFeedbackController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\CourtController;
 use App\Http\Controllers\EmployeeBookingController;
 use App\Http\Controllers\EmployeeCourtController;
 use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\EmployeeIncidentController;
-
+use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\HomeController;
+// Employee Controllers
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RefundRequestController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,9 +43,8 @@ use App\Http\Controllers\EmployeeIncidentController;
 
 Route::get('/', [
     HomeController::class,
-    'index'
-])->name('home');
-
+    'index',
+])->middleware(['auth', 'active'])->name('home');
 
 /*
 |--------------------------------------------------------------------------
@@ -64,14 +65,13 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/register', [
         AuthController::class,
-        'showRegister'
+        'showRegister',
     ])->name('register');
 
     Route::post('/register', [
         AuthController::class,
-        'register'
+        'register',
     ])->name('register.store');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -81,16 +81,15 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [
         AuthController::class,
-        'showLogin'
+        'showLogin',
     ])->name('login');
 
     Route::post('/login', [
         AuthController::class,
-        'login'
+        'login',
     ])
         ->middleware('throttle:5,1')
         ->name('login.store');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -105,26 +104,25 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/forgot-password', [
         AuthController::class,
-        'showForgotPassword'
+        'showForgotPassword',
     ])->name('password.request');
 
     Route::post('/forgot-password', [
         AuthController::class,
-        'sendResetLink'
+        'sendResetLink',
     ])
         ->middleware('throttle:3,1')
         ->name('password.email');
 
     Route::get('/reset-password/{token}', [
         AuthController::class,
-        'showResetPassword'
+        'showResetPassword',
     ])->name('password.reset');
 
     Route::post('/reset-password', [
         AuthController::class,
-        'resetPassword'
+        'resetPassword',
     ])->name('password.update');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -134,15 +132,14 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/auth/google', [
         AuthController::class,
-        'redirectGoogle'
+        'redirectGoogle',
     ])->name('google.redirect');
 
     Route::get('/auth/google/callback', [
         AuthController::class,
-        'googleCallback'
+        'googleCallback',
     ])->name('google.callback');
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -153,21 +150,22 @@ Route::middleware('guest')->group(function () {
 |
 */
 
+Route::middleware(['auth', 'active'])->group(function () {
 Route::get('/courts', [
     CourtController::class,
-    'index'
+    'index',
 ])->name('courts.index');
 
 Route::get('/courts/{court}', [
     CourtController::class,
-    'show'
+    'show',
 ])->name('courts.show');
 
 Route::get('/courts/{court}/availability', [
     CourtController::class,
-    'availability'
+    'availability',
 ])->name('courts.availability');
-
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -180,6 +178,18 @@ Route::get('/courts/{court}/availability', [
 
 Route::middleware(['auth', 'active'])->group(function () {
 
+    /* UC24-UC28 - AI APIs */
+    Route::prefix('api/ai')->name('api.ai.')->group(function () {
+        Route::get('/courts/recommendations', [AiController::class, 'courts'])->name('courts');
+        Route::post('/chat', [ChatController::class, 'chat'])->middleware('throttle:chatbot')->name('chat');
+        Route::post('/chat/stream', [ChatController::class, 'stream'])->middleware('throttle:chatbot')->name('chat.stream');
+        Route::post('/chat/{chatbotLog}/feedback', [ChatbotFeedbackController::class, 'store'])->middleware('throttle:chatbot')->name('chat.feedback');
+        Route::get('/promotions/me', [AiController::class, 'promotion'])->name('promotions.me');
+        Route::get('/demand-forecast', [AiController::class, 'forecast'])->name('forecast');
+        Route::post('/reviews/analyze', [AiController::class, 'reviews'])->name('reviews.analyze');
+        Route::post('/promotions/customers/{customer}', [AiController::class, 'customerPromotion'])->name('promotions.customer');
+    });
+
     /*
     |--------------------------------------------------------------------------
     | UC03 - ĐĂNG XUẤT
@@ -188,9 +198,8 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::post('/logout', [
         AuthController::class,
-        'logout'
+        'logout',
     ])->name('logout');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -200,14 +209,13 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/profile', [
         ProfileController::class,
-        'index'
+        'index',
     ])->name('profile');
 
     Route::put('/profile', [
         ProfileController::class,
-        'update'
+        'update',
     ])->name('profile.update');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -217,14 +225,13 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/profile/change-password', [
         ProfileController::class,
-        'showChangePassword'
+        'showChangePassword',
     ])->name('password.change');
 
     Route::put('/profile/change-password', [
         ProfileController::class,
-        'changePassword'
+        'changePassword',
     ])->name('password.change.update');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -234,19 +241,18 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/favorites', [
         FavoriteController::class,
-        'index'
+        'index',
     ])->name('favorites.index');
 
     Route::post('/favorites/{court}', [
         FavoriteController::class,
-        'store'
+        'store',
     ])->name('favorites.store');
 
     Route::delete('/favorites/{court}', [
         FavoriteController::class,
-        'destroy'
+        'destroy',
     ])->name('favorites.destroy');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -256,21 +262,20 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/notifications', [
         NotificationController::class,
-        'index'
+        'index',
     ])->name('notifications.index');
 
     Route::patch('/notifications/{notification}/read', [
         NotificationController::class,
-        'markAsRead'
+        'markAsRead',
     ])->name('notifications.read');
 
     Route::patch('/notifications/read-all', [
         NotificationController::class,
-        'markAllAsRead'
+        'markAllAsRead',
     ])->name('notifications.read-all');
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -281,7 +286,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 Route::middleware([
     'auth',
     'active',
-    'role:EMPLOYEE'
+    'role:EMPLOYEE',
 ])
     ->prefix('employee')
     ->name('employee.')
@@ -295,11 +300,10 @@ Route::middleware([
 
         Route::get('/dashboard', [
             EmployeeDashboardController::class,
-            'index'
+            'index',
         ])
             ->middleware('permission:employee.dashboard')
             ->name('dashboard');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -309,11 +313,10 @@ Route::middleware([
 
         Route::get('/schedule', [
             EmployeeDashboardController::class,
-            'schedule'
+            'schedule',
         ])
             ->middleware('permission:employee.dashboard')
             ->name('schedule');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -325,16 +328,15 @@ Route::middleware([
 
             Route::get('/bookings', [
                 EmployeeBookingController::class,
-                'index'
+                'index',
             ])->name('bookings.index');
 
             Route::get('/bookings/{booking}', [
                 EmployeeBookingController::class,
-                'show'
+                'show',
             ])->name('bookings.show');
 
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -344,11 +346,10 @@ Route::middleware([
 
         Route::post('/bookings/{booking}/check-in', [
             EmployeeBookingController::class,
-            'checkIn'
+            'checkIn',
         ])
             ->middleware('permission:bookings.checkin')
             ->name('bookings.check-in');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -358,11 +359,10 @@ Route::middleware([
 
         Route::post('/bookings/{booking}/complete', [
             EmployeeBookingController::class,
-            'complete'
+            'complete',
         ])
             ->middleware('permission:bookings.checkout')
             ->name('bookings.complete');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -372,11 +372,10 @@ Route::middleware([
 
         Route::post('/bookings/{booking}/payment', [
             EmployeeBookingController::class,
-            'pay'
+            'pay',
         ])
             ->middleware('permission:payments.counter')
             ->name('bookings.payment');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -386,18 +385,17 @@ Route::middleware([
 
         Route::post('/bookings/{booking}/services', [
             EmployeeBookingController::class,
-            'addService'
+            'addService',
         ])
             ->middleware('permission:services.manage')
             ->name('bookings.services.store');
 
         Route::delete('/bookings/{booking}/services/{service}', [
             EmployeeBookingController::class,
-            'removeService'
+            'removeService',
         ])
             ->middleware('permission:services.manage')
             ->name('bookings.services.destroy');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -407,18 +405,17 @@ Route::middleware([
 
         Route::get('/incidents', [
             EmployeeIncidentController::class,
-            'index'
+            'index',
         ])
             ->middleware('permission:incidents.manage')
             ->name('incidents.index');
 
         Route::post('/incidents', [
             EmployeeIncidentController::class,
-            'store'
+            'store',
         ])
             ->middleware('permission:incidents.manage')
             ->name('incidents.store');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -430,21 +427,20 @@ Route::middleware([
 
             Route::get('/courts', [
                 EmployeeCourtController::class,
-                'index'
+                'index',
             ])->name('courts.index');
 
             Route::get('/courts/{court}/edit', [
                 EmployeeCourtController::class,
-                'edit'
+                'edit',
             ])->name('courts.edit');
 
             Route::put('/courts/{court}', [
                 EmployeeCourtController::class,
-                'update'
+                'update',
             ])->name('courts.update');
 
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -456,23 +452,22 @@ Route::middleware([
 
             Route::get('/refund-requests', [
                 RefundRequestController::class,
-                'index'
+                'index',
             ])->name('refund-requests.index');
 
             Route::get('/refund-requests/{refundRequest}', [
                 RefundRequestController::class,
-                'show'
+                'show',
             ])->name('refund-requests.show');
 
             Route::post('/refund-requests/{refundRequest}/review', [
                 RefundRequestController::class,
-                'review'
+                'review',
             ])->name('refund-requests.review');
 
         });
 
     });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -483,7 +478,7 @@ Route::middleware([
 Route::middleware([
     'auth',
     'active',
-    'role:ADMIN'
+    'role:ADMIN',
 ])
     ->prefix('admin')
     ->name('admin.')
@@ -497,9 +492,16 @@ Route::middleware([
 
         Route::get('/dashboard', [
             AdminDashboardController::class,
-            'index'
+            'index',
         ])->name('dashboard');
 
+        Route::get('/chatbot-analytics', [ChatbotAnalyticsController::class, 'index'])
+            ->name('chatbot-analytics');
+        Route::post('/chatbot-analytics/unanswered/{unanswered}/resolve', [ChatbotAnalyticsController::class, 'resolve'])
+            ->name('chatbot-analytics.resolve');
+        Route::resource('knowledge-base', AdminKnowledgeBaseController::class)->parameters(['knowledge-base' => 'knowledge'])->except(['show']);
+        Route::post('/knowledge-base/{knowledge}/sync', [AdminKnowledgeBaseController::class, 'sync'])->name('knowledge-base.sync');
+        Route::post('/knowledge-base/{knowledge}/toggle', [AdminKnowledgeBaseController::class, 'toggle'])->name('knowledge-base.toggle');
 
         /*
         |--------------------------------------------------------------------------
@@ -510,7 +512,6 @@ Route::middleware([
         Route::resource('courts', AdminCourtController::class)
             ->except(['show']);
 
-
         /*
         |--------------------------------------------------------------------------
         | COURT TYPES
@@ -520,7 +521,6 @@ Route::middleware([
         Route::resource('court-types', AdminCourtTypeController::class)
             ->except(['show']);
 
-
         /*
         |--------------------------------------------------------------------------
         | PRICING
@@ -529,39 +529,38 @@ Route::middleware([
 
         Route::get('/pricing', [
             AdminPricingController::class,
-            'index'
+            'index',
         ])->name('pricing.index');
 
         Route::post('/pricing/slots', [
             AdminPricingController::class,
-            'storeSlot'
+            'storeSlot',
         ])->name('pricing.slots.store');
 
         Route::put('/pricing/slots/{timeSlot}', [
             AdminPricingController::class,
-            'updateSlot'
+            'updateSlot',
         ])->name('pricing.slots.update');
 
         Route::delete('/pricing/slots/{timeSlot}', [
             AdminPricingController::class,
-            'destroySlot'
+            'destroySlot',
         ])->name('pricing.slots.destroy');
 
         Route::put('/pricing/prices', [
             AdminPricingController::class,
-            'updatePrices'
+            'updatePrices',
         ])->name('pricing.prices.update');
 
         Route::post('/pricing/holidays', [
             AdminPricingController::class,
-            'storeHoliday'
+            'storeHoliday',
         ])->name('pricing.holidays.store');
 
         Route::delete('/pricing/holidays/{holiday}', [
             AdminPricingController::class,
-            'destroyHoliday'
+            'destroyHoliday',
         ])->name('pricing.holidays.destroy');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -571,19 +570,18 @@ Route::middleware([
 
         Route::get('/maintenance', [
             AdminMaintenanceController::class,
-            'index'
+            'index',
         ])->name('maintenance.index');
 
         Route::post('/maintenance', [
             AdminMaintenanceController::class,
-            'store'
+            'store',
         ])->name('maintenance.store');
 
         Route::put('/maintenance/{maintenance}/cancel', [
             AdminMaintenanceController::class,
-            'cancel'
+            'cancel',
         ])->name('maintenance.cancel');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -593,29 +591,28 @@ Route::middleware([
 
         Route::get('/customers', [
             AdminCustomerController::class,
-            'index'
+            'index',
         ])->name('customers.index');
 
         Route::get('/customers/{customer}', [
             AdminCustomerController::class,
-            'show'
+            'show',
         ])->name('customers.show');
 
         Route::get('/customers/{customer}/edit', [
             AdminCustomerController::class,
-            'edit'
+            'edit',
         ])->name('customers.edit');
 
         Route::put('/customers/{customer}', [
             AdminCustomerController::class,
-            'update'
+            'update',
         ])->name('customers.update');
 
         Route::put('/customers/{customer}/toggle-status', [
             AdminCustomerController::class,
-            'toggleStatus'
+            'toggleStatus',
         ])->name('customers.toggle-status');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -625,34 +622,33 @@ Route::middleware([
 
         Route::get('/employees', [
             AdminEmployeeController::class,
-            'index'
+            'index',
         ])->name('employees.index');
 
         Route::get('/employees/create', [
             AdminEmployeeController::class,
-            'create'
+            'create',
         ])->name('employees.create');
 
         Route::post('/employees', [
             AdminEmployeeController::class,
-            'store'
+            'store',
         ])->name('employees.store');
 
         Route::get('/employees/{employee}/edit', [
             AdminEmployeeController::class,
-            'edit'
+            'edit',
         ])->name('employees.edit');
 
         Route::put('/employees/{employee}', [
             AdminEmployeeController::class,
-            'update'
+            'update',
         ])->name('employees.update');
 
         Route::put('/employees/{employee}/toggle-status', [
             AdminEmployeeController::class,
-            'toggleStatus'
+            'toggleStatus',
         ])->name('employees.toggle-status');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -662,24 +658,23 @@ Route::middleware([
 
         Route::get('/bookings', [
             AdminBookingController::class,
-            'index'
+            'index',
         ])->name('bookings.index');
 
         Route::get('/bookings/{booking}', [
             AdminBookingController::class,
-            'show'
+            'show',
         ])->name('bookings.show');
 
         Route::put('/bookings/{booking}', [
             AdminBookingController::class,
-            'update'
+            'update',
         ])->name('bookings.update');
 
         Route::put('/bookings/{booking}/cancel', [
             AdminBookingController::class,
-            'cancel'
+            'cancel',
         ])->name('bookings.cancel');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -689,29 +684,28 @@ Route::middleware([
 
         Route::get('/payments', [
             AdminPaymentController::class,
-            'index'
+            'index',
         ])->name('payments.index');
 
         Route::get('/payments/{payment}', [
             AdminPaymentController::class,
-            'show'
+            'show',
         ])->name('payments.show');
 
         Route::put('/payments/{payment}/reconcile', [
             AdminPaymentController::class,
-            'reconcile'
+            'reconcile',
         ])->name('payments.reconcile');
 
         Route::put('/refund-requests/{refundRequest}/approve', [
             AdminPaymentController::class,
-            'approveRefund'
+            'approveRefund',
         ])->name('payments.refunds.approve');
 
         Route::put('/refunds/{refund}/process', [
             AdminPaymentController::class,
-            'processRefund'
+            'processRefund',
         ])->name('payments.refunds.process');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -724,9 +718,8 @@ Route::middleware([
 
         Route::put('/vouchers/{voucher}/toggle', [
             AdminVoucherController::class,
-            'toggle'
+            'toggle',
         ])->name('vouchers.toggle');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -736,19 +729,18 @@ Route::middleware([
 
         Route::get('/announcements', [
             AdminAnnouncementController::class,
-            'index'
+            'index',
         ])->name('announcements.index');
 
         Route::post('/announcements', [
             AdminAnnouncementController::class,
-            'store'
+            'store',
         ])->name('announcements.store');
 
         Route::delete('/announcements/{announcement}', [
             AdminAnnouncementController::class,
-            'destroy'
+            'destroy',
         ])->name('announcements.destroy');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -758,16 +750,15 @@ Route::middleware([
 
         Route::get('/incidents', [
             AdminIncidentController::class,
-            'index'
+            'index',
         ])->name('incidents.index');
 
         Route::put('/incidents/{incident}', [
             AdminIncidentController::class,
-            'update'
+            'update',
         ])->name('incidents.update');
 
     });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -779,18 +770,15 @@ Route::middleware([
 | Danh sách booking của người dùng.
 */
 
-Route::get('/bookings', function (\Illuminate\Http\Request $request) {
+Route::get('/bookings', function (Request $request) {
 
     return match ($request->user()->role ?? 'CUSTOMER') {
 
-        'ADMIN' =>
-            redirect()->route('admin.bookings.index'),
+        'ADMIN' => redirect()->route('admin.bookings.index'),
 
-        'EMPLOYEE' =>
-            redirect()->route('employee.dashboard'),
+        'EMPLOYEE' => redirect()->route('employee.dashboard'),
 
-        default =>
-            app(BookingController::class)->index($request),
+        default => app(BookingController::class)->index($request),
 
     };
 
@@ -809,14 +797,13 @@ Route::get('/bookings', function (\Illuminate\Http\Request $request) {
 
 Route::get('/booking/vnpay/return', [
     BookingController::class,
-    'vnpayReturn'
+    'vnpayReturn',
 ])->name('bookings.vnpay.return');
 
 Route::get('/booking/vnpay/ipn', [
     BookingController::class,
-    'vnpayIpn'
+    'vnpayIpn',
 ])->name('bookings.vnpay.ipn');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -827,7 +814,7 @@ Route::get('/booking/vnpay/ipn', [
 Route::middleware([
     'auth',
     'active',
-    'role:CUSTOMER'
+    'role:CUSTOMER',
 ])->group(function () {
 
     /*
@@ -836,7 +823,7 @@ Route::middleware([
 
     Route::get('/booking', [
         BookingController::class,
-        'create'
+        'create',
     ])->name('bookings.create');
 
     /*
@@ -845,9 +832,8 @@ Route::middleware([
 
     Route::get('/booking/create', [
         BookingController::class,
-        'create'
+        'create',
     ]);
-
 
     /*
     | Lưu booking
@@ -855,14 +841,8 @@ Route::middleware([
 
     Route::post('/booking', [
         BookingController::class,
-        'store'
+        'store',
     ])->name('bookings.store');
-
-    Route::post('/booking/{booking}/note', [
-        BookingController::class,
-        'updateNote'
-    ])->name('bookings.update-note');
-
 
     /*
     | Booking định kỳ
@@ -870,7 +850,7 @@ Route::middleware([
 
     Route::get('/booking/create-recurring', [
         BookingController::class,
-        'createRecurring'
+        'createRecurring',
     ])->name('bookings.create-recurring');
 
     Route::post('/booking/recurring/preview', [
@@ -880,9 +860,8 @@ Route::middleware([
 
     Route::post('/booking/recurring', [
         BookingController::class,
-        'storeRecurring'
+        'storeRecurring',
     ])->name('bookings.store-recurring');
-
 
     /*
     | Chi tiết booking
@@ -890,9 +869,8 @@ Route::middleware([
 
     Route::get('/booking/{booking}', [
         BookingController::class,
-        'show'
+        'show',
     ])->name('bookings.show');
-
 
     /*
     | QR booking
@@ -900,9 +878,8 @@ Route::middleware([
 
     Route::get('/booking/{booking}/qr', [
         BookingController::class,
-        'showQr'
+        'showQr',
     ])->name('bookings.qr');
-
 
     /*
     | Xác nhận thanh toán
@@ -910,9 +887,8 @@ Route::middleware([
 
     Route::post('/booking/{booking}/confirm-payment', [
         BookingController::class,
-        'confirmPayment'
+        'confirmPayment',
     ])->name('bookings.confirm-payment');
-
 
     /*
     | Thanh toán VNPay
@@ -920,9 +896,8 @@ Route::middleware([
 
     Route::get('/booking/{booking}/vnpay', [
         BookingController::class,
-        'vnpayCreate'
+        'vnpayCreate',
     ])->name('bookings.vnpay');
-
 
     /*
     | Hủy booking
@@ -930,9 +905,8 @@ Route::middleware([
 
     Route::post('/booking/{booking}/cancel', [
         BookingController::class,
-        'cancel'
+        'cancel',
     ])->name('bookings.cancel');
-
 
     /*
     | Yêu cầu hoàn tiền
@@ -940,19 +914,25 @@ Route::middleware([
 
     Route::post('/refund-requests', [
         RefundRequestController::class,
-        'store'
+        'store',
     ])->name('refund-requests.store');
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| EMPLOYEE CHECKOUT
+|--------------------------------------------------------------------------
+*/
+
 Route::post('/booking/{booking}/checkout', [
     BookingController::class,
-    'checkout'
+    'checkout',
 ])
     ->middleware([
         'auth',
         'active',
         'role:EMPLOYEE',
-        'permission:bookings.checkout'
+        'permission:bookings.checkout',
     ])
     ->name('bookings.checkout');
