@@ -891,6 +891,15 @@ Route::middleware([
     ])->name('bookings.confirm-payment');
 
     /*
+    | Cập nhật ghi chú từ màn hình checkout trước khi thanh toán
+    */
+
+    Route::post('/booking/{booking}/update-note', [
+        BookingController::class,
+        'updateNote',
+    ])->name('bookings.update-note');
+
+    /*
     | Thanh toán VNPay
     */
 
