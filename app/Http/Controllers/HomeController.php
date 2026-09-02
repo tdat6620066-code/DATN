@@ -85,7 +85,8 @@ class HomeController extends Controller
         ];
 
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->orderBy('start_time')->get(['id', 'name', 'start_time']);
-        $heroImage = $banners->first()?->image ?? $featuredCourts->first()?->images->first()?->url;
+        // Chỉ dùng ảnh banner đã được quản trị viên tạo; không dùng ảnh sân làm ảnh nền banner.
+        $heroImage = $banners->first()?->image;
 
         return view('home', [
             'banners' => $banners,

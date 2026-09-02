@@ -1,7 +1,10 @@
 @php
     $minimumPrice = $court->prices->min('price') ?? 0;
     $galleryImages = $court->images->take(5);
-    $coverImage = $galleryImages->first()?->image;
+    // `image` stores a path relative to the public storage disk (for example,
+    // `courts/photo.jpg`).  Render the model URL accessor so the browser gets
+    // `/storage/...` instead of requesting a non-existent relative URL.
+    $coverImage = $galleryImages->first()?->url;
     $rating = $court->approved_rating ? number_format($court->approved_rating, 1) : null;
     $courtType = $court->courtType?->name;
 @endphp
@@ -25,8 +28,8 @@
                         @if($galleryImages->count() > 1)
                             <div class="cdm-thumbs">
                                 @foreach($galleryImages as $image)
-                                    <button type="button" class="cdm-thumb @if($loop->first) active @endif" onclick="switchCourtImage('{{ $modalId }}', '{{ $image->image }}', this)" aria-label="Xem ảnh {{ $loop->iteration }}">
-                                        <img src="{{ $image->image }}" alt="{{ $court->name }} ảnh {{ $loop->iteration }}" loading="lazy">
+                                    <button type="button" class="cdm-thumb @if($loop->first) active @endif" onclick="switchCourtImage(@js($modalId), @js($image->url), this)" aria-label="Xem ảnh {{ $loop->iteration }}">
+                                        <img src="{{ $image->url }}" alt="{{ $court->name }} ảnh {{ $loop->iteration }}" loading="lazy">
                                     </button>
                                 @endforeach
                             </div>

@@ -44,7 +44,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [
     HomeController::class,
     'index',
-])->middleware(['auth', 'active'])->name('home');
+])->name('home');
 
 /*
 |--------------------------------------------------------------------------
@@ -150,7 +150,6 @@ Route::middleware('guest')->group(function () {
 |
 */
 
-Route::middleware(['auth', 'active'])->group(function () {
 Route::get('/courts', [
     CourtController::class,
     'index',
@@ -165,7 +164,6 @@ Route::get('/courts/{court}/availability', [
     CourtController::class,
     'availability',
 ])->name('courts.availability');
-});
 
 /*
 |--------------------------------------------------------------------------
