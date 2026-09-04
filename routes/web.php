@@ -11,6 +11,7 @@ use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RefundRequestController;
+use App\Http\Controllers\ChatController;
 
 // Admin Controllers
 use App\Http\Controllers\AdminAnnouncementController;
@@ -180,6 +181,10 @@ Route::get('/courts/{court}/availability', [
 
 Route::middleware(['auth', 'active'])->group(function () {
 
+    Route::post('/api/ai/chat/stream', [ChatController::class, 'stream'])
+        ->middleware('throttle:30,1')
+        ->name('api.ai.chat.stream');
+
     /*
     |--------------------------------------------------------------------------
     | UC03 - ĐĂNG XUẤT
@@ -268,6 +273,21 @@ Route::middleware(['auth', 'active'])->group(function () {
         NotificationController::class,
         'markAllAsRead'
     ])->name('notifications.read-all');
+
+    Route::get('/notifications/{notification}/open', [
+        NotificationController::class,
+        'open'
+    ])->name('notifications.open');
+
+    Route::get('/profile/notification-settings', [
+        \App\Http\Controllers\NotificationPreferenceController::class,
+        'edit'
+    ])->name('notification-settings.edit');
+
+    Route::put('/profile/notification-settings', [
+        \App\Http\Controllers\NotificationPreferenceController::class,
+        'update'
+    ])->name('notification-settings.update');
 
 });
 
@@ -680,6 +700,11 @@ Route::middleware([
             'cancel'
         ])->name('bookings.cancel');
 
+        Route::put('/bookings/{booking}/details/{detail}/court', [
+            AdminBookingController::class,
+            'changeCourt'
+        ])->name('bookings.change-court');
+
 
         /*
         |--------------------------------------------------------------------------
@@ -898,12 +923,6 @@ Route::middleware([
     /*
     | Xác nhận thanh toán
     */
-
-    Route::post('/booking/{booking}/confirm-payment', [
-        BookingController::class,
-        'confirmPayment'
-    ])->name('bookings.confirm-payment');
-
 
     /*
     | Thanh toán VNPay

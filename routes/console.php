@@ -10,4 +10,6 @@ Artisan::command('inspire', function () {
 
 // UC23 - Schedule to expire holds every minute
 Schedule::command('bookings:expire-holds')->everyMinute();
-
+Schedule::command('bookings:send-reminders')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('promotions:send-notifications')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('announcements:send-scheduled')->everyMinute()->withoutOverlapping();

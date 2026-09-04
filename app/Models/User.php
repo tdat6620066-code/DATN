@@ -26,6 +26,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         'address',
         'google_id',
         'last_login_at',
+        'notification_preferences',
     ];
 
     /**
@@ -50,6 +51,7 @@ class User extends Authenticatable implements CanResetPasswordContract
             'password' => 'hashed',
 
             'permissions' => 'array',
+            'notification_preferences' => 'array',
         ];
     }
 
@@ -138,5 +140,14 @@ class User extends Authenticatable implements CanResetPasswordContract
             $this->permissions ?? [],
             true
         );
+    }
+
+    public function notificationEnabled(string $category): bool
+    {
+        // Các thông báo vận hành và an toàn tài khoản luôn bắt buộc.
+        if (in_array($category, ['booking', 'payment', 'system'], true)) return true;
+
+        $defaults = ['reminder' => true, 'promotion' => false, 'email' => true];
+        return (bool) (($this->notification_preferences ?? [])[$category] ?? ($defaults[$category] ?? true));
     }
 }

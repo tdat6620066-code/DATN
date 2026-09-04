@@ -17,6 +17,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    @vite(['resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -66,6 +67,7 @@
         .nav-links a { color: rgba(255, 255, 255, .88); font-size: 14px; font-weight: 600; transition: color .2s; }
         .nav-links a:hover { color: #5eead4; }
         .nav-actions { display: flex; align-items: center; gap: 12px; }
+        .home-notification-link{position:relative;color:#fff;font-size:20px;line-height:1;text-decoration:none}.home-notification-link:hover{color:#5eead4}.home-notification-badge{position:absolute;top:-9px;right:-10px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center}.home-toast-wrap{position:fixed;top:86px;right:22px;z-index:2000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px))}.home-realtime-toast{padding:16px;border:1px solid #dbe7e2;border-left:4px solid #0ea36b;border-radius:14px;background:#fff;box-shadow:0 18px 45px rgba(2,36,50,.2)}.home-realtime-toast strong{display:block;color:#102a34}.home-realtime-toast p{margin:7px 0 10px;color:#52656c;font-size:13px}.home-realtime-toast a{color:#0b8a5a;font-size:13px;font-weight:800;text-decoration:none}.home-realtime-toast button{float:right;border:0;background:none;color:#64748b;font-size:18px}
         .btn-pill {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             padding: 11px 20px; border-radius: 999px; font-weight: 700; font-size: 14px;
@@ -345,6 +347,11 @@
         </nav>
         <div class="nav-actions">
             @auth
+                @php($homeUnreadNotifications = Auth::user()->userNotifications()->where('is_read', false)->count())
+                <a class="home-notification-link" href="{{ route('notifications.index') }}" aria-label="Thông báo" title="Thông báo">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="home-notification-badge" id="home-notification-badge" @if($homeUnreadNotifications === 0) hidden @endif>{{ $homeUnreadNotifications > 99 ? '99+' : $homeUnreadNotifications }}</span>
+                </a>
                 <div class="nav-user-menu">
                     <button type="button" class="nav-user-trigger">
                         <i class="bi bi-person-circle"></i> {{ Str::limit(Auth::user()->name, 16) }}
@@ -352,6 +359,10 @@
                     </button>
                     <div class="nav-user-dropdown">
                         <a href="{{ route('profile') }}"><i class="bi bi-person"></i> Thông tin tài khoản</a>
+                        <a href="{{ route('notifications.index') }}"><i class="bi bi-bell"></i> Thông báo</a>
+                        @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
+                            <a href="{{ route('notification-settings.edit') }}"><i class="bi bi-sliders"></i> Cài đặt thông báo</a>
+                        @endif
                         <div class="dropdown-divider"></div>
                         <form action="{{ route('logout') }}" method="POST" style="margin:0;">
                             @csrf
@@ -366,6 +377,7 @@
         </div>
     </div>
 </header>
+@auth<div class="home-toast-wrap" id="home-toast-wrap" aria-live="polite"></div>@endauth
 
 <main id="home">
     <!-- HERO -->
@@ -568,6 +580,11 @@
 <a class="floating-book" href="{{ $primaryRoute }}"><i class="bi {{ $canBook ? 'bi-calendar2-plus' : 'bi-speedometer2' }}"></i> {{ $primaryLabel }}</a>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+@auth
+<script>
+document.addEventListener('DOMContentLoaded',()=>{if(!window.Echo)return;window.Echo.private('users.{{ Auth::id() }}').listen('.customer.notification.created',notification=>{const badge=document.getElementById('home-notification-badge');const current=Number.parseInt(badge.textContent,10)||0;const next=current+1;badge.textContent=next>99?'99+':String(next);badge.hidden=false;const toast=document.createElement('div');toast.className='home-realtime-toast';const close=document.createElement('button');close.type='button';close.innerHTML='&times;';close.onclick=()=>toast.remove();const title=document.createElement('strong');title.textContent=notification.title;const content=document.createElement('p');content.textContent=notification.content;toast.append(close,title,content);if(notification.action_url){const link=document.createElement('a');link.href=notification.action_url;link.textContent='Xem';toast.append(link)}document.getElementById('home-toast-wrap').prepend(toast);window.setTimeout(()=>toast.remove(),10000)})});
+</script>
+@endauth
 @stack('scripts')
 <script>
     const nav = document.getElementById('nav');
@@ -592,5 +609,10 @@
         }).observe(el);
     });
 </script>
+@auth
+    @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
+        @include('partials.ai-chatbot')
+    @endif
+@endauth
 </body>
 </html>

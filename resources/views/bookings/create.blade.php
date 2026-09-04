@@ -195,10 +195,10 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex align-items-center gap-3 mb-3">
-                <a href="/courts/1" class="btn btn-sm btn-outline-secondary">
+                <a href="{{ route('courts.index') }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-chevron-left"></i>
                 </a>
-                <h3 class="mb-0">Sân Cầu 1991 Club</h3>
+                <h3 class="mb-0">Chọn sân cầu lông</h3>
                 <button type="button" class="btn btn-sm btn-outline-secondary ms-auto">
                     <i class="bi bi-info-circle"></i>
                 </button>
@@ -244,8 +244,8 @@
             <form method="POST" action="/booking" id="bookingForm">
                 @csrf
                 <input type="hidden" name="booking_date" id="bookingDateInput" value="{{ $bookingDate->toDateString() }}">
-                <input type="hidden" name="court_id" id="courtIdInput" value="1">
-                <input type="hidden" name="time_slot_ids" id="timeSlotIdsInput" value="">
+                <input type="hidden" name="court_id" id="courtIdInput" value="">
+                <div id="timeSlotIdsInputs"></div>
 
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
                     <table class="availability-table">
@@ -260,7 +260,7 @@
                         <tbody>
                             @foreach($courts as $court)
                             <tr>
-                                <td class="court-name" style="position: sticky; left: 0; z-index: 10;">Sân {{ $loop->iteration }}</td>
+                                <td class="court-name" style="position: sticky; left: 0; z-index: 10;">{{ $court->name }}</td>
                                 @foreach($timeSlots as $slot)
                                 @php
                                     $availability = $availabilityData[$court->id][$slot->id] ?? [];
@@ -392,6 +392,14 @@ function toggleSlot(element) {
         return;
     }
     
+    // Mỗi đơn đặt sân chỉ thuộc một sân. Khi chuyển sang sân khác,
+    // bỏ lựa chọn cũ để dữ liệu gửi lên luôn nhất quán.
+    if (selectedSlots.length > 0 && selectedSlots[0].courtId !== courtId) {
+        selectedSlots.length = 0;
+        document.querySelectorAll('.time-slot-cell.slot-selected')
+            .forEach(cell => cell.classList.remove('slot-selected'));
+    }
+
     // Toggle selection
     const index = selectedSlots.findIndex(s => s.key === key);
     
@@ -407,9 +415,12 @@ function toggleSlot(element) {
 }
 
 function updateSummary() {
-    // Update time slot IDs
-    const slotIds = selectedSlots.map(s => s.slotId).join(',');
-    document.getElementById('timeSlotIdsInput').value = slotIds;
+    // Laravel expects time_slot_ids to be an array (time_slot_ids[]),
+    // not a comma-separated string.
+    document.getElementById('courtIdInput').value = selectedSlots[0]?.courtId ?? '';
+    document.getElementById('timeSlotIdsInputs').innerHTML = selectedSlots
+        .map(slot => `<input type="hidden" name="time_slot_ids[]" value="${slot.slotId}">`)
+        .join('');
     
     // Update summary
     document.getElementById('summarySlotCount').textContent = selectedSlots.length;

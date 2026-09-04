@@ -2,9 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\{StoreBookingRequest, StoreRecurringBookingRequest};
-use App\Models\{Booking, Court, TimeSlot};
-use App\Services\{BookingService, CourtAvailabilityService, PaymentService, QRCodeService, VnPayService};
+use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\StoreRecurringBookingRequest;
+use App\Models\Booking;
+use App\Models\Court;
+use App\Models\TimeSlot;
+use App\Services\BookingService;
+use App\Services\CourtAvailabilityService;
+use App\Services\PaymentService;
+use App\Services\QRCodeService;
+use App\Services\VnPayService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,8 +19,11 @@ use Illuminate\Support\Facades\Auth;
 class BookingController extends Controller
 {
     private BookingService $bookingService;
+
     private PaymentService $paymentService;
+
     private QRCodeService $qrService;
+
     private VnPayService $vnpayService;
 
     public function __construct(
@@ -49,13 +59,13 @@ class BookingController extends Controller
         $courts = Court::where('status', 'ACTIVE')
             ->with('courtType', 'images', 'prices')
             ->get();
-        
+
         $timeSlots = TimeSlot::where('status', 'ACTIVE')
             ->orderBy('start_time')
             ->get();
 
         // Get booking date from request or default to today
-        $bookingDate = $request->has('booking_date') 
+        $bookingDate = $request->has('booking_date')
             ? Carbon::parse($request->booking_date)
             : Carbon::today();
 
@@ -74,18 +84,18 @@ class BookingController extends Controller
                 foreach ($timeSlots as $slot) {
                     $status = app(CourtAvailabilityService::class)
                         ->checkAvailability($court->id, $bookingDate, $slot->id);
-                    
+
                     $availabilityData[$court->id][$slot->id] = [
                         'status' => $status,
                         'price' => $court->prices()
                             ->where('time_slot_id', $slot->id)
                             ->where('status', 'ACTIVE')
                             ->where('effective_from', '<=', $bookingDate->toDateString())
-                            ->where(function($q) use ($bookingDate) {
+                            ->where(function ($q) use ($bookingDate) {
                                 $q->whereNull('effective_to')
-                                  ->orWhere('effective_to', '>=', $bookingDate->toDateString());
+                                    ->orWhere('effective_to', '>=', $bookingDate->toDateString());
                             })
-                            ->first()?->price ?? 0
+                            ->first()?->price ?? 0,
                     ];
                 }
             }
@@ -129,7 +139,7 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             $errors = json_decode($e->getMessage(), true);
-            
+
             if (is_array($errors)) {
                 return back()
                     ->with('booking_errors', $errors)
@@ -188,7 +198,7 @@ class BookingController extends Controller
         $courts = Court::where('status', 'ACTIVE')
             ->with('courtType', 'images', 'prices')
             ->get();
-        
+
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->get();
 
         return view('bookings.create-recurring', [
@@ -221,7 +231,7 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             $errors = json_decode($e->getMessage(), true);
-            
+
             if (is_array($errors)) {
                 return back()
                     ->with('booking_errors', $errors)
@@ -231,37 +241,6 @@ class BookingController extends Controller
             return back()
                 ->with('error', $e->getMessage())
                 ->withInput();
-        }
-    }
-
-    /**
-     * Process payment confirmation
-     */
-    public function confirmPayment(Booking $booking, Request $request)
-    {
-        $this->authorize('confirmPayment', $booking);
-
-        if ($booking->status !== 'PENDING_PAYMENT') {
-            return back()->with('error', 'Booking này không thể thanh toán');
-        }
-
-        try {
-            // Mark payment as paid
-            $payment = $this->paymentService->markAsPaid(
-                $booking->payment,
-                $request->transaction_id
-            );
-
-            // Generate QR code
-            $qrCode = $this->qrService->generateQRCode($booking);
-
-            return view('bookings.success', [
-                'booking' => $booking->refresh(),
-                'qr_code' => $qrCode,
-            ])->with('success', 'Thanh toán thành công!');
-
-        } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi xử lý thanh toán: ' . $e->getMessage());
         }
     }
 
@@ -302,22 +281,14 @@ class BookingController extends Controller
                 ->with('error', 'Không tìm thấy đơn đặt sân tương ứng.');
         }
 
-        if (($data['vnp_ResponseCode'] ?? null) === '00') {
-            // Đảm bảo trạng thái PAID nếu IPN chưa kịp chạy (idempotent).
-            if ($booking->payment && $booking->payment->status !== 'PAID') {
-                $this->paymentService->markAsPaid(
-                    $booking->payment,
-                    $data['vnp_TransactionNo'] ?? $data['vnp_TxnRef'],
-                    'vnpay'
-                );
-            }
-
+        // Only the server-to-server IPN may mutate payment state.
+        if ($booking->payment?->status === 'PAID') {
             return redirect()->route('bookings.show', $booking)
                 ->with('success', 'Thanh toán VNPay thành công.');
         }
 
         return redirect()->route('bookings.show', $booking)
-            ->with('error', 'Thanh toán VNPay thất bại hoặc đã bị hủy.');
+            ->with('error', 'Giao dịch đang được xác minh hoặc chưa thành công.');
     }
 
     /**
@@ -331,13 +302,18 @@ class BookingController extends Controller
             return response()->json(['RspCode' => '97', 'Message' => 'Invalid Checksum']);
         }
 
+        if (($data['vnp_TmnCode'] ?? null) !== config('vnpay.tmn_code')) {
+            return response()->json(['RspCode' => '02', 'Message' => 'Invalid merchant']);
+        }
+
         $booking = $this->resolveBookingFromTxnRef($data['vnp_TxnRef'] ?? null);
 
         if (! $booking) {
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
         }
 
-        if (($data['vnp_ResponseCode'] ?? null) !== '00') {
+        if (($data['vnp_ResponseCode'] ?? null) !== '00'
+            || ($data['vnp_TransactionStatus'] ?? null) !== '00') {
             return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
         }
 
@@ -383,6 +359,7 @@ class BookingController extends Controller
 
         try {
             $this->bookingService->cancelBooking($booking);
+
             return redirect()
                 ->route('bookings.index')
                 ->with('success', 'Hủy booking thành công.');
@@ -423,7 +400,18 @@ class BookingController extends Controller
     }
 
     // Remove edit, update, destroy methods
-    public function edit($id) { abort(404); }
-    public function update(Request $request, $id) { abort(404); }
-    public function destroy($id) { abort(404); }
+    public function edit($id)
+    {
+        abort(404);
+    }
+
+    public function update(Request $request, $id)
+    {
+        abort(404);
+    }
+
+    public function destroy($id)
+    {
+        abort(404);
+    }
 }

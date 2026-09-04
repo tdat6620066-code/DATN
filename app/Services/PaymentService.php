@@ -6,6 +6,8 @@ use App\Models\{Booking, Payment};
 
 class PaymentService
 {
+    public function __construct(private readonly CustomerNotificationService $notifications) {}
+
     /**
      * Create payment record
      */
@@ -27,6 +29,7 @@ class PaymentService
      */
     public function markAsPaid(Payment $payment, $transactionId = null, $paymentMethod = null)
     {
+        $wasPaid = $payment->status === 'PAID';
         $payment->update([
             'status' => 'PAID',
             'paid_at' => now(),
@@ -46,6 +49,10 @@ class PaymentService
             $detail->update(['status' => 'CONFIRMED']);
         }
 
+        if (! $wasPaid) {
+            $this->notifications->payment($payment->booking, 'PAID');
+        }
+
         return $payment;
     }
 
@@ -54,6 +61,7 @@ class PaymentService
      */
     public function markAsFailed(Payment $payment, $transactionId = null)
     {
+        $wasFailed = $payment->status === 'FAILED';
         $payment->update([
             'status' => 'FAILED',
             'transaction_id' => $transactionId ?? $payment->transaction_id,
@@ -64,6 +72,10 @@ class PaymentService
             'payment_status' => 'FAILED',
         ]);
 
+        if (! $wasFailed) {
+            $this->notifications->payment($payment->booking, 'FAILED');
+        }
+
         return $payment;
     }
 
@@ -72,6 +84,7 @@ class PaymentService
      */
     public function refund(Payment $payment)
     {
+        $wasRefunded = $payment->status === 'REFUNDED';
         $payment->update([
             'status' => 'REFUNDED',
         ]);
@@ -80,6 +93,10 @@ class PaymentService
         $payment->booking->update([
             'payment_status' => 'REFUNDED',
         ]);
+
+        if (! $wasRefunded) {
+            $this->notifications->refunded($payment->booking);
+        }
 
         return $payment;
     }
