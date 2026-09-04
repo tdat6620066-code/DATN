@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\{Booking, BookingDetail, Court, MaintenanceSchedule, TimeSlot};
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CourtAvailabilityService
 {
@@ -20,8 +21,11 @@ class CourtAvailabilityService
     {
         // Check if court exists and is active
         $court = Court::find($courtId);
-        if (! $court || $court->status !== 'ACTIVE' || $court->operational_status !== 'AVAILABLE') {
-            return self::STATUS_MAINTENANCE;
+        // Older courts have no operational status yet. A null value means the
+        // court has not been explicitly taken offline and should be bookable.
+        if (! $court || $court->status !== 'ACTIVE'
+            || ($court->operational_status !== null && $court->operational_status !== 'AVAILABLE')) {
+            return null;
         }
 
         // Check maintenance schedule
@@ -34,11 +38,8 @@ class CourtAvailabilityService
             return self::STATUS_BOOKED;
         }
 
-        // Check if time slot is on hold
-        if ($this->isOnHold($courtId, $date, $timeSlotId)) {
-            return self::STATUS_HOLD;
-        }
-
+        // Unpaid bookings do not occupy the slot. It remains available and
+        // displays its normal price until payment is confirmed.
         return self::STATUS_AVAILABLE;
     }
 
@@ -71,10 +72,19 @@ class CourtAvailabilityService
     {
         $timeSlot = TimeSlot::find($timeSlotId);
         
-        $maintenance = MaintenanceSchedule::where('court_id', $courtId)
-            ->whereDate('start_date', '<=', $date->toDateString())
-            ->whereDate('end_date', '>=', $date->toDateString())
-            ->where('status', '!=', 'CANCELLED')
+        $maintenanceQuery = MaintenanceSchedule::where('court_id', $courtId)
+            ->where('status', '!=', 'CANCELLED');
+
+        // Existing installations created before the date-range migration only
+        // have maintenance_date. Keep booking available on those databases.
+        if (Schema::hasColumns('maintenance_schedules', ['start_date', 'end_date'])) {
+            $maintenanceQuery->whereDate('start_date', '<=', $date->toDateString())
+                ->whereDate('end_date', '>=', $date->toDateString());
+        } else {
+            $maintenanceQuery->whereDate('maintenance_date', $date->toDateString());
+        }
+
+        $maintenance = $maintenanceQuery
             ->whereRaw("? BETWEEN start_time AND end_time", [$timeSlot->start_time])
             ->exists();
 
@@ -87,7 +97,7 @@ class CourtAvailabilityService
     private function isBooked(int $courtId, Carbon $date, int $timeSlotId)
     {
         return BookingDetail::where('court_id', $courtId)
-            ->where('booking_date', $date->toDateString())
+            ->whereDate('booking_date', $date->toDateString())
             ->where('time_slot_id', $timeSlotId)
             ->whereHas('booking', function ($query) {
                 $query->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']);
@@ -101,7 +111,7 @@ class CourtAvailabilityService
     private function isOnHold(int $courtId, Carbon $date, int $timeSlotId)
     {
         return BookingDetail::where('court_id', $courtId)
-            ->where('booking_date', $date->toDateString())
+            ->whereDate('booking_date', $date->toDateString())
             ->where('time_slot_id', $timeSlotId)
             ->where('status', 'PENDING')
             ->whereHas('booking', function ($query) {

@@ -3,228 +3,64 @@
 @section('title', 'Đặt sân định kỳ - SmashZone')
 
 @section('content')
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-repeat"></i> Đặt sân định kỳ</h5>
+@php
+    $bookingType = $bookingType ?? request('booking_type', 'weekly');
+    $weekDays = [1 => 'Thứ hai', 2 => 'Thứ ba', 3 => 'Thứ tư', 4 => 'Thứ năm', 5 => 'Thứ sáu', 6 => 'Thứ bảy', 0 => 'Chủ nhật'];
+    $selectedWeekDays = array_map('intval', old('days_of_week', request('days_of_week', [])));
+    $selectedMonthDays = array_map('intval', old('days_of_month', request('days_of_month', [])));
+@endphp
+<style>
+    .recurring-page{max-width:1180px;margin:auto;padding:32px 16px 56px}.recurring-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:24px;align-items:start}.recurring-title{display:flex;gap:14px;align-items:flex-start;margin-bottom:24px}.recurring-title a{display:grid;place-items:center;width:42px;height:42px;border:1px solid #dce8e2;border-radius:12px;color:#10293a;text-decoration:none}.recurring-title h1{margin:0;font-size:28px;font-weight:800;color:#10293a}.recurring-title p{margin:5px 0;color:#64748b;font-size:14px}.recurring-card{overflow:hidden;border:1px solid #dce8e2;border-radius:18px;background:#fff;box-shadow:0 8px 28px rgba(6,59,42,.06)}.recurring-card+ .recurring-card{margin-top:24px}.card-head{display:flex;align-items:center;gap:11px;padding:19px 22px;border-bottom:1px solid #dce8e2}.card-head i{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#ddf9e9;color:#079552}.card-head h2{margin:0;font-size:17px;font-weight:800;color:#10293a}.card-body{padding:24px 22px}.booking-tag{display:inline-flex;align-items:center;gap:7px;margin-bottom:24px;padding:8px 11px;border-radius:99px;background:#e9fbf0;color:#067941;font-size:12px;font-weight:800}.booking-step{padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid #edf2ef}.booking-step:last-of-type{border:0}.step-title{display:flex;align-items:center;gap:10px;margin:0 0 16px;font-size:15px;font-weight:800;color:#10293a}.step-number{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#ddf9e9;color:#047e43;font-size:12px}.form-label{font-size:13px;font-weight:700;color:#344b5a}.form-control,.form-select{min-height:46px;border-color:#dce8e2;border-radius:10px}.form-control:focus,.form-select:focus{border-color:#08c968;box-shadow:0 0 0 3px rgba(8,201,104,.12)}.date-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.day-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.month-grid{grid-template-columns:repeat(7,1fr)}.day-option{position:relative;display:block;cursor:pointer}.day-option input{position:absolute;opacity:0}.day-option span{display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px;border:1px solid #dce8e2;border-radius:10px;color:#405868;font-size:13px;font-weight:700;text-align:center}.month-grid .day-option span{min-height:40px}.day-option input:checked+span{border-color:#08c968;background:#e9fff1;color:#057c42;box-shadow:inset 0 0 0 1px #08c968}.hint{margin:0 0 14px;color:#64748b;font-size:13px}.preview-btn,.confirm-btn{width:100%;min-height:50px;border:0;border-radius:12px;font-weight:800}.preview-btn{background:#08c968;color:#063b2a;box-shadow:0 10px 20px rgba(8,201,104,.25)}.preview-btn:hover{background:#04b85d;color:#fff}.summary{position:sticky;top:20px}.summary-row{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #edf2ef;color:#64748b;font-size:13px}.summary-row strong{max-width:62%;text-align:right;color:#10293a}.summary-note{display:flex;gap:9px;margin-top:16px;padding:12px;border-radius:10px;background:#effaf3;color:#39715a;font-size:12px;line-height:1.55}.summary-note i{color:#08a758;font-size:15px}.conflicts{margin-bottom:20px;padding:16px;border:1px solid #ffd587;border-radius:12px;background:#fff9e9;color:#805b13;font-size:13px}.schedule-list{max-height:360px;overflow:auto;border:1px solid #dce8e2;border-radius:12px}.schedule-row{display:flex;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #edf2ef;font-size:14px}.schedule-row:last-child{border:0}.schedule-row i{color:#08b75e;margin-right:7px}.schedule-row strong{color:#087c42}.preview-total{display:flex;justify-content:space-between;margin-top:16px;padding:16px;border-radius:12px;background:#e9fbf0;color:#23543a}.preview-total strong:last-child{color:#058846;font-size:20px}.confirm-btn{margin-top:16px;background:#08b95d;color:#fff}.confirm-btn:hover{background:#078c48}@media(max-width:991px){.recurring-layout{grid-template-columns:1fr}.summary{position:static}}@media(max-width:600px){.recurring-page{padding:20px 12px 40px}.card-body{padding:18px 16px}.date-grid{grid-template-columns:1fr}.day-grid{grid-template-columns:repeat(2,1fr)}.month-grid{grid-template-columns:repeat(5,1fr)}}
+</style>
+<main class="recurring-page">
+    <div class="recurring-title"><a href="{{ route('courts.index') }}" aria-label="Quay lại"><i class="bi bi-chevron-left"></i></a><div><h1>Đặt sân định kỳ</h1><p>Thiết lập lịch chơi lặp lại và kiểm tra từng buổi trước khi xác nhận.</p></div></div>
+    @if(session('booking_errors'))
+        <div class="alert alert-danger"><strong>Một số lịch không còn khả dụng:</strong><ul class="mb-0 mt-2">@foreach(session('booking_errors') as $error)<li>{{ \Carbon\Carbon::parse($error['booking_date'])->format('d/m/Y') }} · {{ $error['message'] }}</li>@endforeach</ul></div>
+    @endif
+    <div class="recurring-layout"><section>
+        <div class="recurring-card"><div class="card-head"><i class="bi bi-repeat"></i><h2>Thiết lập lịch đặt sân</h2></div><div class="card-body"><span class="booking-tag"><i class="bi bi-arrow-repeat"></i>{{ $bookingType === 'monthly' ? 'Đặt theo tháng' : 'Đặt theo tuần' }}</span>
+        <form action="{{ route('bookings.recurring.preview') }}" method="POST">@csrf<input type="hidden" name="booking_type" value="{{ $bookingType }}">
+            <div class="booking-step"><h3 class="step-title"><span class="step-number">1</span>Chọn sân và khung giờ</h3><div class="row g-3"><div class="col-md-6"><label class="form-label" for="court_id">Sân cầu lông</label>
+                @if(isset($selectedCourt) && $selectedCourt)
+                    <input type="hidden" name="court_id" value="{{ $selectedCourt->id }}">
+                    <input class="form-control" id="court_id" value="{{ $selectedCourt->name }}{{ $selectedCourt->courtType ? ' · '.$selectedCourt->courtType->name : '' }}" readonly aria-label="Sân đã chọn">
+                    <small class="text-muted">Sân được giữ theo lựa chọn ban đầu.</small>
+                @else
+                    <select class="form-select @error('court_id') is-invalid @enderror" id="court_id" name="court_id" required><option value="">Chọn sân</option>@foreach($courts as $court)<option value="{{ $court->id }}" @selected(old('court_id', request('court_id')) == $court->id)>{{ $court->name }}{{ $court->courtType ? ' · '.$court->courtType->name : '' }}</option>@endforeach</select>
+                    @error('court_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @endif
+            </div><div class="col-md-6"><label class="form-label" for="time_slot_id">Khung giờ</label><select class="form-select @error('time_slot_id') is-invalid @enderror" id="time_slot_id" name="time_slot_id" required><option value="">Chọn khung giờ</option>@foreach($timeSlots as $slot)<option value="{{ $slot->id }}" @selected(old('time_slot_id', request('time_slot_id')) == $slot->id)>{{ $slot->name }}</option>@endforeach</select>@error('time_slot_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div></div></div>
+            <div class="booking-step"><h3 class="step-title"><span class="step-number">2</span>Chọn khoảng thời gian</h3><div class="date-grid"><div><label class="form-label" for="start_date">Ngày bắt đầu</label><input class="form-control @error('start_date') is-invalid @enderror" type="date" id="start_date" name="start_date" min="{{ today()->toDateString() }}" value="{{ old('start_date', request('start_date')) }}" required>@error('start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror</div><div><label class="form-label" for="end_date">Ngày kết thúc</label><input class="form-control @error('end_date') is-invalid @enderror" type="date" id="end_date" name="end_date" min="{{ today()->toDateString() }}" value="{{ old('end_date', request('end_date')) }}" required>@error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror</div></div></div>
+            <div class="booking-step"><h3 class="step-title"><span class="step-number">3</span>{{ $bookingType === 'monthly' ? 'Chọn ngày lặp trong tháng' : 'Chọn các thứ lặp trong tuần' }}</h3><p class="hint">{{ $bookingType === 'monthly' ? 'Ngày không có trong tháng sẽ được hệ thống bỏ qua.' : 'Chọn ít nhất một thứ để tạo lịch trong khoảng thời gian đã chọn.' }}</p>
+            @if($bookingType === 'monthly')
+                <div class="day-grid month-grid">@for($day = 1; $day <= 31; $day++)<label class="day-option"><input type="checkbox" name="days_of_month[]" value="{{ $day }}" @checked(in_array($day, $selectedMonthDays))><span>{{ $day }}</span></label>@endfor</div>
+                @error('days_of_month')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+            @else
+                <div class="day-grid">@foreach($weekDays as $value => $name)<label class="day-option"><input type="checkbox" name="days_of_week[]" value="{{ $value }}" @checked(in_array($value, $selectedWeekDays))><span>{{ $name }}</span></label>@endforeach</div>
+                @error('days_of_week')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+            @endif
             </div>
-            <div class="card-body">
-                <form action="/booking/recurring" method="POST" id="recurringForm">
-                    @csrf
-
-                    <!-- Step 1: Select Court -->
-                    <div class="mb-4">
-                        <h6 class="mb-3"><i class="bi bi-1-circle"></i> Chọn sân cầu lông</h6>
-                        <div class="mb-3">
-                            <label for="court_id" class="form-label">Sân cầu lông</label>
-                            <select class="form-select @error('court_id') is-invalid @enderror" id="court_id" name="court_id" required>
-                                <option value="">-- Chọn sân --</option>
-                                @foreach($courts ?? [] as $c)
-                                <option value="{{ $c->id }}" {{ old('court_id') == $c->id ? 'selected' : '' }}>
-                                    {{ $c->name }} - {{ $c->courtType->name }}
-                                </option>
-                                @endforeach
-                            </select>
-                            @error('court_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <!-- Step 2: Select Time Slot -->
-                    <div class="mb-4">
-                        <h6 class="mb-3"><i class="bi bi-2-circle"></i> Chọn khung giờ</h6>
-                        <div class="mb-3">
-                            <label for="time_slot_id" class="form-label">Khung giờ</label>
-                            <select class="form-select @error('time_slot_id') is-invalid @enderror" id="time_slot_id" name="time_slot_id" required>
-                                <option value="">-- Chọn khung giờ --</option>
-                                @foreach($timeSlots ?? [] as $slot)
-                                <option value="{{ $slot->id }}" {{ old('time_slot_id') == $slot->id ? 'selected' : '' }}>
-                                    {{ $slot->name }}
-                                </option>
-                                @endforeach
-                            </select>
-                            @error('time_slot_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <!-- Step 3: Select Date Range -->
-                    <div class="mb-4">
-                        <h6 class="mb-3"><i class="bi bi-3-circle"></i> Chọn khoảng thời gian</h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="start_date" class="form-label">Từ ngày</label>
-                                <input type="date" class="form-control @error('start_date') is-invalid @enderror" id="start_date" name="start_date" required>
-                                @error('start_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="end_date" class="form-label">Đến ngày</label>
-                                <input type="date" class="form-control @error('end_date') is-invalid @enderror" id="end_date" name="end_date" required>
-                                @error('end_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <!-- Step 4: Select Days of Week -->
-                    <div class="mb-4">
-                        <h6 class="mb-3"><i class="bi bi-4-circle"></i> Chọn ngày trong tuần</h6>
-                        <p class="text-muted small mb-3">Chọn những ngày bạn muốn đặt sân định kỳ</p>
-                        <div class="row">
-                            @php
-                                $daysOfWeek = [
-                                    ['value' => 1, 'name' => 'Thứ hai'],
-                                    ['value' => 2, 'name' => 'Thứ ba'],
-                                    ['value' => 3, 'name' => 'Thứ tư'],
-                                    ['value' => 4, 'name' => 'Thứ năm'],
-                                    ['value' => 5, 'name' => 'Thứ sáu'],
-                                    ['value' => 6, 'name' => 'Thứ bảy'],
-                                    ['value' => 0, 'name' => 'Chủ nhật'],
-                                ];
-                            @endphp
-                            @foreach($daysOfWeek as $day)
-                            <div class="col-md-4 mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input days-checkbox" type="checkbox" id="day{{ $day['value'] }}" 
-                                           name="days_of_week[]" value="{{ $day['value'] }}"
-                                           {{ in_array($day['value'], old('days_of_week', [])) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="day{{ $day['value'] }}">
-                                        {{ $day['name'] }}
-                                    </label>
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                        @error('days_of_week')
-                        <div class="alert alert-danger mt-2">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <hr>
-
-                    <!-- Step 5: Voucher -->
-                    <div class="mb-4">
-                        <h6 class="mb-3"><i class="bi bi-5-circle"></i> Mã khuyến mãi (Tùy chọn)</h6>
-                        <div class="mb-3">
-                            <label for="voucher_code" class="form-label">Nhập mã voucher</label>
-                            <input type="text" class="form-control @error('voucher_code') is-invalid @enderror" 
-                                   id="voucher_code" name="voucher_code" placeholder="Ví dụ: GROUP25">
-                            @error('voucher_code')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">Nhập mã khuyến mãi nếu bạn có</small>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <!-- Submit Button -->
-                    <div class="mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="bi bi-check-circle"></i> Tiếp tục thanh toán
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Summary Sidebar -->
-    <div class="col-lg-4">
-        <div class="card sticky-top" style="top: 20px;">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-receipt"></i> Tóm tắt</h5>
-            </div>
-            <div class="card-body">
-                <div class="booking-summary">
-                    <div id="summary">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> Chọn sân, khung giờ, ngày để xem tóm tắt
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
+            <div class="booking-step"><h3 class="step-title"><span class="step-number">4</span>Mã khuyến mãi <small class="text-muted fw-normal">(tùy chọn)</small></h3><input class="form-control" name="voucher_code" value="{{ old('voucher_code', request('voucher_code')) }}" maxlength="50" placeholder="Nhập mã voucher nếu có"></div>
+            <button type="submit" class="preview-btn"><i class="bi bi-calendar2-check me-2"></i>Kiểm tra lịch dự kiến</button>
+        </form></div></div>
+        @isset($preview)
+            <div class="recurring-card"><div class="card-head"><i class="bi bi-calendar3"></i><h2>Lịch định kỳ dự kiến</h2></div><div class="card-body">
+                @if(count($preview['conflicts']))
+                    <div class="conflicts"><strong><i class="bi bi-exclamation-triangle me-1"></i>{{ count($preview['conflicts']) }} lịch bị xung đột</strong><p class="mb-2 mt-1">Các lịch này không được tự động đặt. Hãy thay đổi thông tin và kiểm tra lại.</p><ul class="mb-0">@foreach($preview['conflicts'] as $item)<li>{{ $item['date']->format('d/m/Y') }} · {{ $item['time_slot'] }} — {{ $item['reason'] }}</li>@endforeach</ul></div>
+                @endif
+                @if(count($preview['schedules']))
+                    <div class="schedule-list">@foreach($preview['schedules'] as $item)<div class="schedule-row"><span><i class="bi bi-check-circle-fill"></i>{{ $item['date']->format('d/m/Y') }} · {{ $item['time_slot'] }}</span><strong>{{ number_format($item['price'], 0, ',', '.') }}đ</strong></div>@endforeach</div><div class="preview-total"><span><strong>{{ count($preview['schedules']) }}</strong> lịch hợp lệ</span><strong>{{ number_format($preview['subtotal'], 0, ',', '.') }}đ</strong></div>
+                @endif
+                @if(count($preview['schedules']) && !count($preview['conflicts']))
+                    <form method="POST" action="{{ route('bookings.store-recurring') }}">@csrf<input type="hidden" name="court_id" value="{{ request('court_id') }}"><input type="hidden" name="time_slot_id" value="{{ request('time_slot_id') }}"><input type="hidden" name="booking_type" value="{{ $bookingType }}"><input type="hidden" name="start_date" value="{{ request('start_date') }}"><input type="hidden" name="end_date" value="{{ request('end_date') }}"><input type="hidden" name="voucher_code" value="{{ request('voucher_code') }}"><input type="hidden" name="confirmed" value="1">@foreach(request('days_of_week', []) as $day)<input type="hidden" name="days_of_week[]" value="{{ $day }}">@endforeach @foreach(request('days_of_month', []) as $day)<input type="hidden" name="days_of_month[]" value="{{ $day }}">@endforeach<button class="confirm-btn" type="submit"><i class="bi bi-credit-card me-2"></i>Xác nhận và thanh toán</button></form>
+                @endif
+            </div></div>
+        @endisset
+    </section><aside class="recurring-card summary"><div class="card-head"><i class="bi bi-receipt"></i><h2>Tóm tắt đặt sân</h2></div><div class="card-body"><div id="summary"><div class="summary-note"><i class="bi bi-info-circle"></i><span>Chọn đầy đủ thông tin để xem số lịch dự kiến.</span></div></div></div></aside></div>
+</main>
+@endsection
 @push('scripts')
 <script>
-const courtSelect = document.getElementById('court_id');
-const startDateInput = document.getElementById('start_date');
-const endDateInput = document.getElementById('end_date');
-const timeSlotSelect = document.getElementById('time_slot_id');
-const summaryDiv = document.getElementById('summary');
-
-function updateSummary() {
-    const courtId = courtSelect.value;
-    const timeSlotId = timeSlotSelect.value;
-    const startDate = startDateInput.value;
-    const endDate = endDateInput.value;
-
-    const checkedDays = Array.from(document.querySelectorAll('.days-checkbox:checked')).map(cb => cb.value);
-
-    if (!courtId || !timeSlotId || !startDate || !endDate || checkedDays.length === 0) {
-        summaryDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Chọn thông tin để xem tóm tắt</div>';
-        return;
-    }
-
-    const dayNames = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
-    const selectedCourt = courtSelect.options[courtSelect.selectedIndex].text;
-    const selectedTimeSlot = timeSlotSelect.options[timeSlotSelect.selectedIndex].text;
-
-    let html = '';
-    html += `<div class="summary-item"><strong>Sân:</strong> <span>${selectedCourt}</span></div>`;
-    html += `<div class="summary-item"><strong>Khung giờ:</strong> <span>${selectedTimeSlot}</span></div>`;
-
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
-    const startStr = startDateObj.toLocaleDateString('vi-VN');
-    const endStr = endDateObj.toLocaleDateString('vi-VN');
-    html += `<div class="summary-item"><strong>Khoảng thời gian:</strong> <span>${startStr} - ${endStr}</span></div>`;
-
-    const daysList = checkedDays.map(d => dayNames[d]).join(', ');
-    html += `<div class="summary-item"><strong>Các ngày:</strong> <span>${daysList}</span></div>`;
-
-    // Calculate number of bookings
-    let count = 0;
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDateObj) {
-        const dayOfWeek = currentDate.getDay();
-        if (checkedDays.includes(dayOfWeek.toString())) {
-            count++;
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    html += `<div class="summary-item"><strong>Số lần đặt:</strong> <span>${count} lần</span></div>`;
-    html += `<div class="alert alert-info mt-2"><small><i class="bi bi-info-circle"></i> Mỗi lần đặt sẽ được tính riêng với giá hiện tại</small></div>`;
-
-    summaryDiv.innerHTML = html;
-}
-
-courtSelect.addEventListener('change', updateSummary);
-timeSlotSelect.addEventListener('change', updateSummary);
-startDateInput.addEventListener('change', updateSummary);
-endDateInput.addEventListener('change', updateSummary);
-document.querySelectorAll('.days-checkbox').forEach(cb => cb.addEventListener('change', updateSummary));
-
-// Set minimum dates to today
-const today = new Date().toISOString().split('T')[0];
-startDateInput.min = today;
-endDateInput.min = today;
+(() => { const court=document.getElementById('court_id'),slot=document.getElementById('time_slot_id'),start=document.getElementById('start_date'),end=document.getElementById('end_date'),output=document.getElementById('summary'),type=@json($bookingType),names=['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy']; const selected=()=>[...document.querySelectorAll(type==='monthly'?'input[name="days_of_month[]"]:checked':'input[name="days_of_week[]"]:checked')].map(x=>Number(x.value)); const courtName=()=>court.options?((court.options[court.selectedIndex]||{}).text||'—'):(court.value||'—'); const update=()=>{end.min=start.value||@json(today()->toDateString());let count=0,days=selected();if(start.value&&end.value){let d=new Date(start.value+'T00:00:00'),last=new Date(end.value+'T00:00:00');while(d<=last){if(days.includes(type==='monthly'?d.getDate():d.getDay()))count++;d.setDate(d.getDate()+1);}}let labels=type==='monthly'?days.map(x=>'Ngày '+x).join(', '):days.map(x=>names[x]).join(', ');output.innerHTML='<div class="summary-row"><span>Sân</span><strong>'+courtName()+'</strong></div><div class="summary-row"><span>Khung giờ</span><strong>'+((slot.options[slot.selectedIndex]||{}).text||'—')+'</strong></div><div class="summary-row"><span>Lặp lại</span><strong>'+(labels||'—')+'</strong></div><div class="summary-row"><span>Lịch dự kiến</span><strong>'+count+' buổi</strong></div><div class="summary-note"><i class="bi bi-shield-check"></i><span>Hệ thống chỉ tạo booking sau khi bạn kiểm tra lịch và xác nhận.</span></div>';}; [court,slot,start,end,...document.querySelectorAll('.day-option input')].forEach(x=>x.addEventListener('change',update));update(); })();
 </script>
 @endpush
-@endsection

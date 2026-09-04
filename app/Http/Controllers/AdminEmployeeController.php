@@ -10,6 +10,8 @@ use Illuminate\Validation\Rules\Password;
 
 class AdminEmployeeController extends Controller
 {
+    private const DASHBOARD_PERMISSION = ['employee.dashboard' => 'Truy cập tổng quan nhân viên'];
+
     public const PERMISSIONS = ['bookings.view' => 'Xem lịch và đơn đặt sân', 'bookings.checkin' => 'Check-in khách hàng', 'bookings.checkout' => 'Hoàn thành lượt chơi', 'payments.counter' => 'Thanh toán tại quầy', 'services.manage' => 'Quản lý dịch vụ phát sinh', 'incidents.manage' => 'Báo cáo sự cố sân', 'refunds.manage' => 'Xử lý hủy / hoàn tiền', 'courts.status.manage' => 'Quản lý trạng thái sân'];
 
     public function index(Request $request)
@@ -17,14 +19,14 @@ class AdminEmployeeController extends Controller
         $this->admin($request);
         $employees = User::whereIn('role', ['EMPLOYEE', 'ADMIN'])->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')))->latest()->paginate(15)->withQueryString();
 
-        return view('admin.employees.index', ['employees' => $employees, 'permissionOptions' => self::PERMISSIONS]);
+        return view('admin.employees.index', ['employees' => $employees, 'permissionOptions' => self::DASHBOARD_PERMISSION + self::PERMISSIONS]);
     }
 
     public function create(Request $request)
     {
         $this->admin($request);
 
-        return view('admin.employees.form', ['employee' => null, 'permissionOptions' => self::PERMISSIONS]);
+        return view('admin.employees.form', ['employee' => null, 'permissionOptions' => self::DASHBOARD_PERMISSION + self::PERMISSIONS]);
     }
 
     public function store(Request $request)
@@ -43,7 +45,7 @@ class AdminEmployeeController extends Controller
     {
         $this->staff($employee, $request);
 
-        return view('admin.employees.form', compact('employee') + ['permissionOptions' => self::PERMISSIONS]);
+        return view('admin.employees.form', compact('employee') + ['permissionOptions' => self::DASHBOARD_PERMISSION + self::PERMISSIONS]);
     }
 
     public function update(User $employee, Request $request)
@@ -71,7 +73,7 @@ class AdminEmployeeController extends Controller
 
     private function validated(Request $request, ?User $employee = null): array
     {
-        return $request->validate(['name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($employee)], 'phone' => ['nullable', 'string', 'max:30'], 'password' => [$employee ? 'nullable' : 'required', 'confirmed', Password::min(8)], 'role' => ['required', Rule::in(['EMPLOYEE', 'ADMIN'])], 'refund_approval_limit' => ['nullable', 'numeric', 'min:0'], 'permissions' => ['nullable', 'array'], 'permissions.*' => [Rule::in(array_keys(self::PERMISSIONS))]]);
+        return $request->validate(['name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($employee)], 'phone' => ['nullable', 'string', 'max:30'], 'password' => [$employee ? 'nullable' : 'required', 'confirmed', Password::min(8)], 'role' => ['required', Rule::in(['EMPLOYEE', 'ADMIN'])], 'refund_approval_limit' => ['nullable', 'numeric', 'min:0'], 'permissions' => ['nullable', 'array'], 'permissions.*' => [Rule::in(array_keys(self::DASHBOARD_PERMISSION + self::PERMISSIONS))]]);
     }
 
     private function staff(User $employee, Request $request): void

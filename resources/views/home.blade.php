@@ -23,13 +23,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand: #0ea36b;
-            --brand-dark: #0b8a5a;
-            --ink: #111827;
-            --muted: #6b7280;
-            --line: #e5e7eb;
+            --brand: #08dc6b;
+            --brand-dark: #00b957;
+            --ink: #081527;
+            --muted: #58708b;
+            --line: #d8e0da;
             --surface: #ffffff;
-            --bg: #f8fafc;
+            --bg: #eaf7ec;
         }
 
         * { box-sizing: border-box; }
@@ -54,18 +54,18 @@
             padding: 16px 0;
             transition: background .25s, box-shadow .25s, padding .25s;
         }
-        .nav.scrolled {
-            background: rgba(8, 34, 51, .94);
+        .nav, .nav.scrolled {
+            background: rgba(255, 255, 255, .96);
             backdrop-filter: blur(14px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, .18);
+            box-shadow: 0 1px 0 var(--line);
             padding: 10px 0;
         }
         .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-        .brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 21px; letter-spacing: -.5px; }
+        .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 800; font-size: 21px; letter-spacing: -.5px; }
         .brand img { height: 44px; border-radius: 10px; }
         .nav-links { display: flex; gap: 28px; }
-        .nav-links a { color: rgba(255, 255, 255, .88); font-size: 14px; font-weight: 600; transition: color .2s; }
-        .nav-links a:hover { color: #5eead4; }
+        .nav-links a { color: var(--muted); font-size: 14px; font-weight: 600; transition: color .2s; }
+        .nav-links a:hover { color: var(--brand-dark); }
         .nav-actions { display: flex; align-items: center; gap: 12px; }
         .home-notification-link{position:relative;color:#fff;font-size:20px;line-height:1;text-decoration:none}.home-notification-link:hover{color:#5eead4}.home-notification-badge{position:absolute;top:-9px;right:-10px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center}.home-toast-wrap{position:fixed;top:86px;right:22px;z-index:2000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px))}.home-realtime-toast{padding:16px;border:1px solid #dbe7e2;border-left:4px solid #0ea36b;border-radius:14px;background:#fff;box-shadow:0 18px 45px rgba(2,36,50,.2)}.home-realtime-toast strong{display:block;color:#102a34}.home-realtime-toast p{margin:7px 0 10px;color:#52656c;font-size:13px}.home-realtime-toast a{color:#0b8a5a;font-size:13px;font-weight:800;text-decoration:none}.home-realtime-toast button{float:right;border:0;background:none;color:#64748b;font-size:18px}
         .btn-pill {
@@ -73,20 +73,20 @@
             padding: 11px 20px; border-radius: 999px; font-weight: 700; font-size: 14px;
             border: 0; cursor: pointer; transition: all .2s; white-space: nowrap;
         }
-        .btn-primary { background: var(--brand); color: #fff; }
+        .btn-primary { background: var(--brand); color: var(--ink); }
         .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
-        .btn-ghost { background: rgba(255, 255, 255, .12); color: #fff; }
-        .btn-ghost:hover { background: rgba(255, 255, 255, .22); }
-        .nav-user { color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600; }
+        .btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+        .btn-ghost:hover { background: #edf8ed; }
+        .nav-user { color: var(--ink); font-size: 14px; font-weight: 600; }
 
         /* Dropdown tài khoản hiển thị khi hover */
         .nav-user-menu { position: relative; }
         .nav-user-trigger {
             display: inline-flex; align-items: center; gap: 7px;
-            color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600;
+            color: var(--ink); font-size: 14px; font-weight: 600;
             background: none; border: 0; cursor: pointer; padding: 4px 0;
         }
-        .nav-user-trigger:hover { color: #5eead4; }
+        .nav-user-trigger:hover { color: var(--brand-dark); }
         .nav-user-trigger .caret { font-size: 11px; transition: transform .2s; }
         .nav-user-menu:hover .nav-user-trigger .caret { transform: rotate(180deg); }
         .nav-user-dropdown {
@@ -113,18 +113,18 @@
             display: flex;
             align-items: center;
             padding: 150px 0 120px;
-            color: #fff;
-            background: #0b2f45 center/cover no-repeat;
+            color: var(--ink);
+            background: linear-gradient(120deg, #bff4d2 0%, #e7f9e9 52%, #b7f0cd 100%) center/cover no-repeat;
             isolation: isolate;
         }
         .hero::before {
             content: '';
             position: absolute; inset: 0; z-index: -1;
-            background: linear-gradient(90deg, rgba(4, 23, 35, .93), rgba(5, 30, 44, .72) 55%, rgba(5, 30, 44, .35));
+            background: linear-gradient(90deg, rgba(234, 247, 236, .88), rgba(222, 247, 228, .72) 55%, rgba(8, 220, 107, .24));
         }
         .hero h1 { font-size: clamp(38px, 5.4vw, 60px); line-height: 1.08; font-weight: 800; letter-spacing: -2px; margin: 0 0 18px; }
-        .hero h1 span { color: #4ade80; }
-        .hero p { font-size: 17px; line-height: 1.7; color: #d5e3e8; max-width: 560px; margin: 0; }
+        .hero h1 span { color: var(--brand-dark); }
+        .hero p { font-size: 17px; line-height: 1.7; color: var(--muted); max-width: 560px; margin: 0; }
         .hero-actions { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
 
         .quick-booking {
@@ -212,12 +212,12 @@
         /* CTA */
         .booking-cta {
             position: relative; overflow: hidden; border-radius: 20px; padding: 56px 60px;
-            color: #fff; background: #0b2f45 center/cover no-repeat; isolation: isolate;
+            color: var(--ink); background: linear-gradient(120deg, #bff4d2 0%, #e7f9e9 52%, #b7f0cd 100%) center/cover no-repeat; isolation: isolate;
         }
-        .booking-cta::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(4, 24, 37, .95), rgba(4, 24, 37, .6)); }
-        .booking-cta span { color: #4ade80; font-size: 12px; font-weight: 800; letter-spacing: 1px; }
+        .booking-cta::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(234, 247, 236, .82), rgba(210, 244, 220, .58)); }
+        .booking-cta span { color: var(--brand-dark); font-size: 12px; font-weight: 800; letter-spacing: 1px; }
         .booking-cta h2 { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin: 10px 0; }
-        .booking-cta p { color: #d5e3e8; line-height: 1.7; max-width: 560px; }
+        .booking-cta p { color: var(--muted); line-height: 1.7; max-width: 560px; }
         .booking-cta .btn-pill { margin-top: 8px; }
 
         /* NEWS */
@@ -341,6 +341,7 @@
         <nav class="nav-links">
             <a href="#home">Trang chủ</a>
             <a href="{{ route('courts.index') }}">Sân cầu lông</a>
+            <a href="{{ route('bookings.index') }}">Đặt lịch</a>
             <a href="#offers">Khuyến mãi</a>
             <a href="#news">Tin tức</a>
             <a href="#why">Giới thiệu</a>
@@ -558,6 +559,7 @@
                 <h4>Khám phá</h4>
                 <a href="#home">Trang chủ</a>
                 <a href="{{ route('courts.index') }}">Sân cầu lông</a>
+                <a href="{{ route('bookings.index') }}">Đặt lịch</a>
                 <a href="#offers">Khuyến mãi</a>
                 <a href="#news">Tin tức</a>
             </div>

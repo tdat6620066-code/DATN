@@ -253,7 +253,7 @@
                             <tr>
                                 <th style="position: sticky; left: 0; background: #f8f9fa; z-index: 11; min-width: 60px;">Sân</th>
                                 @foreach($timeSlots as $slot)
-                                <th>{{ \Carbon\Carbon::createFromFormat('H:i:s', $slot->start_time)->format('H:i') }}</th>
+                                <th>{{ \Carbon\Carbon::parse($slot->start_time)->format('H:i') }}</th>
                                 @endforeach
                             </tr>
                         </thead>
@@ -282,6 +282,7 @@
                                     data-slot-id="{{ $slot->id }}"
                                     data-status="{{ $status }}"
                                     data-price="{{ $price }}"
+                                    data-duration="{{ $slot->duration ?? 60 }}"
                                     @if($isSelectable) onclick="toggleSlot(this)" @endif>
                                     <div>{{ $priceDisplay }}</div>
                                 </td>
@@ -359,7 +360,6 @@
 
 <script>
 let selectedSlots = [];
-const durationPerSlot = 0.5; // 30 minutes per slot
 
 function selectDate(element) {
     // Update calendar UI
@@ -377,7 +377,10 @@ function selectDate(element) {
     document.getElementById('summaryDate').textContent = dateObj.toLocaleDateString('vi-VN');
     
     // Reload page with new date
-    window.location.href = `/booking?booking_date=${selectedDate}`;
+    const courtId = document.getElementById('courtIdInput').value;
+    const params = new URLSearchParams({ booking_date: selectedDate });
+    if (courtId) params.set('court_id', courtId);
+    window.location.href = `/booking?${params.toString()}`;
 }
 
 function toggleSlot(element) {
@@ -385,6 +388,7 @@ function toggleSlot(element) {
     const slotId = element.dataset.slotId;
     const status = element.dataset.status;
     const price = parseFloat(element.dataset.price);
+    const duration = parseInt(element.dataset.duration || '60', 10);
     const key = `${courtId}-${slotId}`;
     
     // Can't select booked or maintenance slots
@@ -407,8 +411,14 @@ function toggleSlot(element) {
         selectedSlots.splice(index, 1);
         element.classList.remove('slot-selected');
     } else {
-        selectedSlots.push({ key, courtId, slotId, price });
+        // Một booking chỉ thuộc một sân. Khi đổi dòng sân, bỏ lựa chọn cũ.
+        if (selectedSlots.length && selectedSlots[0].courtId !== courtId) {
+            selectedSlots = [];
+            document.querySelectorAll('.slot-selected').forEach(cell => cell.classList.remove('slot-selected'));
+        }
+        selectedSlots.push({ key, courtId, slotId, price, duration });
         element.classList.add('slot-selected');
+        document.getElementById('courtIdInput').value = courtId;
     }
     
     updateSummary();
@@ -424,7 +434,8 @@ function updateSummary() {
     
     // Update summary
     document.getElementById('summarySlotCount').textContent = selectedSlots.length;
-    document.getElementById('summaryDuration').textContent = (selectedSlots.length * durationPerSlot).toFixed(1) + 'h';
+    const totalMinutes = selectedSlots.reduce((sum, slot) => sum + slot.duration, 0);
+    document.getElementById('summaryDuration').textContent = (totalMinutes / 60).toLocaleString('vi-VN') + 'h';
     
     const total = selectedSlots.reduce((sum, s) => sum + s.price, 0);
     document.getElementById('totalPrice').textContent = total.toLocaleString('vi-VN') + 'đ';
@@ -432,6 +443,20 @@ function updateSummary() {
     // Enable checkout button if slots selected
     document.getElementById('checkoutBtn').disabled = selectedSlots.length === 0;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const courtId = @json($selectedCourt?->id);
+    const slotId = @json($selectedTimeSlotId);
+    if (!courtId || !slotId) return;
+
+    const cell = document.querySelector(
+        `.time-slot-cell[data-court-id="${courtId}"][data-slot-id="${slotId}"]`
+    );
+    if (cell?.dataset.status === 'AVAILABLE') {
+        toggleSlot(cell);
+        cell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }
+});
 </script>
 {{-- Legacy duplicate form kept out of the rendered page.
         <div class="card">

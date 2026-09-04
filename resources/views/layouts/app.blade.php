@@ -3,25 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SmashZone - Đặt sân cầu lông')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v=4">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #08b96b;
-            --success: #08b96b;
+            --primary: #08dc6b;
+            --success: #08dc6b;
+            --page: #f5faf1;
+            --ink: #081527;
+            --muted: #58708b;
+            --line: #d8e0da;
             --danger: #ef4444;
-            --warning: #f59e0b;
+            --warning: #ffc20e;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--ink);
+            background: var(--page);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
         
         .navbar {
-            background: linear-gradient(135deg, #082c3e 0%, #086052 100%);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: #fff;
+            border-bottom: 1px solid var(--line);
+            box-shadow: none;
         }
         
         .navbar-brand {
@@ -80,6 +93,11 @@
             transition: transform 0.3s, box-shadow 0.3s;
             border-radius: 8px;
             overflow: hidden;
+        }
+
+        .card, .booking-summary {
+            border-color: var(--line);
+            box-shadow: none;
         }
         
         .court-card:hover {
@@ -162,7 +180,7 @@
         }
         
         footer {
-            background-color: #1f2937;
+            background-color: #102030;
             color: white;
             padding: 40px 0 20px;
             margin-top: 60px;
@@ -192,10 +210,14 @@
     @stack('styles')
 </head>
 <body>
-    @include('partials.site-header')
+    @php($isBookingDetailPage = request()->routeIs('bookings.show'))
+
+    @unless($isBookingDetailPage)
+        @include('partials.site-header')
+    @endunless
 
     <!-- Messages -->
-    <div class="container mt-4">
+    <div class="{{ $isBookingDetailPage ? 'd-none' : 'container mt-4' }}">
         @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Lỗi:</strong>
@@ -224,11 +246,13 @@
     </div>
 
     <!-- Content -->
-    <main class="container my-4">
+    <main class="{{ $isBookingDetailPage ? 'booking-detail-main' : 'container my-4' }}">
         @yield('content')
     </main>
 
-    @include('partials.site-footer')
+    @unless($isBookingDetailPage)
+        @include('partials.site-footer')
+    @endunless
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/status-labels.js') }}?v=2"></script>

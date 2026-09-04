@@ -15,16 +15,17 @@
         left: 0;
         right: 0;
         z-index: 900;
-        background: #082536;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, .18);
+        background: #fff;
+        border-bottom: 1px solid #d8e0da;
+        box-shadow: none;
     }
     .sc-container { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
     .sc-nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 13px 0; }
-    .sc-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 21px; letter-spacing: -.5px; text-decoration: none; }
+    .sc-brand { display: flex; align-items: center; gap: 10px; color: #081527; font-weight: 800; font-size: 21px; letter-spacing: -.5px; text-decoration: none; }
     .sc-brand img { height: 44px; border-radius: 10px; }
     .sc-nav-links { display: flex; gap: 28px; }
-    .sc-nav-links a { color: rgba(255, 255, 255, .88); font-size: 14px; font-weight: 600; text-decoration: none; transition: color .2s; }
-    .sc-nav-links a:hover, .sc-nav-links a.sc-active { color: #5eead4; }
+    .sc-nav-links a { color: #58708b; font-size: 14px; font-weight: 600; text-decoration: none; transition: color .2s; }
+    .sc-nav-links a:hover, .sc-nav-links a.sc-active { color: #08b95b; }
     .sc-nav-actions { display: flex; align-items: center; gap: 12px; }
     .sc-notification-link { position: relative; color: #fff; font-size: 20px; line-height: 1; text-decoration: none; }
     .sc-notification-link:hover { color: #5eead4; }
@@ -41,16 +42,16 @@
         padding: 11px 20px; border-radius: 999px; font-weight: 700; font-size: 14px;
         border: 0; cursor: pointer; transition: all .2s; white-space: nowrap; text-decoration: none;
     }
-    .sc-btn-primary { background: #0ea36b; color: #fff; }
-    .sc-btn-primary:hover { background: #0b8a5a; color: #fff; transform: translateY(-1px); }
-    .sc-nav-user { color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600; text-decoration: none; }
+    .sc-btn-primary { background: #08dc6b; color: #081527; }
+    .sc-btn-primary:hover { background: #00c960; color: #081527; transform: translateY(-1px); }
+    .sc-nav-user { color: #081527; font-size: 14px; font-weight: 600; text-decoration: none; }
     .sc-user-menu { position: relative; }
     .sc-user-trigger {
         display: inline-flex; align-items: center; gap: 7px;
-        color: rgba(255, 255, 255, .9); font-size: 14px; font-weight: 600;
+        color: #081527; font-size: 14px; font-weight: 600;
         background: none; border: 0; cursor: pointer; padding: 4px 0;
     }
-    .sc-user-trigger:hover { color: #5eead4; }
+    .sc-user-trigger:hover { color: #08b95b; }
     .sc-user-trigger .caret { font-size: 11px; transition: transform .2s; }
     .sc-user-menu:hover .sc-user-trigger .caret { transform: rotate(180deg); }
     .sc-user-dropdown {
@@ -84,6 +85,7 @@
         <nav class="sc-nav-links">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'sc-active' : '' }}">Trang chủ</a>
             <a href="{{ route('courts.index') }}" class="{{ request()->routeIs('courts.*') ? 'sc-active' : '' }}">Sân cầu lông</a>
+            <a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.index') ? 'sc-active' : '' }}">Đặt lịch</a>
             <a href="{{ route('home') }}#offers">Khuyến mãi</a>
             <a href="{{ route('home') }}#news">Tin tức</a>
             <a href="{{ route('home') }}#why">Giới thiệu</a>

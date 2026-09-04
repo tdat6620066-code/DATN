@@ -1,12 +1,34 @@
 @extends('layouts.app')
 
-@section('title', 'Đặt sân của tôi - SmashZone')
+@section('title', 'Đặt lịch - SmashZone')
+
+@push('styles')
+<style>
+    .booking-index { color: #081527; }
+    .booking-index h2 { font-size: clamp(1.75rem, 3vw, 2rem); font-weight: 800; letter-spacing: -0.8px; line-height: 1.2; }
+    .booking-index .btn { font-weight: 700; }
+    .booking-index .nav-tabs { border-color: #d8e0da; gap: 4px; }
+    .booking-index .nav-tabs .nav-link { border: 0; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; color: #58708b; font-size: 14px; font-weight: 600; padding: 11px 18px; }
+    .booking-index .nav-tabs .nav-link:hover, .booking-index .nav-tabs .nav-link.active { color: #081527; background: #fff; border-bottom-color: #08dc6b; }
+    .booking-index .card { border-radius: 14px; }
+    .booking-index .card-body { padding: 24px; }
+    .booking-index .card h5 { font-size: 18px; font-weight: 800; letter-spacing: -0.35px; }
+    .booking-index .card h6, .booking-index .card strong { font-weight: 700; }
+    .booking-index .text-muted { color: #58708b !important; }
+    .booking-index .card .p-2 { background: #f4f7f5 !important; border-radius: 10px !important; }
+    @media (max-width: 767.98px) {
+        .booking-index .card-body { padding: 18px; }
+        .booking-index .nav-tabs { gap: 0; overflow-x: auto; flex-wrap: nowrap; }
+        .booking-index .nav-tabs .nav-link { white-space: nowrap; padding-inline: 14px; }
+    }
+</style>
+@endpush
 
 @section('content')
-<div class="row">
+<div class="row booking-index">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-list-check"></i> Đặt sân của tôi</h2>
+            <h2><i class="bi bi-list-check"></i> Đặt lịch</h2>
             <a href="/booking/create" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Đặt sân mới
             </a>

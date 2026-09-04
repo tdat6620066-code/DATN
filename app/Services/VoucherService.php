@@ -7,33 +7,55 @@ use App\Models\Voucher;
 class VoucherService
 {
     /**
+     * Return the valid voucher that produces the largest discount for an amount.
+     * The booking flow still validates it again inside the creation transaction.
+     */
+    public function bestForAmount(float $amount): ?array
+    {
+        return Voucher::query()
+            ->where('status', 'ACTIVE')
+            ->where('start_at', '<=', now())
+            ->where(fn ($query) => $query->whereNull('end_at')->orWhere('end_at', '>=', now()))
+            ->where('min_order_amount', '<=', $amount)
+            ->where(fn ($query) => $query->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit'))
+            ->get()
+            ->map(fn (Voucher $voucher) => [
+                'code' => $voucher->code,
+                'name' => $voucher->name,
+                'discount' => (float) $voucher->calculateDiscount($amount),
+            ])
+            ->sortByDesc('discount')
+            ->first(fn (array $voucher) => $voucher['discount'] > 0);
+    }
+
+    /**
      * Validate and apply voucher code
      */
     public function validateAndApply($voucherCode, $amount)
     {
-        if (!$voucherCode) {
+        if (! $voucherCode) {
             return [
                 'valid' => false,
                 'message' => 'Vui lòng nhập mã voucher',
-                'discount' => 0
+                'discount' => 0,
             ];
         }
 
         $voucher = Voucher::where('code', $voucherCode)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return [
                 'valid' => false,
                 'message' => 'Mã voucher không tồn tại',
-                'discount' => 0
+                'discount' => 0,
             ];
         }
 
-        if (!$voucher->isValid()) {
+        if (! $voucher->isValid()) {
             return [
                 'valid' => false,
                 'message' => 'Mã voucher đã hết hạn hoặc không còn hiệu lực',
-                'discount' => 0
+                'discount' => 0,
             ];
         }
 
@@ -52,7 +74,7 @@ class VoucherService
             'voucher_id' => $voucher->id,
             'code' => $voucher->code,
             'discount' => $discount,
-            'message' => "Áp dụng voucher thành công. Giảm " . number_format($discount, 0) . "đ"
+            'message' => 'Áp dụng voucher thành công. Giảm '.number_format($discount, 0).'đ',
         ];
     }
 
@@ -63,7 +85,7 @@ class VoucherService
     {
         $voucher = Voucher::find($voucherId);
 
-        if (!$voucher || !$voucher->isValid()) {
+        if (! $voucher || ! $voucher->isValid()) {
             return 0;
         }
 
