@@ -455,7 +455,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Phân giải booking từ vnp_TxnRef ({booking_code}_{YmdHis}).
+     * Phân giải booking từ vnp_TxnRef ({booking_code}{YmdHis}).
      */
     private function resolveBookingFromTxnRef(?string $txnRef): ?Booking
     {
@@ -463,9 +463,13 @@ class BookingController extends Controller
             return null;
         }
 
-        $bookingCode = explode('_', $txnRef)[0] ?? $txnRef;
-
-        return Booking::where('booking_code', $bookingCode)->first();
+        // VNPay transaction references are composed from a booking code followed
+        // by a timestamp. Match the booking-code prefix instead of relying on a
+        // non-alphanumeric separator, which VNPay rejects.
+        return Booking::query()
+            ->whereRaw('? LIKE CONCAT(booking_code, \'%\')', [$txnRef])
+            ->orderByDesc('id')
+            ->first();
     }
 
     /**

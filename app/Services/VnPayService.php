@@ -23,6 +23,7 @@ class VnPayService
             'vnp_Amount' => $this->formatAmount($booking->total_amount),
             'vnp_Command' => 'pay',
             'vnp_CreateDate' => now()->format('YmdHis'),
+            'vnp_ExpireDate' => now()->addMinutes(15)->format('YmdHis'),
             'vnp_CurrCode' => config('vnpay.currency', 'VND'),
             'vnp_IpAddr' => request()->ip(),
             'vnp_Locale' => config('vnpay.locale', 'vn'),
@@ -115,11 +116,13 @@ class VnPayService
 
     /**
      * Mã giao dịch đảm bảo duy nhất cho từng lần thanh toán.
-     * Bổ sung timestamp để user có thể thử thanh toán lại nhiều lần.
+     *
+     * VNPay chỉ chấp nhận ký tự chữ và số cho vnp_TxnRef, nên không dùng
+     * dấu gạch dưới hoặc các ký tự phân cách khác.
      */
     private function buildTxnRef(Booking $booking): string
     {
-        return $booking->booking_code . '_' . now()->format('YmdHis');
+        return $booking->booking_code . now()->format('YmdHis');
     }
 
     private function buildOrderInfo(Booking $booking): string
