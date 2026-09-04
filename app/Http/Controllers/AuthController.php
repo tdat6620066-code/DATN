@@ -7,7 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -21,7 +24,6 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-
     /**
      * =========================================================
      * XỬ LÝ ĐĂNG KÝ
@@ -32,23 +34,74 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => strtolower($request->email),
-                'phone' => $request->phone,
-                'password' => $request->password,
-                'role' => 'CUSTOMER',
-                'status' => 'ACTIVE',
-                'email_verified_at' => now(),
+
+            // Validate dữ liệu
+            $validated = $request->validate([
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                ],
+
+                'email' => [
+                    'required',
+                    'string',
+                    'email',
+                    'max:255',
+                    'unique:users,email',
+                ],
+
+                'phone' => [
+                    'required',
+                    'string',
+                    'regex:/^(0|\+84)[0-9]{9,10}$/',
+                    'unique:users,phone',
+                ],
+
+                'password' => [
+                    'required',
+                    'confirmed',
+                    Password::min(8),
+                ],
+
+                'terms' => [
+                    'required',
+                    'accepted',
+                ],
+            ], [
+
+                'name.required' => 'Vui lòng nhập họ tên.',
+
+                'name.max' => 'Họ tên không được vượt quá 255 ký tự.',
+
+                'email.required' => 'Vui lòng nhập Email.',
+
+                'email.email' => 'Email không đúng định dạng.',
+
+                'email.unique' => 'Email này đã được sử dụng.',
+
+                'phone.required' => 'Vui lòng nhập số điện thoại.',
+
+                'phone.regex' => 'Số điện thoại không hợp lệ.',
+
+                'phone.unique' => 'Số điện thoại này đã được sử dụng.',
+
+                'password.required' => 'Vui lòng nhập mật khẩu.',
+
+                'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
+
+                'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+
+                'terms.required' => 'Bạn phải đồng ý với điều khoản sử dụng.',
+
+                'terms.accepted' => 'Bạn phải đồng ý với điều khoản sử dụng.',
             ]);
 
-            Auth::login($user);
-            $request->session()->regenerate();
+            // Chuẩn hóa Email
+            $email = strtolower(trim($validated['email']));
 
-            return redirect()
-                ->route('home')
-                ->with('success', 'Đăng ký thành công. Chào mừng bạn đến với SmashZone!');
-
+            // Chuẩn hóa số điện thoại
+            $phone = trim($validated['phone']);
 
             // Kiểm tra lại Email
             if (User::where('email', $email)->exists()) {
@@ -60,7 +113,6 @@ class AuthController extends Controller
                     ]);
             }
 
-
             // Kiểm tra lại số điện thoại
             if (User::where('phone', $phone)->exists()) {
 
@@ -70,7 +122,6 @@ class AuthController extends Controller
                         'phone' => 'Số điện thoại này đã được sử dụng.',
                     ]);
             }
-
 
             // =====================================================
             // TẠO USER
@@ -98,7 +149,6 @@ class AuthController extends Controller
 
             ]);
 
-
             // =====================================================
             // KHÔNG GỬI EMAIL / OTP
             // =====================================================
@@ -109,7 +159,6 @@ class AuthController extends Controller
             // Không gửi OTP.
             // Không yêu cầu xác thực Email.
 
-
             // =====================================================
             // ĐĂNG NHẬP NGAY SAU KHI ĐĂNG KÝ
             // =====================================================
@@ -118,7 +167,6 @@ class AuthController extends Controller
 
             // Tạo lại session để tránh session fixation
             $request->session()->regenerate();
-
 
             // =====================================================
             // CHUYỂN TRANG
@@ -142,7 +190,6 @@ class AuthController extends Controller
                 ]
             );
 
-
             return back()
                 ->withInput()
                 ->with(
@@ -151,7 +198,6 @@ class AuthController extends Controller
                 );
         }
     }
-
 
     /**
      * =========================================================
@@ -163,6 +209,113 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        $status = PasswordBroker::sendResetLink(
+            ['email' => strtolower(trim($request->string('email')))]
+        );
+
+        return $status === PasswordBroker::RESET_LINK_SENT
+            ? back()->with('success', __($status))
+            : back()->withInput($request->only('email'))->withErrors(['email' => __($status)]);
+    }
+
+    public function showResetPassword(string $token, Request $request)
+    {
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->string('email'),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $credentials = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $status = PasswordBroker::reset(
+            $credentials,
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
+
+        return $status === PasswordBroker::PASSWORD_RESET
+            ? redirect()->route('login')->with('success', __($status))
+            : back()->withInput($request->only('email'))->withErrors(['email' => __($status)]);
+    }
+
+    public function redirectGoogle()
+    {
+        abort_unless(config('services.google.client_id') && config('services.google.client_secret'), 503);
+
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function googleCallback(Request $request)
+    {
+        abort_unless(config('services.google.client_id') && config('services.google.client_secret'), 503);
+
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (\Throwable $e) {
+            Log::warning('Google OAuth callback failed', ['message' => $e->getMessage()]);
+
+            return redirect()->route('login')->with('error', 'Không thể đăng nhập bằng Google. Vui lòng thử lại.');
+        }
+
+        $email = strtolower(trim((string) $googleUser->getEmail()));
+        if ($email === '') {
+            return redirect()->route('login')->with('error', 'Tài khoản Google không cung cấp địa chỉ email.');
+        }
+
+        $user = User::where('google_id', $googleUser->getId())
+            ->orWhere('email', $email)
+            ->first();
+
+        if ($user && in_array($user->status, ['LOCKED', 'INACTIVE', 'BLOCKED', 'BANNED'], true)) {
+            return redirect()->route('login')->withErrors(['login' => 'Tài khoản của bạn đã bị khóa.']);
+        }
+
+        if (! $user) {
+            do {
+                $phone = '09'.random_int(10000000, 99999999);
+            } while (User::where('phone', $phone)->exists());
+
+            $user = User::create([
+                'name' => $googleUser->getName() ?: Str::before($email, '@'),
+                'email' => $email,
+                'phone' => $phone,
+                'password' => Hash::make(Str::random(40)),
+                'google_id' => $googleUser->getId(),
+                'email_verified_at' => now(),
+                'role' => 'CUSTOMER',
+                'status' => 'ACTIVE',
+            ]);
+            $user->forceFill(['email_verified_at' => now()])->save();
+        } elseif (! $user->google_id) {
+            $user->forceFill(['google_id' => $googleUser->getId()])->save();
+        }
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+        $user->forceFill(['last_login_at' => now()])->save();
+
+        return redirect()->intended(route('home'));
+    }
 
     /**
      * =========================================================
@@ -188,18 +341,14 @@ class AuthController extends Controller
 
         ], [
 
-            'login.required' =>
-                'Vui lòng nhập Email hoặc số điện thoại.',
+            'login.required' => 'Vui lòng nhập Email hoặc số điện thoại.',
 
-            'password.required' =>
-                'Vui lòng nhập mật khẩu.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
 
         ]);
 
-
         // Lấy thông tin đăng nhập
         $login = trim($credentials['login']);
-
 
         // =====================================================
         // TÌM USER
@@ -209,20 +358,17 @@ class AuthController extends Controller
             ->orWhere('phone', $login)
             ->first();
 
-
         // Không tồn tại
-        if (!$user) {
+        if (! $user) {
 
             return back()
                 ->withInput(
                     $request->only('login')
                 )
                 ->withErrors([
-                    'login' =>
-                        'Email/số điện thoại hoặc mật khẩu không chính xác.',
+                    'login' => 'Email/số điện thoại hoặc mật khẩu không chính xác.',
                 ]);
         }
-
 
         // =====================================================
         // KIỂM TRA TÀI KHOẢN
@@ -245,17 +391,15 @@ class AuthController extends Controller
                     $request->only('login')
                 )
                 ->withErrors([
-                    'login' =>
-                        'Tài khoản của bạn đã bị khóa.',
+                    'login' => 'Tài khoản của bạn đã bị khóa.',
                 ]);
         }
-
 
         // =====================================================
         // KIỂM TRA PASSWORD
         // =====================================================
 
-        if (!Hash::check(
+        if (! Hash::check(
             $credentials['password'],
             $user->password
         )) {
@@ -265,11 +409,9 @@ class AuthController extends Controller
                     $request->only('login')
                 )
                 ->withErrors([
-                    'login' =>
-                        'Email/số điện thoại hoặc mật khẩu không chính xác.',
+                    'login' => 'Email/số điện thoại hoặc mật khẩu không chính xác.',
                 ]);
         }
-
 
         // =====================================================
         // ĐĂNG NHẬP
@@ -280,10 +422,8 @@ class AuthController extends Controller
             $request->boolean('remember')
         );
 
-
         // Chống session fixation
         $request->session()->regenerate();
-
 
         // =====================================================
         // GHI NHẬN THỜI GIAN ĐĂNG NHẬP
@@ -299,7 +439,6 @@ class AuthController extends Controller
 
         }
 
-
         // =====================================================
         // CHUYỂN TRANG
         // =====================================================
@@ -314,7 +453,6 @@ class AuthController extends Controller
             );
     }
 
-
     /**
      * =========================================================
      * ĐĂNG XUẤT
@@ -324,14 +462,11 @@ class AuthController extends Controller
     {
         Auth::logout();
 
-
         // Xóa session
         $request->session()->invalidate();
 
-
         // Tạo CSRF token mới
         $request->session()->regenerateToken();
-
 
         return redirect()
             ->route('home')

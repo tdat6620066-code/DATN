@@ -21,14 +21,18 @@ class BookingService
 
     private PaymentService $paymentService;
 
+    private CustomerNotificationService $notifications;
+
     public function __construct(
         CourtAvailabilityService $availabilityService,
         VoucherService $voucherService,
-        PaymentService $paymentService
+        PaymentService $paymentService,
+        CustomerNotificationService $notifications
     ) {
         $this->availabilityService = $availabilityService;
         $this->voucherService = $voucherService;
         $this->paymentService = $paymentService;
+        $this->notifications = $notifications;
     }
 
     /**
@@ -97,6 +101,8 @@ class BookingService
 
             // Create payment record
             $this->paymentService->createPayment($booking, $totalAmount);
+
+            $this->notifications->bookingCreated($booking);
 
             return $booking;
         }, 3); // 3 retry attempts

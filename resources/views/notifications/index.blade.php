@@ -99,6 +99,12 @@
                     {{ $notification->content }}
                 </p>
 
+                @if($notification->action_url)
+                    <a href="{{ route('notifications.open', $notification) }}" class="btn btn-sm btn-primary me-2">
+                        Xem chi tiết
+                    </a>
+                @endif
+
                 @if (!$notification->is_read)
 
                     <form

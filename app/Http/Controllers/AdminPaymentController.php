@@ -7,13 +7,19 @@ use App\Models\PaymentTransactionLog;
 use App\Models\Refund;
 use App\Models\RefundRequest;
 use App\Services\RefundRequestService;
+use App\Services\PaymentService;
+use App\Services\CustomerNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AdminPaymentController extends Controller
 {
-    public function __construct(private readonly RefundRequestService $refundRequests) {}
+    public function __construct(
+        private readonly RefundRequestService $refundRequests,
+        private readonly PaymentService $payments,
+        private readonly CustomerNotificationService $notifications
+    ) {}
 
     public function index(Request $request)
     {
@@ -45,8 +51,12 @@ class AdminPaymentController extends Controller
                     throw new \DomainException('Số tiền giao dịch không khớp tổng tiền booking.');
                 }$old = $locked->status;
                 $new = $data['action'] === 'MARK_PAID' ? 'PAID' : 'FAILED';
-                $locked->update(['status' => $new, 'amount' => $data['amount'], 'transaction_id' => $data['transaction_id'] ?? $locked->transaction_id, 'paid_at' => $new === 'PAID' ? now() : $locked->paid_at]);
-                $locked->booking->update(['payment_status' => $new, 'status' => $new === 'PAID' && $locked->booking->status === 'PENDING_PAYMENT' ? 'CONFIRMED' : $locked->booking->status]);
+                $locked->update(['amount' => $data['amount']]);
+                if ($new === 'PAID') {
+                    $this->payments->markAsPaid($locked, $data['transaction_id'], 'ADMIN_RECONCILIATION');
+                } else {
+                    $this->payments->markAsFailed($locked, $data['transaction_id']);
+                }
                 $this->log($locked, $request, 'RECONCILED', $old, $new, $data['amount'], $data['note']);
             });
         } catch (\DomainException $e) {
@@ -87,6 +97,7 @@ return back()->with('success', 'Đã phê duyệt yêu cầu hoàn tiền.');
                 if ($data['result'] === 'COMPLETED' && $completed + (float) $locked->amount >= (float) $locked->payment->amount) {
                     $locked->payment->update(['status' => 'REFUNDED']);
                     $locked->payment->booking->update(['payment_status' => 'REFUNDED']);
+                    $this->notifications->refunded($locked->payment->booking);
                 }$this->log($locked->payment, $request, 'REFUND_'.$data['result'], $old, $locked->payment->fresh()->status, $locked->amount, $data['note']);
             });
         } catch (\DomainException $e) {

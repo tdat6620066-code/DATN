@@ -6,9 +6,12 @@ use App\Models\{Booking, BookingAuditLog, BookingService, PaymentTransactionLog,
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Services\CustomerNotificationService;
 
 class EmployeeBookingController extends Controller
 {
+    public function __construct(private readonly CustomerNotificationService $notifications) {}
+
     public function index(Request $request)
     {
         $this->employee($request);
@@ -43,6 +46,7 @@ class EmployeeBookingController extends Controller
                 $old = $locked->status;
                 $locked->update(['status' => 'CHECKED_IN', 'checked_in_at' => now(), 'checked_in_by' => $request->user()->id]);
                 $locked->bookingDetails()->whereDate('booking_date', today())->update(['status' => 'CHECKED_IN']);
+                $this->notifications->statusChanged($locked, 'CHECKED_IN');
                 $this->audit($locked, $request, 'CHECKED_IN', $old, 'CHECKED_IN');
             });
             return back()->with('success', 'Khách đã check-in thành công.');
@@ -60,6 +64,7 @@ class EmployeeBookingController extends Controller
                 $locked->update(['status' => 'COMPLETED', 'checked_out_at' => now(), 'checked_out_by' => $request->user()->id]);
                 $locked->bookingDetails()->update(['status' => 'COMPLETED']);
                 $locked->bookingDetails()->with('court')->get()->each(fn ($d) => $d->court->update(['availability_status' => 'AVAILABLE']));
+                $this->notifications->statusChanged($locked, 'COMPLETED');
                 $this->audit($locked, $request, 'COMPLETED', 'CHECKED_IN', 'COMPLETED');
             });
             return back()->with('success', 'Đơn đã hoàn thành và sân đã được giải phóng.');
@@ -78,6 +83,7 @@ class EmployeeBookingController extends Controller
                 $transactionId = $data['transaction_id'] ?: 'POS-'.now()->format('YmdHis').'-'.$locked->id;
                 $locked->payment->update(['amount' => $data['amount'], 'payment_method' => $data['payment_method'], 'transaction_id' => $transactionId, 'status' => 'PAID', 'paid_at' => now()]);
                 $locked->update(['payment_status' => 'PAID', 'status' => $locked->status === 'PENDING_PAYMENT' ? 'CONFIRMED' : $locked->status, 'confirmed_at' => $locked->confirmed_at ?? now()]);
+                $this->notifications->payment($locked, 'PAID');
                 PaymentTransactionLog::create(['payment_id' => $locked->payment->id, 'actor_id' => $request->user()->id, 'action' => 'COUNTER_PAYMENT', 'old_status' => 'PENDING', 'new_status' => 'PAID', 'amount' => $data['amount'], 'note' => 'Thanh toán tại quầy', 'metadata' => ['method' => $data['payment_method']]]);
             });
             return back()->with('success', 'Thanh toán thành công.');

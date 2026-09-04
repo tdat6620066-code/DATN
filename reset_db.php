@@ -1,5 +1,15 @@
 <?php
 
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
+if (getenv('APP_ENV') !== 'local') {
+    fwrite(STDERR, "Database reset is only allowed when APP_ENV=local.\n");
+    exit(1);
+}
+
 $host = '127.0.0.1';
 $user = 'root';
 $pass = '';

@@ -1,5 +1,19 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
+// Controllers
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\CourtController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RefundRequestController;
+use App\Http\Controllers\ChatController;
+
+// Admin Controllers
 use App\Http\Controllers\AdminAnnouncementController;
 // Controllers
 use App\Http\Controllers\AdminBookingController;
@@ -176,17 +190,9 @@ Route::get('/courts/{court}/availability', [
 
 Route::middleware(['auth', 'active'])->group(function () {
 
-    /* UC24-UC28 - AI APIs */
-    Route::prefix('api/ai')->name('api.ai.')->group(function () {
-        Route::get('/courts/recommendations', [AiController::class, 'courts'])->name('courts');
-        Route::post('/chat', [ChatController::class, 'chat'])->middleware('throttle:chatbot')->name('chat');
-        Route::post('/chat/stream', [ChatController::class, 'stream'])->middleware('throttle:chatbot')->name('chat.stream');
-        Route::post('/chat/{chatbotLog}/feedback', [ChatbotFeedbackController::class, 'store'])->middleware('throttle:chatbot')->name('chat.feedback');
-        Route::get('/promotions/me', [AiController::class, 'promotion'])->name('promotions.me');
-        Route::get('/demand-forecast', [AiController::class, 'forecast'])->name('forecast');
-        Route::post('/reviews/analyze', [AiController::class, 'reviews'])->name('reviews.analyze');
-        Route::post('/promotions/customers/{customer}', [AiController::class, 'customerPromotion'])->name('promotions.customer');
-    });
+    Route::post('/api/ai/chat/stream', [ChatController::class, 'stream'])
+        ->middleware('throttle:30,1')
+        ->name('api.ai.chat.stream');
 
     /*
     |--------------------------------------------------------------------------
@@ -272,6 +278,21 @@ Route::middleware(['auth', 'active'])->group(function () {
         NotificationController::class,
         'markAllAsRead',
     ])->name('notifications.read-all');
+
+    Route::get('/notifications/{notification}/open', [
+        NotificationController::class,
+        'open'
+    ])->name('notifications.open');
+
+    Route::get('/profile/notification-settings', [
+        \App\Http\Controllers\NotificationPreferenceController::class,
+        'edit'
+    ])->name('notification-settings.edit');
+
+    Route::put('/profile/notification-settings', [
+        \App\Http\Controllers\NotificationPreferenceController::class,
+        'update'
+    ])->name('notification-settings.update');
 
 });
 
@@ -674,6 +695,12 @@ Route::middleware([
             'cancel',
         ])->name('bookings.cancel');
 
+        Route::put('/bookings/{booking}/details/{detail}/court', [
+            AdminBookingController::class,
+            'changeCourt'
+        ])->name('bookings.change-court');
+
+
         /*
         |--------------------------------------------------------------------------
         | PAYMENTS
@@ -882,20 +909,6 @@ Route::middleware([
     /*
     | Xác nhận thanh toán
     */
-
-    Route::post('/booking/{booking}/confirm-payment', [
-        BookingController::class,
-        'confirmPayment',
-    ])->name('bookings.confirm-payment');
-
-    /*
-    | Cập nhật ghi chú từ màn hình checkout trước khi thanh toán
-    */
-
-    Route::post('/booking/{booking}/update-note', [
-        BookingController::class,
-        'updateNote',
-    ])->name('bookings.update-note');
 
     /*
     | Thanh toán VNPay

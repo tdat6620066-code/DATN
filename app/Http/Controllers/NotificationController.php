@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
@@ -36,6 +37,7 @@ class NotificationController extends Controller
 
         $notification->update([
             'is_read' => true,
+            'read_at' => $notification->read_at ?? now(),
         ]);
 
         return back();
@@ -46,13 +48,30 @@ class NotificationController extends Controller
         Notification::where(
             'user_id',
             auth()->id()
-        )->update([
+        )->where('is_read', false)->update([
             'is_read' => true,
+            'read_at' => now(),
         ]);
 
         return back()->with(
             'success',
             'Đã đánh dấu tất cả thông báo là đã đọc.'
         );
+    }
+
+    public function open(Notification $notification)
+    {
+        abort_if($notification->user_id !== auth()->id(), 403);
+        $notification->update([
+            'is_read' => true,
+            'read_at' => $notification->read_at ?? now(),
+            'clicked_at' => $notification->clicked_at ?? now(),
+        ]);
+
+        $destination = $notification->action_url;
+        if (! $destination || ! Str::startsWith($destination, url('/'))) {
+            return redirect()->route('notifications.index');
+        }
+        return redirect()->to($destination);
     }
 }

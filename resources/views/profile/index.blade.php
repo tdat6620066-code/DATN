@@ -360,6 +360,11 @@
                 <a href="#password" data-target="password">
                     <i class="bi bi-shield-lock"></i> Đổi mật khẩu
                 </a>
+                @if($user->role === 'CUSTOMER')
+                    <a href="{{ route('notification-settings.edit') }}">
+                        <i class="bi bi-bell"></i> Cài đặt thông báo
+                    </a>
+                @endif
             </nav>
         </aside>
 

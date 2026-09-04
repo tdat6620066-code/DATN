@@ -63,12 +63,9 @@
                     </a>
 
                     @if($booking->status === 'PENDING_PAYMENT')
-                    <form action="/booking/{{ $booking->id }}/confirm-payment" method="POST" style="margin: 0;">
-                        @csrf
-                        <button type="submit" class="btn btn-success btn-sm w-100">
-                            <i class="bi bi-check-circle"></i> Xác nhận thanh toán
-                        </button>
-                    </form>
+                    <a href="{{ route('bookings.vnpay', $booking) }}" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-credit-card"></i> Thanh toán qua VNPay
+                    </a>
                     
                     <form action="/booking/{{ $booking->id }}/cancel" method="POST" style="margin: 0;">
                         @csrf

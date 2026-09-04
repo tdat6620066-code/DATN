@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Booking;
+use App\Services\CustomerNotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -15,9 +16,9 @@ class ExpireHoldsCommand extends Command
     /**
      * UC23 - Execute the command to expire holds
      */
-    public function handle()
+    public function handle(CustomerNotificationService $notifications)
     {
-        $expired = DB::transaction(function () {
+        $expired = DB::transaction(function () use ($notifications) {
             // Find bookings with expired holds
             $bookings = Booking::where(function ($query) {
                 $query->where('status', 'PENDING_PAYMENT')
@@ -41,6 +42,8 @@ class ExpireHoldsCommand extends Command
                     $booking->payment->update(['status' => 'FAILED']);
                 }
 
+                $notifications->statusChanged($booking, 'EXPIRED');
+
                 $count++;
             }
 
@@ -51,4 +54,3 @@ class ExpireHoldsCommand extends Command
         return 0;
     }
 }
-
