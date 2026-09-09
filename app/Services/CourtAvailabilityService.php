@@ -38,8 +38,9 @@ class CourtAvailabilityService
             return self::STATUS_BOOKED;
         }
 
-        // Unpaid bookings do not occupy the slot. It remains available and
-        // displays its normal price until payment is confirmed.
+        if ($this->isOnHold($courtId, $date, $timeSlotId)) {
+            return self::STATUS_HOLD;
+        }
         return self::STATUS_AVAILABLE;
     }
 
@@ -85,7 +86,8 @@ class CourtAvailabilityService
         }
 
         $maintenance = $maintenanceQuery
-            ->whereRaw("? BETWEEN start_time AND end_time", [$timeSlot->start_time])
+            ->where('start_time', '<', $timeSlot->end_time)
+            ->where('end_time', '>', $timeSlot->start_time)
             ->exists();
 
         return $maintenance;
@@ -96,9 +98,11 @@ class CourtAvailabilityService
      */
     private function isBooked(int $courtId, Carbon $date, int $timeSlotId)
     {
+        $slot = TimeSlot::findOrFail($timeSlotId);
         return BookingDetail::where('court_id', $courtId)
+            ->where('status', '!=', 'CANCELLED')
             ->whereDate('booking_date', $date->toDateString())
-            ->where('time_slot_id', $timeSlotId)
+            ->whereHas('timeSlot', fn ($q) => $q->where('start_time', '<', $slot->end_time)->where('end_time', '>', $slot->start_time))
             ->whereHas('booking', function ($query) {
                 $query->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']);
             })
@@ -110,12 +114,14 @@ class CourtAvailabilityService
      */
     private function isOnHold(int $courtId, Carbon $date, int $timeSlotId)
     {
+        $slot = TimeSlot::findOrFail($timeSlotId);
         return BookingDetail::where('court_id', $courtId)
             ->whereDate('booking_date', $date->toDateString())
-            ->where('time_slot_id', $timeSlotId)
+            ->whereHas('timeSlot', fn ($q) => $q->where('start_time', '<', $slot->end_time)->where('end_time', '>', $slot->start_time))
             ->where('status', 'PENDING')
             ->whereHas('booking', function ($query) {
                 $query->where('status', 'PENDING_PAYMENT')
+                    ->whereHas('fixedBooking', fn ($q) => $q->whereIn('status', ['AWAITING_PAYMENT', 'PAYMENT_FAILED']))
                     ->where('hold_expires_at', '>', now());
             })
             ->exists();

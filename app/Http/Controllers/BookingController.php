@@ -43,9 +43,14 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $bookings = Booking::where('user_id', Auth::id())
-            ->with('bookingDetails.court', 'bookingDetails.timeSlot', 'payment')
-            ->orderByDesc('created_at')
+        $bookings = Booking::where('bookings.user_id', Auth::id())
+            ->where(fn ($q) => $q->whereNull('bookings.fixed_booking_id')->orWhereIn('bookings.id',
+                Booking::selectRaw('MAX(id)')->whereNotNull('fixed_booking_id')->groupBy('fixed_booking_id')))
+            ->leftJoin('fixed_bookings', 'fixed_bookings.id', '=', 'bookings.fixed_booking_id')
+            ->select('bookings.*')
+            ->with('bookingDetails.court', 'bookingDetails.timeSlot', 'payment', 'fixedBooking.bookings')
+            ->orderByRaw('COALESCE(fixed_bookings.created_at, bookings.created_at) DESC')
+            ->orderByDesc('bookings.id')
             ->paginate(15);
 
         return view('bookings.index', ['bookings' => $bookings]);
@@ -168,6 +173,9 @@ class BookingController extends Controller
     {
         // Authorize: user can only see their own bookings
         $this->authorize('view', $booking);
+        if ($booking->status === 'PENDING_PAYMENT' && $booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') {
+            return redirect()->route('bookings.fixed.show', $booking->fixedBooking);
+        }
 
         if ($this->expireHoldIfNeeded($booking)) {
             return redirect()->route('bookings.show', $booking)
@@ -209,6 +217,13 @@ class BookingController extends Controller
      */
     public function createRecurring(Request $request)
     {
+        $draft = $request->boolean('resume') ? $request->session()->get('fixed_booking_draft') : null;
+        if ($draft && ($draft['user_id'] !== $request->user()->id || $draft['expires_at'] < now()->timestamp)) {
+            $draft = null;
+        }
+        if ($draft) {
+            $request->merge($draft['definition']);
+        }
         $courtId = $request->integer('court_id');
         $selectedCourt = $courtId
             ? Court::where('status', 'ACTIVE')->with('courtType')->findOrFail($courtId)
@@ -224,7 +239,9 @@ class BookingController extends Controller
             'courts' => $courts,
             'selectedCourt' => $selectedCourt,
             'timeSlots' => $timeSlots,
-            'bookingType' => $request->query('booking_type', 'weekly'),
+            'bookingType' => $request->input('booking_type', 'weekly'),
+            'preview' => $draft['preview'] ?? null,
+            'draft' => $draft,
         ]);
     }
 
@@ -234,7 +251,11 @@ class BookingController extends Controller
     public function previewRecurring(StoreRecurringBookingRequest $request)
     {
         $data = $request->validated();
-        $preview = $this->bookingService->previewRecurringBooking($data);
+        $preview = app(\App\Services\RecurringBookingService::class)->preview($data);
+        $request->session()->put('fixed_booking_draft', [
+            'token' => (string) \Illuminate\Support\Str::uuid(), 'user_id' => $request->user()->id,
+            'expires_at' => now()->addMinutes(20)->timestamp, 'definition' => $data, 'preview' => $preview,
+        ]);
 
         $courts = Court::where('status', 'ACTIVE')->with('courtType')->get();
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->get();
@@ -246,53 +267,7 @@ class BookingController extends Controller
                 ->withInput();
         }
 
-        return view('bookings.create-recurring', compact('courts', 'selectedCourt', 'timeSlots', 'preview'));
-    }
-
-    /**
-     * UC21 - Store recurring booking
-     */
-    public function storeRecurring(StoreRecurringBookingRequest $request)
-    {
-        $request->validate([
-            'confirmed' => ['accepted'],
-        ], [
-            'confirmed.accepted' => 'Vui lòng kiểm tra lịch dự kiến và xác nhận trước khi tạo booking.',
-        ]);
-
-        try {
-            $booking = $this->bookingService->createRecurringBooking(
-                Auth::id(),
-                [
-                    'court_id' => $request->court_id,
-                    'start_date' => $request->start_date,
-                    'end_date' => $request->end_date,
-                    'days_of_week' => $request->days_of_week,
-                    'days_of_month' => $request->days_of_month,
-                    'time_slot_ids' => $request->time_slot_ids,
-                    'time_slot_id' => $request->time_slot_id,
-                    'booking_type' => $request->booking_type ?? 'weekly',
-                ],
-                $request->voucher_code
-            );
-
-            return redirect()
-                ->route('bookings.show', $booking)
-                ->with('success', 'Đặt sân định kỳ thành công. Vui lòng hoàn tất thanh toán.');
-
-        } catch (\Exception $e) {
-            $errors = json_decode($e->getMessage(), true);
-
-            if (is_array($errors)) {
-                return back()
-                    ->with('booking_errors', $errors)
-                    ->withInput();
-            }
-
-            return back()
-                ->with('error', $e->getMessage())
-                ->withInput();
-        }
+        return redirect()->route('bookings.create-recurring', ['resume' => 1]);
     }
 
     /**
@@ -301,6 +276,9 @@ class BookingController extends Controller
     public function vnpayCreate(Booking $booking)
     {
         $this->authorize('confirmPayment', $booking);
+        if ($booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') {
+            return redirect()->route('bookings.fixed.show', $booking->fixedBooking);
+        }
 
         if ($booking->status !== 'PENDING_PAYMENT') {
             return back()->with('error', 'Booking này không thể thanh toán.');
@@ -311,8 +289,14 @@ class BookingController extends Controller
                 ->with('error', 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.');
         }
 
-        $returnUrl = route('bookings.vnpay.return');
-        $paymentUrl = $this->vnpayService->createPaymentUrl($booking, $returnUrl);
+        try {
+            $returnUrl = route('bookings.vnpay.return');
+            $paymentUrl = $this->vnpayService->createPaymentUrl($booking, $returnUrl);
+        } catch (\RuntimeException $e) {
+            report($e);
+
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->away($paymentUrl);
     }
@@ -343,6 +327,10 @@ class BookingController extends Controller
     /** Immediately expire a stale hold before allowing a payment action. */
     private function expireHoldIfNeeded(Booking $booking): bool
     {
+        if ($booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') {
+            if ($booking->status !== 'PENDING_PAYMENT') return false;
+            return app(\App\Services\FixedBookingPaymentService::class)->expire($booking->fixedBooking);
+        }
         if ($booking->status !== 'PENDING_PAYMENT' || ! $booking->isHoldExpired()) {
             return false;
         }
@@ -355,12 +343,12 @@ class BookingController extends Controller
         return true;
     }
 
-    /**
-     * VNPay redirect user về đây sau khi thanh toán.
-     * Trạng thái thật được IPN cập nhật; tại đây chỉ hiển thị kết quả cho user.
-     */
+    /** VNPay redirects the customer here after payment. */
     public function vnpayReturn(Request $request)
     {
+        if (str_starts_with((string) $request->input('vnp_TxnRef'), 'FIX')) {
+            return app(FixedBookingController::class)->callback($request);
+        }
         $data = $request->all();
 
         if (! $this->vnpayService->verifyResponse($data)) {
@@ -375,14 +363,25 @@ class BookingController extends Controller
                 ->with('error', 'Không tìm thấy đơn đặt sân tương ứng.');
         }
 
-        // Only the server-to-server IPN may mutate payment state.
-        if ($booking->payment?->status === 'PAID') {
+        if (! $this->isSuccessfulVnpayPayment($booking, $data)) {
             return redirect()->route('bookings.show', $booking)
-                ->with('success', 'Thanh toán VNPay thành công.');
+                ->with('error', 'Giao dịch không thành công hoặc thông tin thanh toán không hợp lệ.');
+        }
+
+        if ($booking->payment && !in_array($booking->payment->status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], true)) {
+            try {
+                $this->paymentService->markAsPaid(
+                    $booking->payment,
+                    $data['vnp_TransactionNo'] ?? $data['vnp_TxnRef'],
+                    'vnpay'
+                );
+            } catch (\DomainException $e) {
+                return redirect()->route('bookings.show', $booking)->with('error', $e->getMessage());
+            }
         }
 
         return redirect()->route('bookings.show', $booking)
-            ->with('error', 'Giao dịch đang được xác minh hoặc chưa thành công.');
+            ->with('success', 'Thanh toán VNPay thành công. Đơn đặt sân đã được xác nhận.');
     }
 
     /**
@@ -390,6 +389,9 @@ class BookingController extends Controller
      */
     public function vnpayIpn(Request $request)
     {
+        if (str_starts_with((string) $request->input('vnp_TxnRef'), 'FIX')) {
+            return app(FixedBookingController::class)->callback($request, true);
+        }
         $data = $request->all();
 
         if (! $this->vnpayService->verifyResponse($data)) {
@@ -406,46 +408,50 @@ class BookingController extends Controller
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
         }
 
-        if (($data['vnp_ResponseCode'] ?? null) !== '00'
-            || ($data['vnp_TransactionStatus'] ?? null) !== '00') {
-            return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
-        }
-
-        // Xác nhận số tiền khớp với booking.
-        $expectedAmount = (int) round((float) $booking->total_amount * 100);
-        $receivedAmount = (int) ($data['vnp_Amount'] ?? 0);
-
-        if ($receivedAmount !== $expectedAmount) {
+        if ((int) ($data['vnp_Amount'] ?? 0) !== (int) round((float) $booking->total_amount * 100)) {
             return response()->json(['RspCode' => '04', 'Message' => 'Invalid amount']);
         }
 
-        if ($booking->payment && $booking->payment->status !== 'PAID') {
-            $this->paymentService->markAsPaid(
-                $booking->payment,
-                $data['vnp_TransactionNo'] ?? $data['vnp_TxnRef'],
-                'vnpay'
-            );
+        if (! $this->isSuccessfulVnpayPayment($booking, $data)) {
+            return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
+        }
+
+        if ($booking->payment && !in_array($booking->payment->status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], true)) {
+            try {
+                $this->paymentService->markAsPaid(
+                    $booking->payment,
+                    $data['vnp_TransactionNo'] ?? $data['vnp_TxnRef'],
+                    'vnpay'
+                );
+            } catch (\DomainException $e) {
+                return response()->json(['RspCode' => '02', 'Message' => 'Booking unavailable']);
+            }
         }
 
         return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
     }
 
-    /**
-     * Phân giải booking từ vnp_TxnRef ({booking_code}{YmdHis}).
-     */
+    private function isSuccessfulVnpayPayment(Booking $booking, array $data): bool
+    {
+        return ($data['vnp_TmnCode'] ?? null) === config('vnpay.tmn_code')
+            && ($data['vnp_ResponseCode'] ?? null) === '00'
+            && ($data['vnp_TransactionStatus'] ?? null) === '00'
+            && (int) ($data['vnp_Amount'] ?? 0) === (int) round((float) $booking->total_amount * 100);
+    }
+
+    /** Resolve {booking_id}{YmdHis} from the VNPay transaction reference. */
     private function resolveBookingFromTxnRef(?string $txnRef): ?Booking
     {
         if (! $txnRef) {
             return null;
         }
 
-        // VNPay transaction references are composed from a booking code followed
-        // by a timestamp. Match the booking-code prefix instead of relying on a
-        // non-alphanumeric separator, which VNPay rejects.
-        return Booking::query()
-            ->whereRaw('? LIKE CONCAT(booking_code, \'%\')', [$txnRef])
-            ->orderByDesc('id')
-            ->first();
+        if (! preg_match('/^(\d+)(\d{14})$/', $txnRef, $matches)) {
+            return null;
+        }
+
+        $booking = Booking::find($matches[1]);
+        return $booking?->fixedBooking && $booking->fixedBooking->status !== 'LEGACY' ? null : $booking;
     }
 
     /**

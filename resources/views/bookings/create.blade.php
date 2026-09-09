@@ -283,6 +283,7 @@
                                     data-status="{{ $status }}"
                                     data-price="{{ $price }}"
                                     data-duration="{{ $slot->duration ?? 60 }}"
+                                    data-start="{{ substr($slot->start_time,0,5) }}" data-end="{{ substr($slot->end_time,0,5) }}"
                                     @if($isSelectable) onclick="toggleSlot(this)" @endif>
                                     <div>{{ $priceDisplay }}</div>
                                 </td>
@@ -293,6 +294,7 @@
                     </table>
                 </div>
 
+                <p class="small text-muted mt-3">Chỉ chọn các khung giờ liền nhau trên cùng sân. Khi bỏ chọn, hãy bỏ từ đầu hoặc cuối dãy giờ.</p>
                 <!-- Legend -->
                 <div class="legend">
                     <div class="legend-item">
@@ -358,6 +360,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/slot-sequence.js') }}?v=1"></script>
 <script>
 let selectedSlots = [];
 
@@ -404,6 +407,13 @@ function toggleSlot(element) {
             .forEach(cell => cell.classList.remove('slot-selected'));
     }
 
+    const proposed = selectedSlots.some(slot => slot.key === key)
+        ? selectedSlots.filter(slot => slot.key !== key)
+        : [...selectedSlots, { start: element.dataset.start, end: element.dataset.end }];
+    if (!window.smashZoneConsecutiveSlots(proposed)) {
+        alert('Chỉ chọn các khung giờ liền nhau. Không thể chọn cách giờ hoặc bỏ khung ở giữa; hãy bỏ từ đầu hoặc cuối dãy.');
+        return;
+    }
     // Toggle selection
     const index = selectedSlots.findIndex(s => s.key === key);
     
@@ -416,7 +426,7 @@ function toggleSlot(element) {
             selectedSlots = [];
             document.querySelectorAll('.slot-selected').forEach(cell => cell.classList.remove('slot-selected'));
         }
-        selectedSlots.push({ key, courtId, slotId, price, duration });
+        selectedSlots.push({ key, courtId, slotId, price, duration, start: element.dataset.start, end: element.dataset.end });
         element.classList.add('slot-selected');
         document.getElementById('courtIdInput').value = courtId;
     }

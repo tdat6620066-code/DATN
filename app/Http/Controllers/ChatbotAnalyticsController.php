@@ -8,11 +8,12 @@ use App\Models\ChatbotFaq;
 use App\Models\ChatbotFeedback;
 use App\Models\ChatbotLog;
 use App\Models\ChatbotUnanswered;
+use App\Services\RevenueReportService;
 use Illuminate\Http\Request;
 
 class ChatbotAnalyticsController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, RevenueReportService $reports)
     {
         $days = min(90, max(7, (int) $request->integer('days', 30)));
         $query = ChatbotLog::query()->where('created_at', '>=', now()->subDays($days));
@@ -29,6 +30,9 @@ class ChatbotAnalyticsController extends Controller
             ->count();
         $bookingIds = $logs->pluck('metadata.booking_id')->filter()->unique()->values();
         $chatbotBookings = Booking::query()->whereIn('id', $bookingIds)->get();
+        // Refunds in this period may belong to chatbot bookings from an earlier period.
+        $revenueBookingIds = ChatbotLog::whereNotNull('metadata->booking_id')->get(['metadata'])->pluck('metadata.booking_id')->unique()->values();
+        $revenue = $reports->report(now()->subDays($days), now(), $revenueBookingIds);
         $dates = collect(range($days - 1, 0))->map(fn ($offset) => today()->subDays($offset)->toDateString());
         $dailyLogs = $logs->groupBy(fn (ChatbotLog $log) => $log->created_at->toDateString());
         $topQuestions = $logs->filter(fn (ChatbotLog $log) => filled($log->question) && ! in_array($log->question, [
@@ -55,7 +59,9 @@ class ChatbotAnalyticsController extends Controller
                 'openai_errors' => $logs->filter(fn (ChatbotLog $log) => filled(data_get($log->metadata, 'openai_error')))->count(),
                 'chatbot_bookings' => $chatbotBookings->count(),
                 'booking_value' => (float) $chatbotBookings->sum('total_amount'),
-                'chatbot_revenue' => (float) $chatbotBookings->where('payment_status', 'PAID')->sum('total_amount'),
+                'chatbot_revenue' => $revenue['net_revenue'],
+                'chatbot_gross_revenue' => $revenue['gross_revenue'],
+                'chatbot_refund_amount' => $revenue['refund_amount'],
             ],
             'chart' => [
                 'labels' => $dates->map(fn ($date) => date('d/m', strtotime($date)))->all(),

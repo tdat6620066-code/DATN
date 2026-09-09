@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\BookingDetail;
 use App\Models\Court;
-use App\Models\RefundRequest;
 use App\Models\TimeSlot;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class EmployeeDashboardController extends Controller
 {
@@ -22,7 +22,6 @@ class EmployeeDashboardController extends Controller
         $statistics = [
             'today_bookings' => (clone $todayBookingsQuery)->count(),
             'checked_in' => Booking::where('status', 'CHECKED_IN')->count(),
-            'pending_refunds' => RefundRequest::whereIn('status', ['PENDING', 'NEEDS_INFO'])->count(),
             'available_courts' => Court::where('status', 'ACTIVE')->where('availability_status', 'AVAILABLE')->count(),
         ];
 
@@ -34,13 +33,7 @@ class EmployeeDashboardController extends Controller
             ->limit(10)
             ->get();
 
-        $refundRequests = RefundRequest::with(['booking', 'requester'])
-            ->whereIn('status', ['PENDING', 'NEEDS_INFO'])
-            ->latest()
-            ->limit(6)
-            ->get();
-
-        return view('employee.dashboard', compact('statistics', 'todayBookings', 'refundRequests'));
+        return view('employee.dashboard', compact('statistics', 'todayBookings'));
     }
 
     /**
@@ -78,7 +71,7 @@ class EmployeeDashboardController extends Controller
     /**
      * Tính khoảng ngày hiển thị theo chế độ xem.
      *
-     * @return array{0: Carbon, 1: Carbon, 2: \Illuminate\Support\Collection<int, Carbon>}
+     * @return array{0: Carbon, 1: Carbon, 2: Collection<int, Carbon>}
      */
     private function scheduleRange(string $mode, Carbon $date): array
     {

@@ -19,6 +19,7 @@ class AdminDashboardTest extends TestCase
         $booking = Booking::create([
             'booking_code' => 'ADMIN-KPI', 'user_id' => $customer->id,
             'total_amount' => 250000, 'status' => 'COMPLETED', 'payment_status' => 'PAID',
+            'checked_out_at' => now(),
         ]);
         Payment::create([
             'booking_id' => $booking->id, 'amount' => 250000,
@@ -50,13 +51,14 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($employee)->get(route('admin.dashboard'))->assertForbidden();
     }
 
-    public function test_admin_is_redirected_to_admin_dashboard_after_login(): void
+    public function test_admin_returns_to_intended_dashboard_after_login(): void
     {
         User::factory()->create([
             'email' => 'admin@example.com', 'password' => 'password', 'role' => 'ADMIN',
         ]);
 
-        $this->post('/login', ['email' => 'admin@example.com', 'password' => 'password'])
+        $this->withSession(['url.intended' => route('admin.dashboard')])
+            ->post('/login', ['login' => 'admin@example.com', 'password' => 'password'])
             ->assertRedirect(route('admin.dashboard'));
     }
 }

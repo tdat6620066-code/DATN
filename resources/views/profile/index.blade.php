@@ -329,6 +329,7 @@
         }
     </style>
 
+@include('partials.brand-theme')
 </head>
 
 <body>

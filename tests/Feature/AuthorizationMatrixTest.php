@@ -37,7 +37,6 @@ class AuthorizationMatrixTest extends TestCase
 
         $this->actingAs($employee)->get(route('employee.courts.index'))->assertOk();
         $this->actingAs($employee)->get(route('employee.dashboard'))->assertForbidden();
-        $this->actingAs($employee)->get(route('employee.refund-requests.index'))->assertForbidden();
         $this->actingAs($employee)->get(route('admin.dashboard'))->assertForbidden();
     }
 
@@ -55,7 +54,6 @@ class AuthorizationMatrixTest extends TestCase
         $admin = User::factory()->create(['role' => 'ADMIN', 'status' => 'ACTIVE']);
 
         $this->actingAs($admin)->get(route('employee.dashboard'))->assertForbidden();
-        $this->actingAs($admin)->get(route('employee.refund-requests.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('employee.courts.index'))->assertForbidden();
     }
 

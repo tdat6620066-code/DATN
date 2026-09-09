@@ -18,6 +18,9 @@ class ExpireHoldsCommand extends Command
      */
     public function handle(CustomerNotificationService $notifications)
     {
+        foreach (\App\Models\FixedBooking::whereIn('status', ['AWAITING_PAYMENT', 'PAYMENT_FAILED'])->where('expires_at', '<=', now())->get() as $group) {
+            app(\App\Services\FixedBookingPaymentService::class)->expire($group);
+        }
         $expired = DB::transaction(function () use ($notifications) {
             // Find bookings with expired holds
             $bookings = Booking::where(function ($query) {
@@ -25,6 +28,7 @@ class ExpireHoldsCommand extends Command
                     ->orWhere('status', 'HOLD');
             })
             ->where('hold_expires_at', '<', now())
+            ->whereDoesntHave('fixedBooking', fn ($q) => $q->where('status', '!=', 'LEGACY'))
             ->lockForUpdate()
             ->get();
 

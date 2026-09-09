@@ -28,6 +28,7 @@
         .card:hover { box-shadow: 0 16px 28px rgba(0, 185, 87, .16); }
         .footer { background: var(--navy); }
     </style>
+@include('partials.brand-theme')
 </head>
 <body>
 <header class="header">

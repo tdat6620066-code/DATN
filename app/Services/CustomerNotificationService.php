@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\CustomerNotificationCreated;
 use App\Mail\CustomerAlertMail;
 use App\Models\Booking;
+use App\Models\FixedBooking;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Mail;
 
@@ -52,10 +53,38 @@ class CustomerNotificationService
             "Đơn {$booking->booking_code} được chuyển từ {$oldCourt} sang {$newCourt}.", "court-changed:{$booking->id}:".md5($oldCourt.'|'.$newCourt));
     }
 
-    public function refunded(Booking $booking): Notification
+    public function refunded(Booking $booking, ?float $amount = null, ?int $requestId = null): Notification
     {
-        return $this->send($booking, 'REFUND', '💰 Hoàn tiền',
-            "Khoản thanh toán của đơn {$booking->booking_code} đã được hoàn tiền.", "refund:{$booking->id}");
+        return $this->send($booking, 'REFUND', '💰 Hoàn tiền thành công',
+            "Booking {$booking->booking_code}. Số tiền hoàn: ".number_format($amount ?? (float) $booking->payment->amount).'đ. Trạng thái: '.($booking->payment_status === 'PARTIALLY_REFUNDED' ? 'Đã hoàn tiền một phần.' : 'Đã hoàn tiền.'), "refund:{$booking->id}:{$requestId}");
+    }
+
+    public function refundProgress(\App\Models\RefundRequest $request, string $stage): Notification
+    {
+        $label = match ($stage) {
+            'APPROVED' => 'Admin phê duyệt hoàn '.number_format($request->amount).'đ',
+            'REJECTED' => 'Admin từ chối yêu cầu hoàn tiền',
+            'PROCESSING' => 'Đang xử lý hoàn '.number_format($request->amount).'đ',
+            default => 'Yêu cầu hoàn tiền đã được tạo',
+        };
+        return $this->send($request->booking, 'REFUND', $label,
+            'Booking '.$request->booking->booking_code.' · Yêu cầu hoàn #'.$request->id.'. '.$label.'. '.($stage === 'REJECTED' ? $request->decision_note : 'Mở booking để theo dõi tiến trình.'), 'refund-progress:'.$request->id.':'.$stage);
+    }
+
+    public function incidentAffected(Booking $booking, string $code, string $reason, bool $paid): Notification
+    {
+        $slots = $booking->incidentResolutions()->whereHas('incident', fn ($q) => $q->where('incident_code', $code))->get()->map(function ($item) {
+            $slot = $item->original_slot;
+            return "{$slot['court']} · {$slot['date']} {$slot['start_time']}–{$slot['end_time']} · Phần chưa sử dụng: ".number_format($item->refund_amount).'đ';
+        })->implode('; ');
+        return $this->send($booking, 'BOOKING_STATUS', 'Thông báo sự cố sân',
+            "⚠️ Lượt sân bị ảnh hưởng trong booking {$booking->booking_code} đã bị hủy: {$reason}. {$slots}. ".($paid ? 'Vui lòng mở booking để chọn hoàn tiền, đổi lịch hoặc đổi sân. Chưa tạo yêu cầu hoàn tiền khi bạn chưa chọn.' : 'Các lượt không thể phục vụ đã được hủy.'), "incident:{$code}:{$booking->id}");
+    }
+
+    public function resolutionChosen(Booking $booking, int $resolutionId, string $choice, float $amount): Notification
+    {
+        return $this->send($booking, 'BOOKING_STATUS', $choice === 'REFUND' ? 'Yêu cầu hoàn tiền đã được tạo' : 'Đổi lịch/sân thành công',
+            "Booking {$booking->booking_code}. ".($amount > 0 ? 'Yêu cầu hoàn tiền '.number_format($amount).'đ đã được tạo, đang chờ duyệt.' : 'Đã chuyển lịch, không phát sinh khoản phải trả thêm.'), "resolution:{$resolutionId}");
     }
 
     public function statusChanged(Booking $booking, string $status): Notification
@@ -73,15 +102,27 @@ class CustomerNotificationService
             "Lịch tại {$court} bắt đầu lúc {$time}. Vui lòng đến sớm để check-in.", "booking-reminder:{$detailId}");
     }
 
-    private function send(Booking $booking, string $type, string $title, string $content, string $key): Notification
+    public function fixedBooking(FixedBooking $group, string $event): Notification
+    {
+        [$type, $title, $message] = match ($event) {
+            'CREATED' => ['BOOKING_CREATED', '🔔 Đã tạo lịch cố định', 'Vui lòng thanh toán một lần trước khi hết thời gian giữ chỗ.'],
+            'PAID' => ['PAYMENT', '💳 Lịch cố định đã thanh toán', 'Toàn bộ lịch đã được thanh toán và xác nhận.'],
+            'FAILED' => ['PAYMENT', '💳 Thanh toán lịch cố định chưa thành công', 'Vui lòng thử lại trước khi hết thời gian giữ chỗ.'],
+            'EXPIRED' => ['BOOKING_STATUS', 'Lịch cố định hết hạn giữ chỗ', 'Các chỗ chưa thanh toán đã được giải phóng.'],
+        };
+        $content = 'Đơn '.$group->code.' · '.$group->bookings()->count().' buổi · Tổng '.number_format($group->total_price ?? $group->bookings()->sum('total_amount'), 0, ',', '.').'đ. '.$message;
+        return $this->send($group, $type, $title, $content, 'fixed-booking:'.$event.':'.$group->id);
+    }
+
+    private function send(Booking|FixedBooking $booking, string $type, string $title, string $content, string $key): Notification
     {
         $notification = Notification::firstOrCreate(['unique_key' => $key], [
             'user_id' => $booking->user_id,
-            'booking_id' => $booking->id,
+            'booking_id' => $booking instanceof Booking ? $booking->id : null,
             'title' => $title,
             'content' => $content,
             'type' => $type,
-            'action_url' => route('bookings.show', $booking),
+            'action_url' => route($booking instanceof FixedBooking ? 'bookings.fixed.show' : 'bookings.show', $booking),
             'is_read' => false,
         ]);
 

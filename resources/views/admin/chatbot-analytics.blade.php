@@ -20,7 +20,9 @@
  ['Lỗi OpenAI',$summary['openai_errors'],'bi-exclamation-triangle'],
  ['Booking từ chatbot',$summary['chatbot_bookings'],'bi-calendar-check'],
  ['Giá trị booking',number_format($summary['booking_value']).'đ','bi-receipt'],
- ['Doanh thu đã thanh toán',number_format($summary['chatbot_revenue']).'đ','bi-cash-coin'],
+ ['Tổng thanh toán trong kỳ',number_format($summary['chatbot_gross_revenue']).'đ','bi-credit-card'],
+ ['Đã hoàn trong kỳ',number_format($summary['chatbot_refund_amount']).'đ','bi-arrow-return-left'],
+ ['Doanh thu thực nhận trong kỳ',number_format($summary['chatbot_revenue']).'đ','bi-cash-coin'],
  ['Bot chưa hiểu',$summary['unanswered_rate'].'%','bi-question-circle']
 ] as [$label,$value,$icon])
 <div class="col-6 col-xl-3"><div class="card ai-kpi h-100"><div class="card-body"><div class="d-flex justify-content-between"><small class="text-muted">{{ $label }}</small><i class="bi {{ $icon }} text-success"></i></div><div class="value mt-2">{{ $value }}</div></div></div></div>

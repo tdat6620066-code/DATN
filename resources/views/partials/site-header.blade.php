@@ -27,9 +27,10 @@
     .sc-nav-links a { color: #58708b; font-size: 14px; font-weight: 600; text-decoration: none; transition: color .2s; }
     .sc-nav-links a:hover, .sc-nav-links a.sc-active { color: #08b95b; }
     .sc-nav-actions { display: flex; align-items: center; gap: 12px; }
-    .sc-notification-link { position: relative; color: #fff; font-size: 20px; line-height: 1; text-decoration: none; }
-    .sc-notification-link:hover { color: #5eead4; }
-    .sc-notification-badge { position: absolute; top: -9px; right: -10px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; }
+    .sc-notification-link { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid #d8e0da; border-radius: 12px; background: #f4f7f5; color: #153442; font-size: 20px; line-height: 1; text-decoration: none; }
+    .sc-notification-link:hover { color: #087c42; background: #e9fbf0; border-color: #a9d8bc; }
+    .sc-notification-link:focus-visible { outline: 2px solid #087c42; outline-offset: 3px; }
+    .sc-notification-badge { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px #fff; }
     .sc-toast-wrap { position: fixed; top: 86px; right: 22px; z-index: 2000; display: grid; gap: 10px; width: min(380px, calc(100vw - 32px)); }
     .sc-realtime-toast { padding: 16px; border: 1px solid #dbe7e2; border-left: 4px solid #0ea36b; border-radius: 14px; background: #fff; box-shadow: 0 18px 45px rgba(2,36,50,.2); animation: scToastIn .25s ease-out; }
     .sc-realtime-toast strong { display: block; color: #102a34; font-size: 15px; }
@@ -72,6 +73,8 @@
     .sc-user-dropdown .dropdown-divider { height: 1px; background: #e5e7eb; margin: 6px 0; }
     @media (max-width: 991px) { .sc-nav-links { display: none; } }
     @media (max-width: 640px) {
+        .sc-nav-inner { flex-wrap: wrap; gap: 12px; }
+        .sc-nav-actions { margin-left: auto; gap: 10px; }
         .sc-nav-user { display: none; }
         .sc-btn-pill { padding: 11px 14px; font-size: 12px; }
         .sc-brand { font-size: 19px; }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\TimeSlot;
 
 class StoreBookingRequest extends FormRequest
 {
@@ -17,7 +18,7 @@ class StoreBookingRequest extends FormRequest
             'court_id' => 'required|exists:courts,id',
             'booking_date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'time_slot_ids' => 'required|array|min:1',
-            'time_slot_ids.*' => 'exists:time_slots,id',
+            'time_slot_ids.*' => 'integer|exists:time_slots,id|distinct',
             'voucher_code' => 'nullable|string|max:50',
         ];
     }
@@ -35,5 +36,14 @@ class StoreBookingRequest extends FormRequest
             'time_slot_ids.min' => 'Phải chọn ít nhất 1 khung giờ',
             'time_slot_ids.*.exists' => 'Khung giờ không hợp lệ',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($validator->errors()->isEmpty() && ! TimeSlot::areConsecutive(TimeSlot::whereIn('id', $this->input('time_slot_ids'))->get())) {
+                $validator->errors()->add('time_slot_ids', 'Chỉ được chọn các khung giờ liền nhau, không cách quãng hoặc chồng lấn.');
+            }
+        });
     }
 }
