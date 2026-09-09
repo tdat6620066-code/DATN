@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\{Booking, Payment};
+use App\Models\Booking;
+use App\Models\Payment;
 
 class PaymentService
 {
@@ -29,6 +30,36 @@ class PaymentService
      */
     public function markAsPaid(Payment $payment, $transactionId = null, $paymentMethod = null)
     {
+        if ($payment->fixed_booking_id) {
+            if (! app(FixedBookingPaymentService::class)->settle($payment, true, $transactionId, $paymentMethod ?? 'vnpay')) {
+                throw new \DomainException('Lịch cố định đã hết hạn hoặc không còn đủ buổi để xác nhận.');
+            }
+            return $payment->refresh();
+        }
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $transactionId, $paymentMethod) {
+            $courtIds = $payment->booking->bookingDetails()->pluck('court_id');
+            \App\Models\Court::whereIn('id', $courtIds)->orderBy('id')->lockForUpdate()->get();
+            $locked = Payment::lockForUpdate()->findOrFail($payment->id);
+            if ($locked->status !== 'PAID' && ! $locked->hasRefundActivity()) {
+                foreach ($locked->booking->bookingDetails()->with('timeSlot')->get() as $detail) {
+                    $held = \App\Models\BookingDetail::where('court_id', $detail->court_id)->whereDate('booking_date', $detail->booking_date)
+                        ->where('status', '!=', 'CANCELLED')->whereHas('timeSlot', fn ($q) => $q->where('start_time', '<', $detail->timeSlot->end_time)->where('end_time', '>', $detail->timeSlot->start_time))
+                        ->whereHas('booking', fn ($q) => $q->whereHas('fixedBooking', fn ($f) => $f->where('status', '!=', 'LEGACY'))
+                            ->where(fn ($b) => $b->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'])
+                                ->orWhere(fn ($h) => $h->where('status', 'PENDING_PAYMENT')->where('hold_expires_at', '>', now()))))->exists();
+                    if ($held) {
+                        throw new \DomainException('Khung giờ đang được giữ cho lịch cố định. Vui lòng liên hệ nhân viên để đối chiếu thanh toán.');
+                    }
+                }
+            }
+            return $this->markSingleAsPaid($locked, $transactionId, $paymentMethod);
+        }, 3);
+    }
+
+    private function markSingleAsPaid(Payment $payment, $transactionId = null, $paymentMethod = null)
+    {
+        $payment->refresh();
+        if ($payment->status === 'PAID' || $payment->hasRefundActivity() || $payment->booking->status === 'CANCELLED') return $payment;
         $wasPaid = $payment->status === 'PAID';
         $payment->update([
             'status' => 'PAID',
@@ -61,6 +92,12 @@ class PaymentService
      */
     public function markAsFailed(Payment $payment, $transactionId = null)
     {
+        if ($payment->fixed_booking_id) {
+            app(FixedBookingPaymentService::class)->settle($payment, false, $transactionId);
+            return $payment->refresh();
+        }
+        $payment->refresh();
+        if ($payment->status === 'PAID' || $payment->hasRefundActivity()) return $payment;
         $wasFailed = $payment->status === 'FAILED';
         $payment->update([
             'status' => 'FAILED',
@@ -80,35 +117,13 @@ class PaymentService
     }
 
     /**
-     * Process refund
-     */
-    public function refund(Payment $payment)
-    {
-        $wasRefunded = $payment->status === 'REFUNDED';
-        $payment->update([
-            'status' => 'REFUNDED',
-        ]);
-
-        // Update booking status
-        $payment->booking->update([
-            'payment_status' => 'REFUNDED',
-        ]);
-
-        if (! $wasRefunded) {
-            $this->notifications->refunded($payment->booking);
-        }
-
-        return $payment;
-    }
-
-    /**
      * Get payment details
      */
     public function getPaymentDetails(Booking $booking)
     {
         $payment = $booking->payment;
 
-        if (!$payment) {
+        if (! $payment) {
             return null;
         }
 

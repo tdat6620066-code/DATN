@@ -29,7 +29,9 @@ class BookingPolicy
     public function cancel(User $user, Booking $booking): bool
     {
         return ($user->role ?: 'CUSTOMER') === 'CUSTOMER' && $user->id === $booking->user_id
-            && in_array($booking->status, ['PENDING_PAYMENT', 'CONFIRMED'], true);
+            && $booking->status === 'PENDING_PAYMENT'
+            && !in_array($booking->payment_status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], true)
+            && !in_array($booking->payment?->status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], true);
     }
 
     /**

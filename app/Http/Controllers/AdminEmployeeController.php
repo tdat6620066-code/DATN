@@ -12,7 +12,7 @@ class AdminEmployeeController extends Controller
 {
     private const DASHBOARD_PERMISSION = ['employee.dashboard' => 'Truy cập tổng quan nhân viên'];
 
-    public const PERMISSIONS = ['bookings.view' => 'Xem lịch và đơn đặt sân', 'bookings.checkin' => 'Check-in khách hàng', 'bookings.checkout' => 'Hoàn thành lượt chơi', 'payments.counter' => 'Thanh toán tại quầy', 'services.manage' => 'Quản lý dịch vụ phát sinh', 'incidents.manage' => 'Báo cáo sự cố sân', 'refunds.manage' => 'Xử lý hủy / hoàn tiền', 'courts.status.manage' => 'Quản lý trạng thái sân'];
+    public const PERMISSIONS = ['refunds.process' => 'Xử lý hoàn tiền và xem tài khoản nhận tiền', 'bookings.view' => 'Xem lịch và đơn đặt sân', 'bookings.checkin' => 'Check-in khách hàng', 'bookings.checkout' => 'Hoàn thành lượt chơi', 'payments.counter' => 'Thanh toán tại quầy', 'services.manage' => 'Quản lý dịch vụ phát sinh', 'incidents.manage' => 'Báo cáo sự cố sân', 'courts.status.manage' => 'Quản lý trạng thái sân'];
 
     public function index(Request $request)
     {
@@ -73,7 +73,7 @@ class AdminEmployeeController extends Controller
 
     private function validated(Request $request, ?User $employee = null): array
     {
-        return $request->validate(['name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($employee)], 'phone' => ['nullable', 'string', 'max:30'], 'password' => [$employee ? 'nullable' : 'required', 'confirmed', Password::min(8)], 'role' => ['required', Rule::in(['EMPLOYEE', 'ADMIN'])], 'refund_approval_limit' => ['nullable', 'numeric', 'min:0'], 'permissions' => ['nullable', 'array'], 'permissions.*' => [Rule::in(array_keys(self::DASHBOARD_PERMISSION + self::PERMISSIONS))]]);
+        return $request->validate(['name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($employee)], 'phone' => ['nullable', 'string', 'max:30'], 'password' => [$employee ? 'nullable' : 'required', 'confirmed', Password::min(8)], 'role' => ['required', Rule::in(['EMPLOYEE', 'ADMIN'])], 'permissions' => ['nullable', 'array'], 'permissions.*' => [Rule::in(array_keys(self::DASHBOARD_PERMISSION + self::PERMISSIONS))]]);
     }
 
     private function staff(User $employee, Request $request): void
@@ -84,6 +84,6 @@ class AdminEmployeeController extends Controller
 
     private function admin(Request $request): void
     {
-        abort_unless($request->user()->role === 'ADMIN',403);
+        abort_unless($request->user()->role === 'ADMIN', 403);
     }
 }

@@ -1,6 +1,7 @@
 <!-- Booking Card Component -->
 <div class="card mb-4">
     <div class="card-body">
+@if($booking->fixed_booking_id)<a class="small d-inline-block mb-2 text-success" href="{{ route('bookings.fixed.show', $booking->fixed_booking_id) }}">Xem nhóm lịch cố định</a>@endif
         <div class="row">
             <!-- Booking Info -->
             <div class="col-md-8">
@@ -73,16 +74,13 @@
                             <i class="bi bi-trash"></i> Hủy
                         </button>
                     </form>
-                    @elseif($booking->status === 'CONFIRMED' || $booking->status === 'COMPLETED')
-                    <form action="/booking/{{ $booking->id }}/cancel" method="POST" style="margin: 0;">
-                        @csrf
-                        <button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('Bạn chắc chắn muốn hủy?')">
-                            <i class="bi bi-trash"></i> Hủy
-                        </button>
-                    </form>
                     @endif
 
                     <div class="mt-auto">
+                        @if($booking->payment?->status === 'PAID')
+                        @include('partials.incident-ui')
+                        <a class="sz-action sz-action--report sz-action--small my-2" href="{{ route('incident-tickets.create',$booking) }}"><i class="bi bi-flag" aria-hidden="true"></i>Báo cáo sự cố</a>
+                        @endif
                         @if($booking->payment)
                         <small class="text-muted">
                             Thanh toán: <strong>{{ ucfirst($booking->payment->payment_method) }}</strong><br>
@@ -91,7 +89,8 @@
                                     'PENDING' => 'Chờ thanh toán',
                                     'PAID' => 'Đã thanh toán',
                                     'FAILED' => 'Thất bại',
-                                    'REFUNDED' => 'Hoàn tiền',
+                                    'REFUNDED' => 'Đã hoàn tiền',
+                                    'PARTIALLY_REFUNDED' => 'Đã hoàn tiền một phần',
                                 ];
                             @endphp
                             Trạng thái: <strong>{{ $paymentStatusMap[$booking->payment->status] ?? $booking->payment->status }}</strong>

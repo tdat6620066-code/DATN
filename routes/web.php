@@ -1,21 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-// Controllers
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\CourtController;
-use App\Http\Controllers\BookingController;
-use App\Http\Controllers\FavoriteController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RefundRequestController;
-use App\Http\Controllers\ChatController;
-
-// Admin Controllers
 use App\Http\Controllers\AdminAnnouncementController;
-// Controllers
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCourtController;
 use App\Http\Controllers\AdminCourtTypeController;
@@ -23,17 +8,14 @@ use App\Http\Controllers\AdminCustomerController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminEmployeeController;
 use App\Http\Controllers\AdminIncidentController;
-use App\Http\Controllers\AdminMaintenanceController;
 use App\Http\Controllers\AdminKnowledgeBaseController;
+use App\Http\Controllers\AdminMaintenanceController;
 use App\Http\Controllers\AdminPaymentController;
 use App\Http\Controllers\AdminPricingController;
 use App\Http\Controllers\AdminVoucherController;
-// Admin Controllers
-use App\Http\Controllers\AiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ChatbotAnalyticsController;
-use App\Http\Controllers\ChatbotFeedbackController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\EmployeeBookingController;
@@ -42,12 +24,39 @@ use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\EmployeeIncidentController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
-// Employee Controllers
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RefundRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware(['auth','active','role:CUSTOMER'])->group(function () {
+    Route::get('/booking/{booking}/support', [\App\Http\Controllers\IncidentTicketController::class,'create'])->name('incident-tickets.create');
+    Route::post('/booking/{booking}/support', [\App\Http\Controllers\IncidentTicketController::class,'store'])->middleware('throttle:10,60')->name('incident-tickets.store');
+    Route::post('/support/{ticket}/supplement', [\App\Http\Controllers\IncidentTicketController::class,'supplement'])->middleware('throttle:20,60')->name('incident-tickets.supplement');
+});
+Route::middleware(['auth','active'])->group(function () {
+    Route::get('/support', [\App\Http\Controllers\IncidentTicketController::class,'index'])->name('incident-tickets.index');
+    Route::get('/support/{ticket}', [\App\Http\Controllers\IncidentTicketController::class,'show'])->name('incident-tickets.show');
+    Route::post('/support/{ticket}/review', [\App\Http\Controllers\IncidentTicketController::class,'review'])->name('incident-tickets.review');
+    Route::get('/support-evidences/{evidence}', [\App\Http\Controllers\IncidentTicketController::class,'download'])->name('incident-tickets.evidence');
+    Route::get('/refund-receipts/{refund}', [\App\Http\Controllers\RefundPayoutController::class, 'receipt'])->name('refund-payouts.receipt');
+});
+
+Route::post('/booking/resolutions/{resolution}', [\App\Http\Controllers\IncidentResolutionController::class, 'choose'])->middleware(['auth', 'active', 'role:CUSTOMER'])->name('incident-resolutions.choose');
+
+Route::middleware(['auth', 'active', 'role:ADMIN,EMPLOYEE', 'permission:incidents.manage'])->group(function () {
+    Route::get('/admin/incidents/bulk', [\App\Http\Controllers\BulkIncidentController::class, 'create'])->name('admin.incidents.bulk');
+    Route::post('/admin/incidents/bulk', [\App\Http\Controllers\BulkIncidentController::class, 'store'])->name('admin.incidents.bulk.store');
+    Route::post('/staff/bookings/{booking}/special-refunds', [\App\Http\Controllers\SpecialRefundController::class, 'store'])->name('special-refunds.store');
+});
+Route::middleware(['auth', 'active', 'role:ADMIN'])->group(function () {
+    Route::get('/admin/reports', [\App\Http\Controllers\AdminReportController::class, 'index'])->name('admin.reports.index');
+    Route::get('/admin/special-refunds', [\App\Http\Controllers\SpecialRefundController::class, 'index'])->name('special-refunds.index');
+
+
+    Route::post('/admin/special-refunds/{refundRequest}/review', [\App\Http\Controllers\SpecialRefundController::class, 'review'])->name('special-refunds.review');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -281,17 +290,17 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/notifications/{notification}/open', [
         NotificationController::class,
-        'open'
+        'open',
     ])->name('notifications.open');
 
     Route::get('/profile/notification-settings', [
-        \App\Http\Controllers\NotificationPreferenceController::class,
-        'edit'
+        NotificationPreferenceController::class,
+        'edit',
     ])->name('notification-settings.edit');
 
     Route::put('/profile/notification-settings', [
-        \App\Http\Controllers\NotificationPreferenceController::class,
-        'update'
+        NotificationPreferenceController::class,
+        'update',
     ])->name('notification-settings.update');
 
 });
@@ -466,25 +475,6 @@ Route::middleware([
         | REFUND REQUESTS
         |--------------------------------------------------------------------------
         */
-
-        Route::middleware('permission:refunds.manage')->group(function () {
-
-            Route::get('/refund-requests', [
-                RefundRequestController::class,
-                'index',
-            ])->name('refund-requests.index');
-
-            Route::get('/refund-requests/{refundRequest}', [
-                RefundRequestController::class,
-                'show',
-            ])->name('refund-requests.show');
-
-            Route::post('/refund-requests/{refundRequest}/review', [
-                RefundRequestController::class,
-                'review',
-            ])->name('refund-requests.review');
-
-        });
 
     });
 
@@ -697,9 +687,8 @@ Route::middleware([
 
         Route::put('/bookings/{booking}/details/{detail}/court', [
             AdminBookingController::class,
-            'changeCourt'
+            'changeCourt',
         ])->name('bookings.change-court');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -721,16 +710,6 @@ Route::middleware([
             AdminPaymentController::class,
             'reconcile',
         ])->name('payments.reconcile');
-
-        Route::put('/refund-requests/{refundRequest}/approve', [
-            AdminPaymentController::class,
-            'approveRefund',
-        ])->name('payments.refunds.approve');
-
-        Route::put('/refunds/{refund}/process', [
-            AdminPaymentController::class,
-            'processRefund',
-        ])->name('payments.refunds.process');
 
         /*
         |--------------------------------------------------------------------------
@@ -880,13 +859,17 @@ Route::middleware([
 
     Route::post('/booking/recurring/preview', [
         BookingController::class,
-        'previewRecurring'
+        'previewRecurring',
     ])->name('bookings.recurring.preview');
 
     Route::post('/booking/recurring', [
-        BookingController::class,
-        'storeRecurring',
+        \App\Http\Controllers\FixedBookingController::class,
+        'store',
     ])->name('bookings.store-recurring');
+
+    Route::post('/booking/recurring/review', [\App\Http\Controllers\FixedBookingController::class, 'review'])->name('bookings.recurring.review');
+    Route::get('/booking/fixed/{fixedBooking}', [\App\Http\Controllers\FixedBookingController::class, 'show'])->name('bookings.fixed.show');
+    Route::post('/booking/fixed/{fixedBooking}/pay', [\App\Http\Controllers\FixedBookingController::class, 'pay'])->name('bookings.fixed.pay');
 
     /*
     | Chi tiết booking
@@ -919,6 +902,11 @@ Route::middleware([
         'vnpayCreate',
     ])->name('bookings.vnpay');
 
+    Route::post('/booking/{booking}/note', [
+        BookingController::class,
+        'updateNote',
+    ])->name('bookings.update-note');
+
     /*
     | Hủy booking
     */
@@ -931,11 +919,6 @@ Route::middleware([
     /*
     | Yêu cầu hoàn tiền
     */
-
-    Route::post('/refund-requests', [
-        RefundRequestController::class,
-        'store',
-    ])->name('refund-requests.store');
 
 });
 
@@ -956,3 +939,10 @@ Route::post('/booking/{booking}/checkout', [
         'permission:bookings.checkout',
     ])
     ->name('bookings.checkout');
+Route::middleware(['auth','active','role:ADMIN,EMPLOYEE','permission:refunds.process'])->group(function () {
+    Route::get('/refund-payouts', [\App\Http\Controllers\RefundPayoutController::class,'index'])->name('refund-payouts.index');
+    Route::get('/refund-payouts/{refundRequest}', [\App\Http\Controllers\RefundPayoutController::class,'show'])->name('refund-payouts.show');
+    Route::post('/admin/special-refunds/{refundRequest}/complete', [\App\Http\Controllers\SpecialRefundController::class, 'complete'])->name('special-refunds.complete');
+    Route::post('/admin/special-refunds/{refundRequest}/processing', [\App\Http\Controllers\SpecialRefundController::class, 'processing'])->name('special-refunds.processing');
+});
+Route::post('/refund-requests/{refundRequest}/recipient', [\App\Http\Controllers\RefundPayoutController::class,'recipient'])->middleware(['auth','active','role:CUSTOMER'])->name('refund-recipient.update');

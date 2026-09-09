@@ -22,6 +22,7 @@
         rel="stylesheet"
     >
 
+@include('partials.brand-theme')
 </head>
 
 <body>

@@ -20,6 +20,7 @@ class NotificationController extends Controller
             auth()->id()
         )
             ->latest()
+            ->orderByDesc('id')
             ->paginate(15);
 
         return view(

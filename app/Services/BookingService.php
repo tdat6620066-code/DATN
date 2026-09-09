@@ -39,9 +39,9 @@ class BookingService
      * Create booking with transaction and locking
      * UC18, UC19, UC20
      */
-    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [])
+    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [], ?float $allocatedDiscount = null)
     {
-        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata) {
+        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata, $allocatedDiscount) {
             // Validate and lock all booking details
             $maxDays = in_array($metadata['booking_type'] ?? 'daily', ['weekly', 'monthly'], true)
                 ? config('booking.max_recurring_days', 365)
@@ -56,7 +56,10 @@ class BookingService
             $subtotal = $this->calculateSubtotal($validatedDetails['details']);
 
             // Apply voucher if provided
-            $discount = 0;
+            $discount = $allocatedDiscount ?? 0;
+            if ($discount < 0 || $discount > $subtotal || ($allocatedDiscount !== null && $voucherCode)) {
+                throw new \DomainException('Số tiền giảm giá không hợp lệ.');
+            }
             $voucherId = null;
             if ($voucherCode) {
                 $voucherResult = $this->voucherService->validateAndApply($voucherCode, $subtotal);
@@ -100,9 +103,13 @@ class BookingService
             }
 
             // Create payment record
-            $this->paymentService->createPayment($booking, $totalAmount);
+            if (empty($metadata['fixed_booking_id'])) {
+                $this->paymentService->createPayment($booking, $totalAmount);
+            }
 
-            $this->notifications->bookingCreated($booking);
+            if (empty($metadata['fixed_booking_id'])) {
+                $this->notifications->bookingCreated($booking);
+            }
 
             return $booking;
         }, 3); // 3 retry attempts
@@ -221,6 +228,16 @@ class BookingService
             ];
         }
 
+        foreach (collect($validatedDetails)->groupBy(fn ($detail) => $detail['court_id'].'-'.$detail['booking_date']->toDateString()) as $group) {
+            if (! TimeSlot::areConsecutive(TimeSlot::whereIn('id', $group->pluck('time_slot_id'))->get())) {
+                $errors[] = [
+                    'booking_date' => $group->first()['booking_date']->toDateString(),
+                    'time_slot_id' => $group->first()['time_slot_id'],
+                    'message' => 'Chỉ được chọn các khung giờ liền nhau, không cách quãng hoặc chồng lấn.',
+                ];
+            }
+        }
+
         return [
             'errors' => $errors,
             'details' => $validatedDetails,
@@ -257,7 +274,7 @@ class BookingService
     /**
      * Get current price for court and time slot on booking date
      */
-    private function getCurrentPrice($courtId, $timeSlotId, Carbon $date)
+    public function getCurrentPrice($courtId, $timeSlotId, Carbon $date)
     {
         // Some existing databases predate advanced pricing and do not have a
         // holidays table yet. They should continue to use weekday/weekend
@@ -324,35 +341,6 @@ class BookingService
     }
 
     /**
-     * Create recurring booking (UC21)
-     */
-    public function createRecurringBooking($userId, $recurringData, $voucherCode = null)
-    {
-        $bookingDetails = $this->generateRecurringBookingDetails($recurringData);
-
-        if (empty($bookingDetails)) {
-            throw new \Exception('Không thể tạo lịch đặt định kỳ');
-        }
-
-        // Validate before creating
-        $validationResult = $this->validateAndLockBookingDetails(
-            $bookingDetails,
-            config('booking.max_recurring_days', 365)
-        );
-
-        if (! empty($validationResult['errors'])) {
-            throw new \Exception(json_encode($validationResult['errors']));
-        }
-
-        // Create single booking with multiple details
-        return $this->createBooking($userId, $bookingDetails, $voucherCode, [
-            'booking_type' => $recurringData['booking_type'] ?? 'weekly',
-            'start_date' => $recurringData['start_date'],
-            'end_date' => $recurringData['end_date'],
-        ]);
-    }
-
-    /**
      * Build a recurring schedule and report every unavailable occurrence.
      * This method is deliberately read-only: it never creates a booking or
      * reserves a slot until the customer explicitly confirms the preview.
@@ -389,6 +377,13 @@ class BookingService
             }
 
             $item = [
+                'key' => $detail['booking_date'].'-'.$detail['time_slot_id'],
+                'court_id' => (int) $detail['court_id'],
+                'court_name' => $court?->name ?? '—',
+                'time_slot_id' => (int) $detail['time_slot_id'],
+                'booking_date' => $detail['booking_date'],
+                'start_time' => $timeSlot?->start_time,
+                'end_time' => $timeSlot?->end_time,
                 'date' => $date,
                 'time_slot' => $timeSlot?->name ?? '—',
                 'price' => $price,
@@ -447,8 +442,17 @@ class BookingService
      */
     public function cancelBooking(Booking $booking)
     {
+        if ($booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') {
+            throw new \DomainException('Lịch cố định thanh toán một lần. Vui lòng đặt lại lịch nếu cần thay đổi danh sách buổi.');
+        }
         return DB::transaction(function () use ($booking) {
-            if (! in_array($booking->status, ['PENDING_PAYMENT', 'CONFIRMED'], true)) {
+            $booking->loadMissing('payment');
+
+            if (in_array($booking->payment_status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], true) || in_array($booking->payment?->status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], true)) {
+                throw new \DomainException('Đơn đã thanh toán không thể hủy.');
+            }
+
+            if ($booking->status !== 'PENDING_PAYMENT') {
                 throw new \Exception('Không thể hủy booking ở trạng thái '.$booking->status);
             }
 
@@ -460,11 +464,6 @@ class BookingService
             // Update booking details
             foreach ($booking->bookingDetails as $detail) {
                 $detail->update(['status' => 'CANCELLED']);
-            }
-
-            // Refund payment if paid
-            if ($booking->payment && $booking->payment->status === 'PAID') {
-                $this->paymentService->refund($booking->payment);
             }
 
             return $booking;
@@ -494,7 +493,7 @@ class BookingService
                 'checked_out_by' => $employeeId,
             ]);
 
-            $lockedBooking->bookingDetails()->update(['status' => 'COMPLETED']);
+            $lockedBooking->bookingDetails()->where('status', '!=', 'CANCELLED')->update(['status' => 'COMPLETED']);
 
             $courtIds = $lockedBooking->bookingDetails->pluck('court_id')->unique();
             Court::query()

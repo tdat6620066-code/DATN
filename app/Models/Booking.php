@@ -6,10 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class Booking extends Model
 {
+    protected static function booted(): void
+    {
+        static::updated(function (Booking $booking) {
+            if ($booking->wasChanged('status') && $booking->fixed_booking_id && in_array($booking->status, ['COMPLETED', 'CANCELLED'])) {
+                FixedBooking::whereKey($booking->fixed_booking_id)->where('status', 'ACTIVE')
+                    ->whereDoesntHave('bookings', fn ($q) => $q->whereNotIn('status', ['COMPLETED', 'CANCELLED']))
+                    ->update(['status' => 'COMPLETED']);
+            }
+        });
+    }
+
     protected $fillable = [
         'booking_code', 'user_id', 'subtotal', 'discount', 'total_amount',
         'status', 'payment_status', 'booking_type', 'start_date', 'end_date', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
-        'checked_in_at', 'checked_out_at'
+        'checked_in_at', 'checked_out_at', 'fixed_booking_id', 'recurrence_key'
     ];
 
     protected $casts = [
@@ -30,6 +41,11 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function fixedBooking()
+    {
+        return $this->belongsTo(FixedBooking::class);
+    }
+
     public function bookingDetails()
     {
         return $this->hasMany(BookingDetail::class);
@@ -38,6 +54,16 @@ class Booking extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function getPaymentAttribute()
+    {
+        return $this->getRelationValue('payment') ?? $this->fixedBooking?->payment;
+    }
+
+    public function refunds()
+    {
+        return $this->hasManyThrough(Refund::class, RefundRequest::class);
     }
 
     public function reviews()
@@ -49,6 +75,8 @@ class Booking extends Model
     {
         return $this->hasMany(RefundRequest::class);
     }
+
+    public function incidentResolutions() { return $this->hasMany(IncidentResolution::class); }
 
     public function auditLogs()
     {

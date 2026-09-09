@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Refund extends Model
 {
-    protected $fillable = ['refund_request_id', 'payment_id', 'refund_code', 'amount', 'status', 'processed_at'];
+    protected $fillable = ['refund_request_id', 'payment_id', 'refund_code', 'amount', 'status', 'processed_at', 'refund_method', 'processing_note', 'processed_by', 'receipt_path'];
 
     protected $casts = ['amount' => 'decimal:2', 'processed_at' => 'datetime'];
 

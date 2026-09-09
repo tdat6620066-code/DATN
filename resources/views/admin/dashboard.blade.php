@@ -1,14 +1,54 @@
 @extends('layouts.admin')
-@section('title','Dashboard quản trị - SmashZone')
-@section('page_heading','Dashboard quản trị')
-@push('styles')
-<style>
-.dashboard-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:22px}.date-filter{display:flex;align-items:end;gap:9px;padding:10px;border:1px solid #dfe8e4;border-radius:13px;background:#fff}.date-filter label{display:block;margin:0 0 4px;color:#75878e;font-size:9px;font-weight:900;text-transform:uppercase}.date-filter input{height:35px;border:1px solid #dce5e1;border-radius:8px;padding:0 9px;font-size:11px}.date-filter button{height:35px;border:0;border-radius:8px;background:#092f40;color:#fff;padding:0 13px;font-size:11px;font-weight:800}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px}.kpi{position:relative;overflow:hidden;padding:19px;border:1px solid #dfe8e4;border-radius:15px;background:#fff;box-shadow:0 7px 24px rgba(22,57,51,.04)}.kpi-top{display:flex;justify-content:space-between}.kpi-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:#e4f8ee;color:#04a65f;font-size:18px}.kpi-label{color:#788a91;font-size:11px;font-weight:800}.kpi strong{display:block;margin-top:12px;font-size:27px;line-height:1;font-weight:800}.kpi small{display:block;margin-top:7px;color:#94a0a5;font-size:10px}.kpi.revenue{grid-column:span 2;background:linear-gradient(135deg,#092d3f,#075d50);color:#fff}.kpi.revenue .kpi-label,.kpi.revenue small{color:#b8d0d2}.kpi.revenue .kpi-icon{background:rgba(50,234,145,.15);color:#51ef9f}.kpi.occupancy .kpi-icon{background:#fff0da;color:#cd7500}.dashboard-charts{display:grid;grid-template-columns:1.55fr 1fr;gap:20px}.admin-card{border:1px solid #dfe8e4;border-radius:16px;background:#fff;box-shadow:0 8px 25px rgba(22,57,51,.04)}.admin-card-head{display:flex;justify-content:space-between;padding:19px 21px;border-bottom:1px solid #edf2ef}.admin-card-head h2{margin:0;font-size:15px;font-weight:800}.admin-card-head span{color:#829198;font-size:10px}.chart-wrap{height:310px;padding:18px}.popular-item{display:grid;grid-template-columns:31px 1fr auto;gap:11px;align-items:center;padding:14px 20px;border-bottom:1px solid #edf2ef}.popular-item:last-child{border:0}.popular-rank{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;background:#e7f8ef;color:#049d5b;font-size:11px;font-weight:900}.popular-item strong,.popular-item small{display:block}.popular-item strong{font-size:12px}.popular-item small{margin-top:3px;color:#87969b;font-size:10px}.popular-count{color:#0a9d5e;font-size:17px;font-weight:900}.popular-count small{color:#8a999e;text-align:right;font-size:9px;font-weight:700}@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.dashboard-charts{grid-template-columns:1fr}}@media(max-width:650px){.dashboard-head{align-items:stretch;flex-direction:column}.date-filter{display:grid;grid-template-columns:1fr 1fr}.date-filter button{grid-column:span 2}.kpi-grid{grid-template-columns:1fr}.kpi.revenue{grid-column:auto}}
-</style>
-@endpush
+@section('page_heading', 'Tổng quan kinh doanh')
 @section('content')
-<div class="dashboard-head"><div class="admin-page-title"><h1>Tổng quan kinh doanh</h1><p>Dữ liệu thực tế từ {{ $from->format('d/m/Y') }} đến {{ $to->format('d/m/Y') }}</p></div><form class="date-filter" method="GET"><div><label>Từ ngày</label><input name="from" type="date" value="{{ $from->toDateString() }}"></div><div><label>Đến ngày</label><input name="to" type="date" value="{{ $to->toDateString() }}"></div><button><i class="bi bi-funnel me-1"></i>Áp dụng</button></form></div>
-<section class="kpi-grid"><article class="kpi"><div class="kpi-top"><span class="kpi-label">TỔNG SÂN</span><i class="kpi-icon bi bi-grid-3x3-gap"></i></div><strong>{{ number_format($kpis['courts']) }}</strong><small>Toàn hệ thống</small></article><article class="kpi"><div class="kpi-top"><span class="kpi-label">KHÁCH HÀNG</span><i class="kpi-icon bi bi-people"></i></div><strong>{{ number_format($kpis['customers']) }}</strong><small>Tài khoản khách hàng</small></article><article class="kpi"><div class="kpi-top"><span class="kpi-label">BOOKING</span><i class="kpi-icon bi bi-calendar2-check"></i></div><strong>{{ number_format($kpis['bookings']) }}</strong><small>Trong kỳ thống kê</small></article><article class="kpi occupancy"><div class="kpi-top"><span class="kpi-label">TỶ LỆ LẤP ĐẦY</span><i class="kpi-icon bi bi-pie-chart"></i></div><strong>{{ $kpis['occupancy_rate'] }}%</strong><small>Trên tổng công suất</small></article><article class="kpi revenue"><div class="kpi-top"><span class="kpi-label">DOANH THU</span><i class="kpi-icon bi bi-cash-stack"></i></div><strong>{{ number_format($kpis['revenue']) }}đ</strong><small>Thanh toán thành công trong kỳ</small></article><article class="kpi"><div class="kpi-top"><span class="kpi-label">BOOKING CHỜ</span><i class="kpi-icon bi bi-hourglass-split"></i></div><strong>{{ number_format($kpis['pending']) }}</strong><small>Chờ thanh toán</small></article><article class="kpi"><div class="kpi-top"><span class="kpi-label">HOÀN THÀNH</span><i class="kpi-icon bi bi-check2-circle"></i></div><strong>{{ number_format($kpis['completed']) }}</strong><small>Đã hoàn thành</small></article></section>
-<div class="dashboard-charts"><section class="admin-card"><header class="admin-card-head"><h2>Booking & doanh thu theo ngày</h2><span>{{ $from->format('d/m') }} – {{ $to->format('d/m/Y') }}</span></header><div class="chart-wrap"><canvas id="performanceChart"></canvas></div></section><section class="admin-card"><header class="admin-card-head"><h2>Sân được đặt nhiều</h2><span>TOP 5</span></header>@foreach($popularCourts as $court)<div class="popular-item"><span class="popular-rank">{{ $loop->iteration }}</span><div><strong>{{ $court->name }}</strong><small>{{ $court->courtType->name }} · {{ $court->code }}</small></div><div class="popular-count">{{ $court->booking_count }}<small>lượt đặt</small></div></div>@endforeach</section></div>
+@include('partials.ticket-stats')
+<a class="btn btn-outline-success mb-3" href="{{ route('admin.reports.index', ['from'=>$from->toDateString(), 'to'=>$to->toDateString()]) }}">Báo cáo theo ngày sử dụng sân & hoàn tiền</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+<div><h1 class="h3">Tổng quan kinh doanh</h1><p class="text-muted mb-0">{{ $from->format('d/m/Y') }} – {{ $to->format('d/m/Y') }}</p></div>
+<form class="d-flex gap-2 align-items-end" method="GET">
+<div><label for="from">Từ ngày</label><input id="from" class="form-control" name="from" type="date" value="{{ $from->toDateString() }}"></div>
+<div><label for="to">Đến ngày</label><input id="to" class="form-control" name="to" type="date" value="{{ $to->toDateString() }}"></div>
+<button class="btn btn-dark">Áp dụng</button></form></div>
+<div class="row g-3 mb-4">
+@foreach([
+['Tổng tiền thanh toán', number_format($kpis['gross_revenue']).'đ', 'Theo ngày thanh toán thành công'],
+['Tổng tiền hoàn', number_format($kpis['refund_amount']).'đ', 'Chỉ khoản đã hoàn thành công trong kỳ'],
+['Doanh thu thực nhận', number_format($kpis['net_revenue']).'đ', 'Tổng thanh toán − tổng tiền hoàn'],
+['Booking hoàn thành', number_format($kpis['completed']), 'Theo ngày hoàn thành lượt chơi'],
+] as [$label, $value, $note])
+<div class="col-12 col-md-6 col-xl-3"><article class="card h-100 border-0 shadow-sm p-4 {{ $loop->iteration === 3 ? 'bg-success text-white' : '' }}"><span>{{ $label }}</span><strong class="fs-3 my-2">{{ $value }}</strong><small>{{ $note }}</small></article></div>
+@endforeach
+</div>
+<p class="text-muted small">Tiền thu tính theo ngày thanh toán; tiền hoàn tính theo ngày hoàn thành. Khoản hoàn cho giao dịch kỳ trước vẫn trừ trong kỳ hoàn tiền, nên thực nhận có thể âm. Yêu cầu chờ duyệt và hoàn tiền đang xử lý chưa được trừ.</p>
+<div class="row g-3 mb-4">
+@foreach(['courts' => 'Tổng sân', 'customers' => 'Khách hàng', 'bookings' => 'Booking tạo trong kỳ', 'pending' => 'Booking chờ thanh toán'] as $key => $label)
+<div class="col-6 col-xl-3"><div class="card border-0 shadow-sm p-3"><span>{{ $label }}</span><strong class="fs-4">{{ number_format($kpis[$key]) }}</strong></div></div>
+@endforeach
+</div>
+<div class="row g-3">
+<div class="col-lg-8"><section class="card border-0 shadow-sm p-3"><h2 class="h5">Booking & dòng tiền theo ngày</h2><div style="height:340px"><canvas id="performanceChart"></canvas></div></section></div>
+<div class="col-lg-4"><section class="card border-0 shadow-sm p-3"><h2 class="h5">Sân được đặt nhiều</h2><p>Tỷ lệ lấp đầy: <strong>{{ $kpis['occupancy_rate'] }}%</strong></p>
+@forelse($popularCourts as $court)<div class="d-flex justify-content-between border-top py-3"><div><strong>{{ $court->name }}</strong><br><small>{{ $court->courtType?->name }} · {{ $court->code }}</small></div><span>{{ $court->booking_count }} lượt</span></div>@empty<p>Chưa có dữ liệu.</p>@endforelse
+</section></div></div>
+<section class="report-summary"><div><strong>Booking theo ngày sử dụng</strong><p>Tổng {{ $bookingReport['total'] }} · Có lượt hoàn thành {{ $bookingReport['completed'] }} · Có lượt hủy {{ $bookingReport['cancelled'] }} · Sự cố {{ $bookingReport['incident'] }}</p></div><div><strong>Hoàn tiền trong kỳ</strong><p>{{ number_format($refundReport['amount']) }}đ · Hoàn toàn bộ {{ $refundReport['full'] }} payment · Hoàn một phần {{ $refundReport['partial'] }} payment</p></div></section>
 @endsection
-@push('scripts')<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script>const chartData=@json($chart);new Chart(document.getElementById('performanceChart'),{type:'bar',data:{labels:chartData.labels,datasets:[{label:'Booking',data:chartData.bookings,backgroundColor:'#25d984',borderRadius:5,yAxisID:'y'},{label:'Doanh thu',data:chartData.revenue,type:'line',borderColor:'#0a5266',backgroundColor:'rgba(10,82,102,.1)',tension:.35,pointRadius:2,yAxisID:'revenue'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:12}},y:{beginAtZero:true,ticks:{precision:0,font:{size:9}}},revenue:{position:'right',beginAtZero:true,grid:{display:false},ticks:{font:{size:9},callback:v=>new Intl.NumberFormat('vi-VN',{notation:'compact'}).format(v)+'đ'}}}}});</script>@endpush
+@push('styles')<style>.report-summary{display:flex;flex-wrap:wrap;gap:24px;margin:24px 0;padding:20px;background:#fff;border-radius:12px}</style>@endpush
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const chartData = @json($chart);
+new Chart(document.getElementById('performanceChart'), {
+type: 'bar',
+data: {labels: chartData.labels, datasets: [
+{label: 'Booking', data: chartData.bookings, backgroundColor: '#a8dbc4', yAxisID: 'y'},
+{label: 'Tổng thanh toán', data: chartData.gross_revenue, type: 'line', borderColor: '#23875f', pointRadius: 2, yAxisID: 'revenue'},
+{label: 'Đã hoàn tiền', data: chartData.refund_amount, type: 'line', borderColor: '#d07936', pointRadius: 2, yAxisID: 'revenue'},
+{label: 'Thực nhận', data: chartData.revenue, type: 'line', borderColor: '#0a5266', pointRadius: 2, yAxisID: 'revenue'}
+]},
+options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'bottom'}}, scales: {
+x: {grid: {display: false}}, y: {beginAtZero: true, ticks: {precision: 0}},
+revenue: {position: 'right', beginAtZero: true, grid: {display: false}, ticks: {callback: v => new Intl.NumberFormat('vi-VN', {notation: 'compact'}).format(v) + 'đ'}}
+}}
+});
+</script>
+@endpush

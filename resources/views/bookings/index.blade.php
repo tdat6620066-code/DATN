@@ -73,7 +73,7 @@
                     @endphp
                     @if($allBookings->count() > 0)
                         @foreach($allBookings as $booking)
-                            @include('bookings.card', ['booking' => $booking])
+                            @include($booking->fixedBooking ? 'bookings.fixed-card' : 'bookings.card', ['booking' => $booking])
                         @endforeach
                     @else
                         <div class="alert alert-info" role="alert">
@@ -85,11 +85,11 @@
                 <!-- Pending Payments -->
                 <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
                     @php
-                        $pendingBookings = $bookings->filter(fn($b) => $b->status === 'PENDING_PAYMENT');
+                        $pendingBookings = $bookings->filter(fn($b) => $b->fixedBooking ? $b->fixedBooking->bookings->contains('status', 'PENDING_PAYMENT') : $b->status === 'PENDING_PAYMENT');
                     @endphp
                     @if($pendingBookings->count() > 0)
                         @foreach($pendingBookings as $booking)
-                            @include('bookings.card', ['booking' => $booking])
+                            @include($booking->fixedBooking ? 'bookings.fixed-card' : 'bookings.card', ['booking' => $booking])
                         @endforeach
                     @else
                         <div class="alert alert-info" role="alert">
@@ -101,11 +101,11 @@
                 <!-- Confirmed -->
                 <div class="tab-pane fade" id="confirmed" role="tabpanel" aria-labelledby="confirmed-tab">
                     @php
-                        $confirmedBookings = $bookings->filter(fn($b) => $b->status === 'CONFIRMED');
+                        $confirmedBookings = $bookings->filter(fn($b) => $b->fixedBooking ? $b->fixedBooking->bookings->contains('status', 'CONFIRMED') : $b->status === 'CONFIRMED');
                     @endphp
                     @if($confirmedBookings->count() > 0)
                         @foreach($confirmedBookings as $booking)
-                            @include('bookings.card', ['booking' => $booking])
+                            @include($booking->fixedBooking ? 'bookings.fixed-card' : 'bookings.card', ['booking' => $booking])
                         @endforeach
                     @else
                         <div class="alert alert-info" role="alert">
@@ -117,11 +117,11 @@
                 <!-- Completed -->
                 <div class="tab-pane fade" id="completed" role="tabpanel" aria-labelledby="completed-tab">
                     @php
-                        $completedBookings = $bookings->filter(fn($b) => $b->status === 'COMPLETED');
+                        $completedBookings = $bookings->filter(fn($b) => $b->fixedBooking ? $b->fixedBooking->bookings->contains('status', 'COMPLETED') : $b->status === 'COMPLETED');
                     @endphp
                     @if($completedBookings->count() > 0)
                         @foreach($completedBookings as $booking)
-                            @include('bookings.card', ['booking' => $booking])
+                            @include($booking->fixedBooking ? 'bookings.fixed-card' : 'bookings.card', ['booking' => $booking])
                         @endforeach
                     @else
                         <div class="alert alert-info" role="alert">
@@ -133,11 +133,11 @@
                 <!-- Cancelled -->
                 <div class="tab-pane fade" id="cancelled" role="tabpanel" aria-labelledby="cancelled-tab">
                     @php
-                        $cancelledBookings = $bookings->filter(fn($b) => in_array($b->status, ['CANCELLED', 'EXPIRED']));
+                        $cancelledBookings = $bookings->filter(fn($b) => $b->fixedBooking ? $b->fixedBooking->bookings->contains(fn($child) => in_array($child->status, ['CANCELLED', 'EXPIRED'])) : in_array($b->status, ['CANCELLED', 'EXPIRED']));
                     @endphp
                     @if($cancelledBookings->count() > 0)
                         @foreach($cancelledBookings as $booking)
-                            @include('bookings.card', ['booking' => $booking])
+                            @include($booking->fixedBooking ? 'bookings.fixed-card' : 'bookings.card', ['booking' => $booking])
                         @endforeach
                     @else
                         <div class="alert alert-info" role="alert">

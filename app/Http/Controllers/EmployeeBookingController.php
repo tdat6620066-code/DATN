@@ -41,11 +41,11 @@ class EmployeeBookingController extends Controller
                 $locked = Booking::lockForUpdate()->with(['payment', 'bookingDetails.timeSlot'])->findOrFail($booking->id);
                 if ($locked->status === 'CHECKED_IN') throw new \DomainException('Đơn đã được check-in.');
                 if ($locked->status !== 'CONFIRMED') throw new \DomainException('Chỉ đơn đã xác nhận mới được check-in.');
-                if ($locked->payment_status !== 'PAID' && $locked->payment?->status !== 'PAID') throw new \DomainException('Khách hàng chưa hoàn tất thanh toán.');
+                if (!in_array($locked->payment_status, ['PAID', 'PARTIALLY_REFUNDED'], true) && !in_array($locked->payment?->status, ['PAID', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Khách hàng chưa hoàn tất thanh toán.');
                 if (! $locked->bookingDetails->contains(fn ($d) => $d->booking_date->isToday())) throw new \DomainException('Đơn không có lịch chơi hôm nay.');
                 $old = $locked->status;
                 $locked->update(['status' => 'CHECKED_IN', 'checked_in_at' => now(), 'checked_in_by' => $request->user()->id]);
-                $locked->bookingDetails()->whereDate('booking_date', today())->update(['status' => 'CHECKED_IN']);
+                $locked->bookingDetails()->where('status', '!=', 'CANCELLED')->whereDate('booking_date', today())->update(['status' => 'CHECKED_IN']);
                 $this->notifications->statusChanged($locked, 'CHECKED_IN');
                 $this->audit($locked, $request, 'CHECKED_IN', $old, 'CHECKED_IN');
             });
@@ -60,9 +60,9 @@ class EmployeeBookingController extends Controller
             DB::transaction(function () use ($booking, $request) {
                 $locked = Booking::lockForUpdate()->with('payment')->findOrFail($booking->id);
                 if ($locked->status !== 'CHECKED_IN') throw new \DomainException('Khách chưa check-in hoặc đơn đã hoàn thành.');
-                if ($locked->payment_status !== 'PAID' || $locked->payment?->status !== 'PAID') throw new \DomainException('Đơn còn khoản thanh toán chưa xử lý.');
+                if (!in_array($locked->payment_status, ['PAID', 'PARTIALLY_REFUNDED'], true) || !in_array($locked->payment?->status, ['PAID', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Đơn còn khoản thanh toán chưa xử lý.');
                 $locked->update(['status' => 'COMPLETED', 'checked_out_at' => now(), 'checked_out_by' => $request->user()->id]);
-                $locked->bookingDetails()->update(['status' => 'COMPLETED']);
+                $locked->bookingDetails()->where('status', '!=', 'CANCELLED')->update(['status' => 'COMPLETED']);
                 $locked->bookingDetails()->with('court')->get()->each(fn ($d) => $d->court->update(['availability_status' => 'AVAILABLE']));
                 $this->notifications->statusChanged($locked, 'COMPLETED');
                 $this->audit($locked, $request, 'COMPLETED', 'CHECKED_IN', 'COMPLETED');
@@ -78,8 +78,10 @@ class EmployeeBookingController extends Controller
         try {
             DB::transaction(function () use ($booking, $request, $data) {
                 $locked = Booking::lockForUpdate()->with('payment')->findOrFail($booking->id);
+                if ($locked->fixedBooking && $locked->fixedBooking->status !== 'LEGACY') throw new \DomainException('Lịch cố định phải thanh toán toàn bộ tại trang lịch cố định.');
                 if (! $locked->payment || $locked->payment->status === 'PAID') throw new \DomainException('Đơn không còn khoản phải thu.');
                 if (round((float) $data['amount'], 2) !== round((float) $locked->total_amount, 2)) throw new \DomainException('Số tiền thanh toán phải bằng tổng tiền của đơn.');
+                if (in_array($locked->status, ['CANCELLED', 'EXPIRED', 'COMPLETED'], true) || in_array($locked->payment->status, ['REFUNDED', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Không thể thu tiền cho đơn đã kết thúc hoặc hoàn tiền.');
                 $transactionId = $data['transaction_id'] ?: 'POS-'.now()->format('YmdHis').'-'.$locked->id;
                 $locked->payment->update(['amount' => $data['amount'], 'payment_method' => $data['payment_method'], 'transaction_id' => $transactionId, 'status' => 'PAID', 'paid_at' => now()]);
                 $locked->update(['payment_status' => 'PAID', 'status' => $locked->status === 'PENDING_PAYMENT' ? 'CONFIRMED' : $locked->status, 'confirmed_at' => $locked->confirmed_at ?? now()]);
@@ -98,6 +100,7 @@ class EmployeeBookingController extends Controller
             DB::transaction(function () use ($booking, $request, $data) {
                 $locked = Booking::lockForUpdate()->findOrFail($booking->id);
                 if ($locked->status !== 'CHECKED_IN') throw new \DomainException('Chỉ thêm dịch vụ khi khách đang sử dụng sân.');
+                if ($locked->fixedBooking && $locked->fixedBooking->status !== 'LEGACY') throw new \DomainException('Không thể cộng dịch vụ vào giao dịch lịch cố định đã chốt.');
                 $item = ServiceItem::lockForUpdate()->where('is_active', true)->findOrFail($data['service_item_id']);
                 if ($item->stock !== null && $item->stock < $data['quantity']) throw new \DomainException('Dịch vụ hiện không đủ số lượng.');
                 $subtotal = (float) $item->price * $data['quantity'];
@@ -116,6 +119,7 @@ class EmployeeBookingController extends Controller
     {
         abort_unless($request->user()->hasPermission('services.manage'), 403);
         abort_unless($service->booking_id === $booking->id, 404);
+        if ($booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') return back()->with('error', 'Không thể sửa giao dịch lịch cố định đã chốt.');
         DB::transaction(function () use ($booking, $service, $request) {
             $locked = Booking::lockForUpdate()->findOrFail($booking->id);
             if ($locked->status !== 'CHECKED_IN') throw new \DomainException('Không thể sửa dịch vụ của đơn đã hoàn tất.');

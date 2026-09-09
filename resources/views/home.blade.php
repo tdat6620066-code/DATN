@@ -329,6 +329,7 @@
             .footer-grid { grid-template-columns: 1fr 1fr; gap: 26px; }
         }
     </style>
+@include('partials.brand-theme')
 </head>
 <body>
 

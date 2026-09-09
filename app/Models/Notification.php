@@ -9,6 +9,11 @@ class Notification extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::addGlobalScope('ungrouped', fn ($query) => $query->whereNull('user_notifications.grouped_into_id'));
+    }
+
     protected $table = 'user_notifications';
 
     protected $fillable = [

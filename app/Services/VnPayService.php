@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\FixedBooking;
 use Illuminate\Support\Facades\Log;
 
 class VnPayService
@@ -15,20 +16,27 @@ class VnPayService
      * - Nối chuỗi bằng urlencode() (RFC1738, dấu cách -> '+')
      * - Băm HMAC-SHA512 (không in hoa)
      */
-    public function createPaymentUrl(Booking $booking, string $returnUrl): string
+    public function createPaymentUrl(Booking|FixedBooking $booking, string $returnUrl): string
     {
+        $tmnCode = trim((string) config('vnpay.tmn_code'));
+        $hashSecret = trim((string) config('vnpay.hash_secret'));
+
+        if (! preg_match('/^[A-Za-z0-9]{8}$/', $tmnCode) || $hashSecret === '') {
+            throw new \RuntimeException('Cấu hình VNPay chưa hợp lệ. Vui lòng kiểm tra TmnCode và Hash Secret.');
+        }
+
         $inputData = [
             'vnp_Version' => config('vnpay.version', '2.1.0'),
-            'vnp_TmnCode' => config('vnpay.tmn_code'),
-            'vnp_Amount' => $this->formatAmount($booking->total_amount),
+            'vnp_TmnCode' => $tmnCode,
+            'vnp_Amount' => $this->formatAmount($booking instanceof FixedBooking ? $booking->total_price : $booking->total_amount),
             'vnp_Command' => 'pay',
             'vnp_CreateDate' => now()->format('YmdHis'),
-            'vnp_ExpireDate' => now()->addMinutes(15)->format('YmdHis'),
+            'vnp_ExpireDate' => ($booking instanceof FixedBooking ? $booking->expires_at : now()->addMinutes(15))->format('YmdHis'),
             'vnp_CurrCode' => config('vnpay.currency', 'VND'),
             'vnp_IpAddr' => request()->ip(),
             'vnp_Locale' => config('vnpay.locale', 'vn'),
             'vnp_OrderInfo' => $this->buildOrderInfo($booking),
-            'vnp_OrderType' => 'billpayment',
+            'vnp_OrderType' => 'other',
             'vnp_ReturnUrl' => $returnUrl,
             'vnp_TxnRef' => $this->buildTxnRef($booking),
         ];
@@ -37,15 +45,14 @@ class VnPayService
 
         [$query, $hashdata] = $this->buildQueryAndHashData($inputData);
 
-        $secureHash = $this->hashData($hashdata);
+        $secureHash = hash_hmac('sha512', $hashdata, $hashSecret);
 
-        $url = config('vnpay.url') . '?' . $query . 'vnp_SecureHash=' . $secureHash;
+        $url = config('vnpay.url').'?'.$query.'vnp_SecureHash='.$secureHash;
 
         Log::info('VNPay payment URL created', [
             'booking_id' => $booking->id,
             'txn_ref' => $inputData['vnp_TxnRef'],
             'amount' => $inputData['vnp_Amount'],
-            'hash' => $secureHash,
         ]);
 
         return $url;
@@ -86,13 +93,13 @@ class VnPayService
             $encodedValue = urlencode((string) $value);
 
             if ($i === 1) {
-                $hashdata .= '&' . $encodedKey . '=' . $encodedValue;
+                $hashdata .= '&'.$encodedKey.'='.$encodedValue;
             } else {
-                $hashdata .= $encodedKey . '=' . $encodedValue;
+                $hashdata .= $encodedKey.'='.$encodedValue;
                 $i = 1;
             }
 
-            $query .= $encodedKey . '=' . $encodedValue . '&';
+            $query .= $encodedKey.'='.$encodedValue.'&';
         }
 
         return [$query, $hashdata];
@@ -120,13 +127,19 @@ class VnPayService
      * VNPay chỉ chấp nhận ký tự chữ và số cho vnp_TxnRef, nên không dùng
      * dấu gạch dưới hoặc các ký tự phân cách khác.
      */
-    private function buildTxnRef(Booking $booking): string
+    private function buildTxnRef(Booking|FixedBooking $booking): string
     {
-        return $booking->booking_code . now()->format('YmdHis');
+        if ($booking instanceof FixedBooking) {
+            return 'FIX'.$booking->id;
+        }
+        return $booking->getKey().now()->format('YmdHis');
     }
 
-    private function buildOrderInfo(Booking $booking): string
+    private function buildOrderInfo(Booking|FixedBooking $booking): string
     {
-        return 'Thanh toan dat san ' . $booking->booking_code;
+        if ($booking instanceof FixedBooking) {
+            return 'Thanh toan lich co dinh '.$booking->code;
+        }
+        return 'Thanh toan dat san '.$booking->booking_code;
     }
 }

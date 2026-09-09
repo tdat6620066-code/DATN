@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\TimeSlot;
 
 class StoreRecurringBookingRequest extends FormRequest
 {
@@ -21,11 +22,11 @@ class StoreRecurringBookingRequest extends FormRequest
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date', "before_or_equal:{$lastRecurringDate}"],
             'booking_type' => 'nullable|in:weekly,monthly',
             'days_of_week' => 'required_if:booking_type,weekly|array|min:1',
-            'days_of_week.*' => 'integer|between:0,6',
+            'days_of_week.*' => 'integer|between:0,6|distinct',
             'days_of_month' => 'required_if:booking_type,monthly|array|min:1',
-            'days_of_month.*' => 'integer|between:1,31',
+            'days_of_month.*' => 'integer|between:1,31|distinct',
             'time_slot_ids' => 'required_without:time_slot_id|array|min:1',
-            'time_slot_ids.*' => 'exists:time_slots,id',
+            'time_slot_ids.*' => 'integer|exists:time_slots,id|distinct',
             'time_slot_id' => 'nullable|exists:time_slots,id',
             'voucher_code' => 'nullable|string|max:50',
         ];
@@ -34,6 +35,8 @@ class StoreRecurringBookingRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'time_slot_ids.required_without' => 'Vui lòng chọn ít nhất một khung giờ.',
+            'time_slot_ids.min' => 'Vui lòng chọn ít nhất một khung giờ.',
             'court_id.required' => 'Vui lòng chọn sân',
             'court_id.exists' => 'Sân không tồn tại',
             'start_date.required' => 'Vui lòng chọn ngày bắt đầu',
@@ -48,5 +51,24 @@ class StoreRecurringBookingRequest extends FormRequest
             'time_slot_id.required' => 'Vui lòng chọn khung giờ',
             'time_slot_id.exists' => 'Khung giờ không hợp lệ',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+            $ids = $this->input('time_slot_ids') ?: [$this->input('time_slot_id')];
+            $slots = TimeSlot::whereIn('id', $ids)->orderBy('start_time')->get();
+            $previous = null;
+            foreach ($slots as $slot) {
+                if ($slot->status !== 'ACTIVE' || ($previous && substr($previous->end_time, 0, 5) !== substr($slot->start_time, 0, 5))) {
+                    $validator->errors()->add('time_slot_ids', 'Vui lòng chọn các khung giờ đang hoạt động và liền nhau, không cách quãng hoặc chồng lấn.');
+                    return;
+                }
+                $previous = $slot;
+            }
+        });
     }
 }

@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\ChatbotFaq;
 use App\Models\ChatbotKnowledge;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class RuleBasedChatService
 {
@@ -37,7 +37,7 @@ class RuleBasedChatService
         return [
             'matched' => false,
             'intent' => null,
-            'answer' => 'Tôi chưa hiểu câu hỏi. Bạn có thể hỏi về đặt sân, giá sân, thanh toán, hủy lịch hoặc hoàn tiền.',
+            'answer' => 'Tôi chưa hiểu câu hỏi. Bạn có thể hỏi về đặt sân, giá sân hoặc thanh toán.',
             'score' => 0,
             'source' => 'fallback',
         ];
@@ -63,6 +63,7 @@ class RuleBasedChatService
     {
         $text = Str::lower(Str::ascii($text));
         $text = preg_replace('/[^a-z0-9\s]/', ' ', $text) ?? '';
+
         return trim(preg_replace('/\s+/', ' ', $text) ?? '');
     }
 }

@@ -208,6 +208,7 @@
         }
     </style>
     @stack('styles')
+@include('partials.brand-theme')
 </head>
 <body>
     @php($isBookingDetailPage = request()->routeIs('bookings.show'))

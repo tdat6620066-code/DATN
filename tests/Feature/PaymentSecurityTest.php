@@ -11,6 +11,16 @@ class PaymentSecurityTest extends TestCase
     public function test_customer_cannot_directly_confirm_a_payment(): void
     {
         $this->assertFalse(Route::has('bookings.confirm-payment'));
+        $this->assertTrue(Route::has('bookings.update-note'));
+    }
+
+    public function test_refund_routes_are_disabled(): void
+    {
+        $this->assertFalse(Route::has('refund-requests.store'));
+        $this->assertFalse(Route::has('employee.refund-requests.index'));
+        $this->assertFalse(Route::has('employee.refund-requests.review'));
+        $this->assertFalse(Route::has('admin.payments.refunds.approve'));
+        $this->assertFalse(Route::has('admin.payments.refunds.process'));
     }
 
     public function test_all_auth_route_actions_exist(): void

@@ -263,6 +263,15 @@
 @endpush
 
 @section('content')
+@if($booking->fixed_booking_id)<div class="container pt-3"><a class="btn btn-sm btn-outline-success" href="{{ route('bookings.fixed.show', $booking->fixed_booking_id) }}">← Xem các buổi trong lịch cố định</a></div>@endif
+@if($booking->payment?->status === 'PAID')
+@include('partials.incident-ui')
+<div class="container pt-3"><div class="sz-support-strip">
+<div class="sz-support-copy"><i class="bi bi-headset" aria-hidden="true"></i><div><strong>Cần hỗ trợ với lịch chơi?</strong><p>Gửi minh chứng và theo dõi tiến trình xử lý tại đây.</p></div></div>
+<a class="sz-action sz-action--report" href="{{ route('incident-tickets.create',$booking) }}"><i class="bi bi-flag" aria-hidden="true"></i>Báo cáo sự cố</a>
+</div></div>
+@endif
+@include('partials.incident-resolutions')
 @php
     $statusConfig = [
         'PENDING_PAYMENT' => ['label' => 'Chờ thanh toán', 'badge' => 'warning', 'hero' => 'pending', 'icon' => 'bi-hourglass-split'],
@@ -381,7 +390,7 @@
             <li>SmashZone đóng vai trò kết nối, hỗ trợ bạn tìm và đặt sân dễ dàng hơn.</li>
             <li>Mỗi sân có thể có quy định và chính sách riêng, hãy dành chút thời gian đọc kỹ để đảm bảo quyền lợi cho bạn nhé!</li>
         </ul>
-        Bằng việc bấm Xác nhận và Thanh toán, bạn xác nhận đã đọc và đồng ý với <a href="#">Điều khoản đặt sân</a> và <a href="#">Chính sách hoàn tiền và hủy lịch</a>.
+        Bằng việc bấm Xác nhận và Thanh toán, bạn xác nhận đã đọc và đồng ý với <a href="#">Điều khoản đặt sân</a>. Đơn đã thanh toán không thể hủy.
     </section>
 
     <div class="checkout-submit-wrap">
@@ -551,6 +560,7 @@
                                         'PAID' => ['success', 'Đã thanh toán'],
                                         'FAILED' => ['danger', 'Thất bại'],
                                         'REFUNDED' => ['secondary', 'Đã hoàn tiền'],
+                                        'PARTIALLY_REFUNDED' => ['info', 'Đã hoàn tiền một phần'],
                                     ];
                                     [$pBadge, $pText] = $paymentStatusMap[$booking->payment->status] ?? ['secondary', $booking->payment->status];
                                 @endphp
@@ -590,12 +600,14 @@
                         <a href="{{ route('bookings.vnpay', $booking) }}" class="btn btn-success action-btn">
                             <i class="bi bi-credit-card me-1"></i> Thanh toán ngay
                         </a>
+                        @if(!in_array($booking->payment_status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED']) && !in_array($booking->payment?->status, ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED']))
                         <form action="{{ route('bookings.cancel', $booking) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-outline-danger action-btn" onclick="return confirm('Bạn chắc chắn muốn hủy đặt sân này?')">
                                 <i class="bi bi-trash me-1"></i> Hủy đặt sân
                             </button>
                         </form>
+                        @endif
                     </div>
                 @elseif(in_array($booking->status, ['CONFIRMED', 'CHECKED_IN']))
                     <div class="alert alert-success d-flex align-items-center border-0 rounded-3" style="background: #e8f9f1;">
@@ -674,4 +686,7 @@
     </div>
 </div>
 @endif
+@foreach($booking->refundRequests()->with('refund')->get() as $refundRequest)
+@include('partials.refund-recipient', ['refundRequest' => $refundRequest])
+@endforeach
 @endsection

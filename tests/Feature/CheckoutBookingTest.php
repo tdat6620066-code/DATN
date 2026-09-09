@@ -61,7 +61,7 @@ class CheckoutBookingTest extends TestCase
 
     private function makeBooking(string $status): array
     {
-        $employee = User::factory()->create(['role' => 'EMPLOYEE']);
+        $employee = User::factory()->create(['role' => 'EMPLOYEE', 'permissions' => ['bookings.checkout']]);
         $customer = User::factory()->create();
         $courtType = CourtType::create([
             'name' => 'Sân tiêu chuẩn',
