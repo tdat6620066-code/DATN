@@ -279,6 +279,10 @@ class RecurringBookingTest extends TestCase
         parse_str(parse_url($url, PHP_URL_QUERY), $query);
         $this->assertSame('30000000', $query['vnp_Amount']);
         $this->assertSame($group->expires_at->format('YmdHis'), $query['vnp_ExpireDate']);
+        $this->assertMatchesRegularExpression('/^FIX'.$group->id.'X[0-9]{14}[A-Fa-f0-9]{6}$/', $query['vnp_TxnRef']);
+        $retryUrl = $this->post(route('bookings.fixed.pay', $group))->assertRedirect()->headers->get('Location');
+        parse_str(parse_url($retryUrl, PHP_URL_QUERY), $retryQuery);
+        $this->assertNotSame($query['vnp_TxnRef'], $retryQuery['vnp_TxnRef']);
         $this->get(route('bookings.vnpay.ipn', $data))->assertJson(['RspCode' => '00']);
         $this->get(route('bookings.vnpay.return', $data))->assertRedirect(route('bookings.fixed.show', $group));
         $this->assertSame('ACTIVE', $group->fresh()->status);

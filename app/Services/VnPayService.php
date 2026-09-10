@@ -130,7 +130,9 @@ class VnPayService
     private function buildTxnRef(Booking|FixedBooking $booking): string
     {
         if ($booking instanceof FixedBooking) {
-            return 'FIX'.$booking->id;
+            // Each retry must use a new VNPay reference. A static FIX{id} value
+            // makes VNPay treat a later attempt as the previous pending request.
+            return 'FIX'.$booking->id.'X'.now()->format('YmdHis').bin2hex(random_bytes(3));
         }
         return $booking->getKey().now()->format('YmdHis');
     }
