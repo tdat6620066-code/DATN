@@ -19,7 +19,7 @@ class QRCodeService
 
         // Generate QR code (SVG markup)
         return QrCode::size(300)
-            ->margin(1)
+            ->margin(4)
             ->format('svg')
             ->generate($qrData);
     }
@@ -40,7 +40,7 @@ class QRCodeService
         }
 
         QrCode::size(300)
-            ->margin(1)
+            ->margin(4)
             ->format('svg')
             ->generate($qrData, $path);
 
@@ -54,29 +54,14 @@ class QRCodeService
     /**
      * Build QR code data string
      */
-    private function buildQRData(Booking $booking)
+    public function buildQRData(Booking $booking): string
     {
-        $details = [];
-        
-        foreach ($booking->bookingDetails as $detail) {
-            $details[] = [
-                'court' => $detail->court->name,
-                'date' => $detail->booking_date->format('d/m/Y'),
-                'time' => $detail->timeSlot->name,
-            ];
+        $urls = clone app('url');
+        if ($baseUrl = config('qr.base_url')) {
+            $urls->forceRootUrl($baseUrl);
+            $urls->forceScheme(parse_url($baseUrl, PHP_URL_SCHEME));
         }
-
-        // Build JSON data
-        $data = [
-            'booking_code' => $booking->booking_code,
-            'customer' => $booking->user->name,
-            'customer_phone' => $booking->user->email,
-            'amount' => $booking->total_amount,
-            'details' => $details,
-            'status' => $booking->status,
-        ];
-
-        return json_encode($data);
+        return $urls->signedRoute('bookings.qr.scan', ['booking' => $booking->id]);
     }
 
     /**
@@ -85,6 +70,17 @@ class QRCodeService
     public function verifyQRCode($qrData)
     {
         try {
+            if (filter_var($qrData, FILTER_VALIDATE_URL)) {
+                $request = \Illuminate\Http\Request::create($qrData);
+                $route = app('router')->getRoutes()->match($request);
+                if ($route->getName() !== 'bookings.qr.scan' || ! \Illuminate\Support\Facades\URL::hasValidSignature($request)) {
+                    return ['valid' => false, 'message' => 'Mã QR không hợp lệ.'];
+                }
+                $booking = Booking::find($route->parameter('booking'));
+                return $booking
+                    ? ['valid' => true, 'booking' => $booking, 'data' => ['booking_code' => $booking->booking_code]]
+                    : ['valid' => false, 'message' => 'Không tìm thấy đơn đặt sân.'];
+            }
             $data = json_decode($qrData, true);
 
             if (!isset($data['booking_code'])) {

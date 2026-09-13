@@ -30,6 +30,18 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['auth', 'active', 'role:ADMIN,EMPLOYEE'])->prefix('operations')->name('operations.')->group(function () {
+    Route::post('/lookup', [\App\Http\Controllers\BookingOperationsController::class, 'lookup'])->name('lookup');
+    Route::post('/{booking}/check-in', [\App\Http\Controllers\BookingOperationsController::class, 'checkIn'])->name('check-in');
+    Route::post('/{booking}/no-show', [\App\Http\Controllers\BookingOperationsController::class, 'noShow'])->name('no-show');
+    Route::post('/{booking}/checkout', [\App\Http\Controllers\BookingOperationsController::class, 'checkout'])->name('checkout');
+    Route::post('/{booking}/rentals/{line}/return', [\App\Http\Controllers\BookingOperationsController::class, 'returnRental'])->name('return');
+    Route::post('/{booking}/extend', [\App\Http\Controllers\BookingOperationsController::class, 'extend'])->name('extend');
+});
+
+Route::get('/booking-qr/{booking}', [BookingController::class, 'scanQr'])
+    ->middleware('signed')->name('bookings.qr.scan');
+
 Route::middleware(['auth','active','role:CUSTOMER'])->group(function () {
     Route::get('/booking/{booking}/support', [\App\Http\Controllers\IncidentTicketController::class,'create'])->name('incident-tickets.create');
     Route::post('/booking/{booking}/support', [\App\Http\Controllers\IncidentTicketController::class,'store'])->middleware('throttle:10,60')->name('incident-tickets.store');
@@ -45,6 +57,14 @@ Route::middleware(['auth','active'])->group(function () {
 
 Route::post('/booking/resolutions/{resolution}', [\App\Http\Controllers\IncidentResolutionController::class, 'choose'])->middleware(['auth', 'active', 'role:CUSTOMER'])->name('incident-resolutions.choose');
 
+Route::middleware(['auth', 'active'])->group(function () {
+    Route::post('/booking/{booking}/service-orders', [\App\Http\Controllers\ServiceOrderController::class, 'store'])->name('service-orders.store');
+    Route::post('/service-orders/{serviceOrder}/pay', [\App\Http\Controllers\ServiceOrderController::class, 'pay'])->name('service-orders.pay');
+    Route::post('/service-orders/{serviceOrder}/cash', [\App\Http\Controllers\ServiceOrderController::class, 'cash'])->name('service-orders.cash');
+    Route::post('/service-orders/{serviceOrder}/deliver', [\App\Http\Controllers\ServiceOrderController::class, 'deliver'])->name('service-orders.deliver');
+    Route::post('/service-orders/{serviceOrder}/cancel', [\App\Http\Controllers\ServiceOrderController::class, 'cancel'])->name('service-orders.cancel');
+});
+
 Route::middleware(['auth', 'active', 'role:ADMIN,EMPLOYEE', 'permission:incidents.manage'])->group(function () {
     Route::get('/admin/incidents/bulk', [\App\Http\Controllers\BulkIncidentController::class, 'create'])->name('admin.incidents.bulk');
     Route::post('/admin/incidents/bulk', [\App\Http\Controllers\BulkIncidentController::class, 'store'])->name('admin.incidents.bulk.store');
@@ -52,6 +72,7 @@ Route::middleware(['auth', 'active', 'role:ADMIN,EMPLOYEE', 'permission:incident
 });
 Route::middleware(['auth', 'active', 'role:ADMIN'])->group(function () {
     Route::get('/admin/reports', [\App\Http\Controllers\AdminReportController::class, 'index'])->name('admin.reports.index');
+    Route::get('/admin/reports/cash-flow', [\App\Http\Controllers\AdminReportController::class, 'cashFlow'])->name('admin.reports.cash-flow');
     Route::get('/admin/special-refunds', [\App\Http\Controllers\SpecialRefundController::class, 'index'])->name('special-refunds.index');
 
 
@@ -946,3 +967,4 @@ Route::middleware(['auth','active','role:ADMIN,EMPLOYEE','permission:refunds.pro
     Route::post('/admin/special-refunds/{refundRequest}/processing', [\App\Http\Controllers\SpecialRefundController::class, 'processing'])->name('special-refunds.processing');
 });
 Route::post('/refund-requests/{refundRequest}/recipient', [\App\Http\Controllers\RefundPayoutController::class,'recipient'])->middleware(['auth','active','role:CUSTOMER'])->name('refund-recipient.update');
+Route::post('/refund-requests/{refundRequest}/recipient/confirm', [\App\Http\Controllers\RefundPayoutController::class,'confirmRecipient'])->middleware(['auth','active','role:CUSTOMER'])->name('refund-recipient.confirm');

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\FixedBooking;
+use App\Models\ServiceOrder;
 use Illuminate\Support\Facades\Log;
 
 class VnPayService
@@ -16,7 +17,7 @@ class VnPayService
      * - Nối chuỗi bằng urlencode() (RFC1738, dấu cách -> '+')
      * - Băm HMAC-SHA512 (không in hoa)
      */
-    public function createPaymentUrl(Booking|FixedBooking $booking, string $returnUrl): string
+    public function createPaymentUrl(Booking|FixedBooking|ServiceOrder $booking, string $returnUrl): string
     {
         $tmnCode = trim((string) config('vnpay.tmn_code'));
         $hashSecret = trim((string) config('vnpay.hash_secret'));
@@ -28,10 +29,10 @@ class VnPayService
         $inputData = [
             'vnp_Version' => config('vnpay.version', '2.1.0'),
             'vnp_TmnCode' => $tmnCode,
-            'vnp_Amount' => $this->formatAmount($booking instanceof FixedBooking ? $booking->total_price : $booking->total_amount),
+            'vnp_Amount' => $this->formatAmount($booking instanceof ServiceOrder ? $booking->payment->amount : ($booking instanceof FixedBooking ? $booking->total_price : $booking->total_amount)),
             'vnp_Command' => 'pay',
             'vnp_CreateDate' => now()->format('YmdHis'),
-            'vnp_ExpireDate' => ($booking instanceof FixedBooking ? $booking->expires_at : now()->addMinutes(15))->format('YmdHis'),
+            'vnp_ExpireDate' => ($booking instanceof FixedBooking || $booking instanceof ServiceOrder ? $booking->expires_at : ($booking->hold_expires_at ?? now()->addMinutes(config('booking.hold_timeout', 5))))->format('YmdHis'),
             'vnp_CurrCode' => config('vnpay.currency', 'VND'),
             'vnp_IpAddr' => request()->ip(),
             'vnp_Locale' => config('vnpay.locale', 'vn'),
@@ -127,16 +128,18 @@ class VnPayService
      * VNPay chỉ chấp nhận ký tự chữ và số cho vnp_TxnRef, nên không dùng
      * dấu gạch dưới hoặc các ký tự phân cách khác.
      */
-    private function buildTxnRef(Booking|FixedBooking $booking): string
+    private function buildTxnRef(Booking|FixedBooking|ServiceOrder $booking): string
     {
+        if ($booking instanceof ServiceOrder) return 'SVC'.$booking->id;
         if ($booking instanceof FixedBooking) {
             return 'FIX'.$booking->id;
         }
         return $booking->getKey().now()->format('YmdHis');
     }
 
-    private function buildOrderInfo(Booking|FixedBooking $booking): string
+    private function buildOrderInfo(Booking|FixedBooking|ServiceOrder $booking): string
     {
+        if ($booking instanceof ServiceOrder) return 'Thanh toan dich vu SVC'.$booking->id;
         if ($booking instanceof FixedBooking) {
             return 'Thanh toan lich co dinh '.$booking->code;
         }

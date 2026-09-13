@@ -82,12 +82,23 @@ class AdminBookingController extends Controller
                 if (in_array($locked->status, ['COMPLETED', 'CANCELLED', 'EXPIRED'], true)) {
                     throw new \DomainException('Booking ở trạng thái kết thúc và không thể thay đổi.');
                 }$allowed = ['PENDING_PAYMENT' => ['PENDING_PAYMENT', 'CONFIRMED'], 'CONFIRMED' => ['CONFIRMED', 'CHECKED_IN'], 'CHECKED_IN' => ['CHECKED_IN', 'COMPLETED']];
+                if ($locked->status === 'PENDING_PAYMENT' && $locked->isHoldExpired()) {
+                    throw new \DomainException('Thời gian giữ chỗ đã hết. Vui lòng tạo đơn mới.');
+                }
                 if ($locked->fixedBooking && $locked->fixedBooking->status !== 'LEGACY' && $locked->payment?->status !== 'PAID' && $data['status'] !== 'PENDING_PAYMENT') {
                     throw new \DomainException('Toàn bộ lịch cố định phải thanh toán thành công trước khi xác nhận.');
                 }
                 if (! in_array($data['status'], $allowed[$locked->status] ?? [], true)) {
                     throw new \DomainException('Chuyển trạng thái booking không hợp lệ.');
                 }$old = $locked->only(['status', 'note']);
+                if ($locked->status !== $data['status'] && in_array($data['status'], ['CHECKED_IN', 'COMPLETED'])) {
+                    $operations = app(\App\Services\BookingOperationsService::class);
+                    if ($data['status'] === 'CHECKED_IN') $operations->checkIn($locked, $request->user());
+                    else $operations->checkout($locked, $request->user());
+                    $locked->refresh()->update(['note' => $data['note'] ?? null]);
+                    $this->audit($locked, $request, 'UPDATED', $old, $locked->only(['status', 'note']), $data['reason']);
+                    return;
+                }
                 $locked->update(['status' => $data['status'], 'note' => $data['note'] ?? null, 'confirmed_at' => $data['status'] === 'CONFIRMED' ? ($locked->confirmed_at ?? now()) : $locked->confirmed_at, 'checked_in_at' => $data['status'] === 'CHECKED_IN' ? ($locked->checked_in_at ?? now()) : $locked->checked_in_at, 'checked_out_at' => $data['status'] === 'COMPLETED' ? ($locked->checked_out_at ?? now()) : $locked->checked_out_at]);
                 if ($old['status'] !== $data['status']) {
                     $this->notifications->statusChanged($locked, $data['status']);

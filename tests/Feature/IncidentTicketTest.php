@@ -43,7 +43,7 @@ class IncidentTicketTest extends TestCase
 
     private function payload(Booking $booking): array
     {
-        return ['booking_detail_id' => $booking->bookingDetails()->first()->id, 'type' => 'WEATHER', 'description' => 'Sân bị ngập do mưa lớn, không thể sử dụng.', 'requested_solution' => 'REFUND'];
+        return ['booking_detail_id' => $booking->bookingDetails()->first()->id, 'type' => 'WEATHER', 'description' => 'Sân bị ngập do mưa lớn, không thể sử dụng.', 'requested_solution' => 'REFUND', 'bank_name' => 'Test Bank', 'bank_account_number' => '001234567890', 'bank_account_holder' => 'TEST CUSTOMER', 'recipient_confirmed' => 1];
     }
 
     public function test_customer_creates_ticket_without_refund_and_one_open_ticket_per_booking(): void
@@ -66,6 +66,52 @@ class IncidentTicketTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Yêu cầu xử lý sự cố');
     }
 
+    public function test_refund_requires_confirmed_bank_details_and_does_not_flash_them(): void
+    {
+        [$customer,,,$booking] = $this->fixture();
+        $payload = $this->payload($booking);
+        unset($payload['recipient_confirmed']);
+        $this->actingAs($customer)->post(route('incident-tickets.store', $booking), $payload)
+            ->assertSessionHasErrors('recipient_confirmed')->assertSessionMissing('_old_input.bank_account_number');
+        $this->assertDatabaseCount('court_incidents', 0);
+        $payload = $this->payload($booking);
+        $payload['bank_account_number'] = 'abc';
+        $this->post(route('incident-tickets.store', $booking), $payload)->assertSessionHasErrors('bank_account_number');
+        $this->post(route('incident-tickets.store', $booking), $this->payload($booking))->assertSessionHasNoErrors();
+        $ticket = CourtIncident::firstOrFail();
+        $this->assertSame('001234567890', $ticket->refund_recipient['bank_account_number']);
+        $this->assertStringNotContainsString('001234567890', $ticket->getRawOriginal('refund_recipient'));
+        $this->assertArrayNotHasKey('refund_recipient', $ticket->toArray());
+    }
+
+    public function test_non_refund_solution_does_not_require_or_store_bank_details(): void
+    {
+        [$customer,,,$booking] = $this->fixture();
+        $payload = $this->payload($booking);
+        $payload['requested_solution'] = 'RESCHEDULE';
+        $payload['bank_account_number'] = 'invalid-ignored';
+        unset($payload['recipient_confirmed']);
+        $this->actingAs($customer)->post(route('incident-tickets.store', $booking), $payload)->assertSessionHasNoErrors();
+        $this->assertNull(CourtIncident::firstOrFail()->refund_recipient);
+        $this->assertDatabaseCount('refund_bank_accounts', 0);
+    }
+
+    public function test_delayed_approval_preserves_original_bank_confirmation_time(): void
+    {
+        [$customer,,$admin,$booking] = $this->fixture();
+        $this->actingAs($customer)->post(route('incident-tickets.store', $booking), $this->payload($booking))->assertSessionHasNoErrors();
+        $ticket = CourtIncident::firstOrFail();
+        $confirmedAt = $ticket->refund_recipient['confirmed_at'];
+        $this->travel(25)->hours();
+        $this->actingAs($admin)->post(route('incident-tickets.review', $ticket), ['action' => 'APPROVED', 'note' => 'Đã xác minh sự cố', 'amount' => 150000])->assertSessionHasNoErrors();
+        $refund = RefundRequest::firstOrFail();
+        $this->assertSame('APPROVED', $refund->status);
+        $this->assertTrue($refund->bankAccount->confirmed_at->equalTo(Carbon::parse($confirmedAt)));
+        $this->assertSame('WAITING_BANK_CONFIRMATION', $refund->payout_status);
+        $this->post(route('special-refunds.processing', $refund), ['refund_method' => 'BANK_TRANSFER'])->assertSessionHasErrors('refund_method');
+        $this->assertNull($refund->fresh()->processing_started_at);
+    }
+
     public function test_staff_verifies_admin_approves_and_refund_completion_closes_ticket(): void
     {
         [$customer,$staff,$admin,$booking] = $this->fixture();
@@ -77,18 +123,17 @@ class IncidentTicketTest extends TestCase
         $this->assertSame('REVIEWING', $ticket->fresh()->status);
         $this->actingAs($staff)->post(route('incident-tickets.review', $ticket), ['action' => 'PROPOSE', 'proposed_solution' => 'REFUND', 'note' => 'Đã xác minh sân ngập, đề nghị hoàn toàn bộ.', 'amount' => 150000])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('refund_requests', 0);
-        $this->actingAs($admin)->post(route('incident-tickets.review', $ticket), ['action' => 'APPROVED', 'note' => 'Xác nhận không cung cấp được dịch vụ.', 'amount' => 150000])->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('refund_requests', 0);
+        $this->actingAs($admin)->post(route('incident-tickets.review', $ticket), ['action' => 'APPROVED', 'note' => 'Xác nhận không cung cấp được dịch vụ.', 'amount' => 100000])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('refund_requests', 1);
         $this->actingAs($customer)->get(route('incident-tickets.show', $ticket))->assertOk()->assertSee('Thông tin nhận hoàn tiền');
-        $this->post(route('incident-resolutions.choose', $ticket->resolutions()->firstOrFail()), ['choice' => 'REFUND'] + ['bank_name' => 'Test Bank', 'bank_account_number' => '001234567890', 'bank_account_holder' => 'TEST CUSTOMER', 'recipient_confirmed' => 1])->assertSessionHasNoErrors();
         $this->actingAs($admin);
         $refund = RefundRequest::firstOrFail();
-        $this->assertSame('PENDING', $refund->status);
+        $this->assertSame('APPROVED', $refund->status);
         $this->assertSame('PAID', $booking->fresh()->payment->status);
         $this->assertSame('APPROVED', $ticket->fresh()->status);
         $this->post(route('incident-tickets.review', $ticket), ['action' => 'RESOLVED', 'note' => 'Thử đóng trước hoàn tiền'])->assertSessionHasErrors();
         $this->actingAs($staff)->post(route('special-refunds.review', $refund), ['decision' => 'APPROVED', 'decision_note' => 'Thử duyệt'])->assertForbidden();
-        $this->actingAs($admin)->post(route('special-refunds.review', $refund), ['decision' => 'APPROVED', 'decision_note' => 'Hoàn một phần đã xác minh', 'amount' => 100000])->assertSessionHasNoErrors();
+        $this->actingAs($admin);
         $this->assertSame('100000.00', $refund->fresh()->amount);
         $this->post(route('special-refunds.processing', $refund), ['refund_method' => 'CASH'])->assertSessionHasNoErrors();
         $this->post(route('special-refunds.complete', $refund), ['amount' => 100000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'TICKET-REFUND'])->assertSessionHasNoErrors();
@@ -208,14 +253,11 @@ class IncidentTicketTest extends TestCase
         $this->post(route('incident-tickets.review', $ticket), ['action' => 'PROPOSE', 'note' => 'Đã kiểm tra sân ngập.', 'proposed_solution' => 'REFUND', 'amount' => 150000])->assertSessionHasNoErrors();
         $this->travelTo(now()->setTime(19, 10));
         $this->actingAs($admin)->post(route('incident-tickets.review', $ticket), ['action' => 'APPROVED', 'note' => 'Xác nhận sự cố.', 'amount' => 150000])->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('refund_requests', 0);
+        $this->assertDatabaseCount('refund_requests', 1);
         $this->actingAs($customer)->get(route('incident-tickets.show', $ticket))->assertOk()->assertSee('Thông tin nhận hoàn tiền');
-        $this->post(route('incident-resolutions.choose', $ticket->resolutions()->firstOrFail()), ['choice' => 'REFUND'] + ['bank_name' => 'Test Bank', 'bank_account_number' => '001234567890', 'bank_account_holder' => 'TEST CUSTOMER', 'recipient_confirmed' => 1])->assertSessionHasNoErrors();
         $this->actingAs($admin);
         $refund = RefundRequest::firstOrFail();
-        $this->post(route('special-refunds.processing', $refund), ['refund_method' => 'CASH'])->assertSessionHasErrors();
         $this->travelTo(now()->setTime(19, 12));
-        $this->post(route('special-refunds.review', $refund), ['decision' => 'APPROVED', 'decision_note' => 'Duyệt hoàn toàn bộ.'])->assertSessionHasNoErrors();
         $this->actingAs($staff)->post(route('special-refunds.processing', $refund), ['refund_method' => 'CASH'])->assertForbidden();
         $this->travelTo(now()->setTime(19, 15));
         $this->actingAs($admin)->post(route('special-refunds.processing', $refund), ['refund_method' => 'CASH'])->assertSessionHasNoErrors();

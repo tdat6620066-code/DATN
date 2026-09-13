@@ -285,7 +285,7 @@
                                     data-duration="{{ $slot->duration ?? 60 }}"
                                     data-start="{{ substr($slot->start_time,0,5) }}" data-end="{{ substr($slot->end_time,0,5) }}"
                                     @if($isSelectable) onclick="toggleSlot(this)" @endif>
-                                    <div>{{ $priceDisplay }}</div>
+                                    <div>{{ $status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay }}</div>
                                 </td>
                                 @endforeach
                             </tr>
@@ -295,6 +295,7 @@
                 </div>
 
                 <p class="small text-muted mt-3">Chỉ chọn các khung giờ liền nhau trên cùng sân. Khi bỏ chọn, hãy bỏ từ đầu hoặc cuối dãy giờ.</p>
+                @include('partials.booking-service-picker')
                 <!-- Legend -->
                 <div class="legend">
                     <div class="legend-item">
@@ -395,7 +396,7 @@ function toggleSlot(element) {
     const key = `${courtId}-${slotId}`;
     
     // Can't select booked or maintenance slots
-    if (status === 'BOOKED' || status === 'MAINTENANCE') {
+    if (status !== 'AVAILABLE') {
         return;
     }
     
@@ -447,13 +448,14 @@ function updateSummary() {
     const totalMinutes = selectedSlots.reduce((sum, slot) => sum + slot.duration, 0);
     document.getElementById('summaryDuration').textContent = (totalMinutes / 60).toLocaleString('vi-VN') + 'h';
     
-    const total = selectedSlots.reduce((sum, s) => sum + s.price, 0);
+    const total = selectedSlots.reduce((sum, s) => sum + s.price, 0) + (window.bookingServiceTotal || 0);
     document.getElementById('totalPrice').textContent = total.toLocaleString('vi-VN') + 'đ';
     
     // Enable checkout button if slots selected
     document.getElementById('checkoutBtn').disabled = selectedSlots.length === 0;
 }
 
+document.addEventListener('booking-services-changed', updateSummary);
 document.addEventListener('DOMContentLoaded', () => {
     const courtId = @json($selectedCourt?->id);
     const slotId = @json($selectedTimeSlotId);

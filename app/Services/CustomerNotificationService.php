@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 class CustomerNotificationService
 {
     private const STATUS_LABELS = [
+        'NO_SHOW' => 'Khách không đến',
         'PENDING_PAYMENT' => 'Chờ thanh toán',
         'CONFIRMED' => 'Đã xác nhận',
         'CHECKED_IN' => 'Đã check-in',
@@ -107,7 +108,7 @@ class CustomerNotificationService
         [$type, $title, $message] = match ($event) {
             'CREATED' => ['BOOKING_CREATED', '🔔 Đã tạo lịch cố định', 'Vui lòng thanh toán một lần trước khi hết thời gian giữ chỗ.'],
             'PAID' => ['PAYMENT', '💳 Lịch cố định đã thanh toán', 'Toàn bộ lịch đã được thanh toán và xác nhận.'],
-            'FAILED' => ['PAYMENT', '💳 Thanh toán lịch cố định chưa thành công', 'Vui lòng thử lại trước khi hết thời gian giữ chỗ.'],
+            'FAILED' => ['PAYMENT', '💳 Thanh toán lịch cố định chưa thành công', 'Chỗ đã được giải phóng. Vui lòng kiểm tra lịch và tạo đơn mới để thanh toán.'],
             'EXPIRED' => ['BOOKING_STATUS', 'Lịch cố định hết hạn giữ chỗ', 'Các chỗ chưa thanh toán đã được giải phóng.'],
         };
         $content = 'Đơn '.$group->code.' · '.$group->bookings()->count().' buổi · Tổng '.number_format($group->total_price ?? $group->bookings()->sum('total_amount'), 0, ',', '.').'đ. '.$message;

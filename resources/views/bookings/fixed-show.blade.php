@@ -20,12 +20,12 @@
         <h2 class="h5">Thanh toán toàn bộ lịch cố định</h2>
         <p>{{ ['AWAITING_PAYMENT' => 'Chờ thanh toán', 'PAYMENT_FAILED' => 'Thanh toán thất bại', 'ACTIVE' => 'Đã thanh toán', 'COMPLETED' => 'Hoàn thành', 'EXPIRED' => 'Hết hạn giữ chỗ'][$fixedBooking->status] ?? $fixedBooking->status }}</p>
         <strong class="fs-3">{{ number_format($fixedBooking->total_price, 0, ',', '.') }}đ</strong>
-        @if(in_array($fixedBooking->status, ['AWAITING_PAYMENT', 'PAYMENT_FAILED']))
+        @if($fixedBooking->status === 'AWAITING_PAYMENT')
         <p class="mt-3">Giữ chỗ đến {{ $fixedBooking->expires_at->format('H:i:s d/m/Y') }}. Một giao dịch xác nhận tất cả {{ $bookings->count() }} buổi.</p>
         <form method="POST" action="{{ route('bookings.fixed.pay', $fixedBooking) }}">@csrf
             <button class="btn btn-success">{{ (float) $fixedBooking->total_price > 0 ? 'Thanh toán VNPay '.number_format($fixedBooking->total_price, 0, ',', '.').'đ' : 'Xác nhận lịch miễn phí' }}</button>
         </form>
-        @elseif($fixedBooking->status === 'EXPIRED')
+        @elseif(in_array($fixedBooking->status, ['EXPIRED', 'PAYMENT_FAILED']))
         <p>Chỗ đã được giải phóng. Vui lòng chọn và kiểm tra lịch lại.</p>
         <a href="{{ route('bookings.create-recurring') }}" class="btn btn-outline-success">Đặt lại lịch</a>
         @endif
@@ -37,7 +37,9 @@
     @foreach($fixedBooking->occurrences as $occurrence)
         @php($booking = $bookings->get($occurrence['booking_id'] ?? null))
         @continue($booking && in_array($booking->id, $shownBookings))
-        @if($booking) @php($shownBookings[] = $booking->id) @endif
+        @if($booking) @php($shownBookings[] = $booking->id)
+            <p class="small"><a href="{{ route('bookings.qr', $booking) }}">Mã QR riêng của buổi {{ $booking->booking_code }}</a></p>
+        @endif
         <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 @if($booking)

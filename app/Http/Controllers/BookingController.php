@@ -142,9 +142,8 @@ class BookingController extends Controller
 
             // Create booking with transaction and locking
             $booking = $this->bookingService->createBooking(
-                Auth::id(),
-                $bookingDetails,
-                $request->voucher_code
+                Auth::id(), $bookingDetails, $request->voucher_code,
+                services: $request->validated('services', []) ?? []
             );
 
             return redirect()
@@ -197,12 +196,7 @@ class BookingController extends Controller
 
         $booking->load('bookingDetails.court', 'bookingDetails.timeSlot', 'user');
 
-        // Luồng ngoại lệ: booking không hợp lệ → không tạo QR
-        if (! in_array($booking->status, ['CONFIRMED', 'CHECKED_IN'], true)) {
-            return redirect()
-                ->route('bookings.show', $booking)
-                ->with('error', 'Mã QR chỉ khả dụng cho booking đã xác nhận và chưa hoàn thành/hủy.');
-        }
+        $this->expireHoldIfNeeded($booking);
 
         $qrCode = $this->qrService->generateQRCode($booking);
 
@@ -215,6 +209,16 @@ class BookingController extends Controller
     /**
      * UC21 - Create recurring booking form
      */
+    public function scanQr(Booking $booking)
+    {
+        $this->expireHoldIfNeeded($booking);
+        $booking->load('bookingDetails.court', 'bookingDetails.timeSlot', 'services.item');
+        return response()->view('bookings.qr-info', compact('booking'))
+            ->header('Cache-Control', 'private, no-store')
+            ->header('Referrer-Policy', 'no-referrer')
+            ->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     public function createRecurring(Request $request)
     {
         $draft = $request->boolean('resume') ? $request->session()->get('fixed_booking_draft') : null;
@@ -346,6 +350,7 @@ class BookingController extends Controller
     /** VNPay redirects the customer here after payment. */
     public function vnpayReturn(Request $request)
     {
+        if (str_starts_with((string) $request->input('vnp_TxnRef'), 'SVC')) return app(ServiceOrderController::class)->callback($request);
         if (str_starts_with((string) $request->input('vnp_TxnRef'), 'FIX')) {
             return app(FixedBookingController::class)->callback($request);
         }
@@ -364,6 +369,7 @@ class BookingController extends Controller
         }
 
         if (! $this->isSuccessfulVnpayPayment($booking, $data)) {
+            $this->releaseFailedVnpayHold($booking, $data);
             return redirect()->route('bookings.show', $booking)
                 ->with('error', 'Giao dịch không thành công hoặc thông tin thanh toán không hợp lệ.');
         }
@@ -389,6 +395,7 @@ class BookingController extends Controller
      */
     public function vnpayIpn(Request $request)
     {
+        if (str_starts_with((string) $request->input('vnp_TxnRef'), 'SVC')) return app(ServiceOrderController::class)->callback($request, true);
         if (str_starts_with((string) $request->input('vnp_TxnRef'), 'FIX')) {
             return app(FixedBookingController::class)->callback($request, true);
         }
@@ -413,6 +420,7 @@ class BookingController extends Controller
         }
 
         if (! $this->isSuccessfulVnpayPayment($booking, $data)) {
+            $this->releaseFailedVnpayHold($booking, $data);
             return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
         }
 
@@ -429,6 +437,18 @@ class BookingController extends Controller
         }
 
         return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
+    }
+
+    private function releaseFailedVnpayHold(Booking $booking, array $data): void
+    {
+        // Both callers have verified the signature. Reject mismatched or incomplete receipts.
+        if (($data['vnp_TmnCode'] ?? null) === config('vnpay.tmn_code')
+            && (int) ($data['vnp_Amount'] ?? 0) === (int) round((float) $booking->total_amount * 100)
+            && isset($data['vnp_ResponseCode'], $data['vnp_TransactionStatus'])
+            && ($data['vnp_ResponseCode'] !== '00' || $data['vnp_TransactionStatus'] !== '00')
+            && $booking->payment) {
+            $this->paymentService->markAsFailed($booking->payment, $data['vnp_TransactionNo'] ?? null);
+        }
     }
 
     private function isSuccessfulVnpayPayment(Booking $booking, array $data): bool

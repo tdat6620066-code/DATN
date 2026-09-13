@@ -8,13 +8,22 @@ use Illuminate\Http\Request;
 
 class AdminReportController extends Controller
 {
-    public function index(Request $request, OperationsReportService $reports)
+    public function index(Request $request, OperationsReportService $reports, \App\Services\RevenueReportService $revenue)
     {
         $data = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
         $from = Carbon::parse($data['from'] ?? now()->startOfMonth()->toDateString())->startOfDay();
         $to = Carbon::parse($data['to'] ?? now()->toDateString())->endOfDay();
         abort_if($from > $to || $from->diffInDays($to) > 366, 422);
 
-        return view('admin.reports.index', ['from' => $from, 'to' => $to, 'bookings' => $reports->bookings($from, $to), 'refunds' => $reports->refunds($from, $to)]);
+        return view('admin.reports.index', ['from' => $from, 'to' => $to, 'revenue' => $revenue->courtRevenue($from, $to), 'bookings' => $reports->bookings($from, $to), 'refunds' => $reports->refunds($from, $to)]);
+    }
+
+    public function cashFlow(Request $request, \App\Services\RevenueReportService $reports)
+    {
+        $data = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
+        $from = Carbon::parse($data['from'] ?? now()->startOfMonth()->toDateString())->startOfDay();
+        $to = Carbon::parse($data['to'] ?? now()->toDateString())->endOfDay();
+        abort_if($from > $to || $from->diffInDays($to) > 366, 422);
+        return view('admin.reports.cash-flow', ['from' => $from, 'to' => $to, 'cash' => $reports->cashFlow($from, $to)]);
     }
 }

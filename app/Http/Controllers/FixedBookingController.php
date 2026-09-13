@@ -73,7 +73,7 @@ class FixedBookingController extends Controller
         abort_unless($fixedBooking->user_id === $request->user()->id, 403);
         $expired = app(\App\Services\FixedBookingPaymentService::class)->expire($fixedBooking);
         $fixedBooking->refresh();
-        if ($expired || ! in_array($fixedBooking->status, ['AWAITING_PAYMENT', 'PAYMENT_FAILED'])) {
+        if ($expired || $fixedBooking->status !== 'AWAITING_PAYMENT') {
             return back()->with('error', 'Lịch không còn chờ thanh toán hoặc đã hết hạn giữ chỗ.');
         }
         if ((float) $fixedBooking->total_price === 0.0) {
@@ -113,7 +113,7 @@ class FixedBookingController extends Controller
                 'note' => 'VNPay '.($data['vnp_TransactionNo'] ?? '').' / '.($data['vnp_ResponseCode'] ?? '').' / '.($data['vnp_TransactionStatus'] ?? ''),
             ], ['amount' => $group->payment->amount, 'new_status' => $group->payment->fresh()->status,
                 'metadata' => ['txn_ref' => $data['vnp_TxnRef'], 'gateway_success' => $gatewaySuccess, 'accepted' => $success]]);
-            if (! $success && $group->fresh()->status === 'EXPIRED') {
+            if ($gatewaySuccess && ! $success) {
                 $code = '02';
             }
         }

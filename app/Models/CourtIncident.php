@@ -14,7 +14,9 @@ class CourtIncident extends Model
 
     protected $fillable = ['incident_code', 'court_id', 'reported_by', 'type', 'severity', 'description', 'images', 'status', 'resolution_note', 'resolved_at', 'source', 'booking_id', 'booking_detail_id', 'customer_id', 'active_booking_id', 'requested_solution', 'proposed_solution', 'proposed_amount', 'assigned_to', 'reviewed_by', 'review_note', 'reviewed_at'];
 
-    protected $casts = ['images' => 'array', 'resolved_at' => 'datetime', 'booking_snapshot' => 'array', 'reviewed_at' => 'datetime', 'proposed_amount' => 'decimal:2'];
+    protected $hidden = ['refund_recipient'];
+
+    protected $casts = ['refund_recipient' => 'encrypted:array', 'images' => 'array', 'resolved_at' => 'datetime', 'booking_snapshot' => 'array', 'reviewed_at' => 'datetime', 'proposed_amount' => 'decimal:2'];
 
     public function court()
     {

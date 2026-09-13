@@ -293,9 +293,10 @@
     ];
     $methodLabel = $booking->payment ? ($paymentMethods[$booking->payment->payment_method] ?? ucfirst($booking->payment->payment_method)) : '—';
 
-    $subtotal = $booking->bookingDetails->sum('subtotal');
-    $discount = ($booking->voucher_id && $booking->discount) ? $booking->discount : 0;
-    $total = $subtotal - $discount;
+    $includedServices = $booking->services()->whereNull('service_order_id')->with('item')->get();
+    $subtotal = $booking->subtotal;
+    $discount = $booking->discount;
+    $total = $booking->total_amount;
 
     // Stepper states
     $stepStates = [
@@ -357,6 +358,10 @@
     </section>
 
     <section class="checkout-panel checkout-total-panel" id="payment-summary">
+        <div class="checkout-discount-row"><span>Tiền sân</span><span>{{ number_format($booking->bookingDetails->sum('subtotal'), 0, ',', '.') }} ₫</span></div>
+        @foreach($includedServices as $line)
+            <div class="checkout-discount-row"><span>{{ $line->item->name }} × {{ $line->quantity }}</span><span>{{ number_format($line->subtotal, 0, ',', '.') }} ₫</span></div>
+        @endforeach
         <div class="checkout-discount-row">
             <span>Ưu đãi</span>
             <span><a href="#">Chọn ưu đãi áp dụng</a><span class="checkout-add">+</span></span>
@@ -689,4 +694,12 @@
 @foreach($booking->refundRequests()->with('refund')->get() as $refundRequest)
 @include('partials.refund-recipient', ['refundRequest' => $refundRequest])
 @endforeach
+@include('partials.service-orders')
+<section class="card p-4 my-3 text-center">
+    <h2 class="h5">Mã QR của đơn đặt sân</h2>
+    <p>{{ $booking->booking_code }} · Mã được tạo tự động cho đơn này.</p>
+    <div>{!! app(\App\Services\QRCodeService::class)->generateQRCode($booking) !!}</div>
+    <p class="small text-muted mt-3">Quét mã để xem lịch sân, dịch vụ và trạng thái thanh toán mới nhất.</p>
+    <a href="{{ route('bookings.qr', $booking) }}">Mở mã QR và thông tin đơn</a>
+</section>
 @endsection

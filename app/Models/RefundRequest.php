@@ -53,11 +53,18 @@ class RefundRequest extends Model
 
     public function getPayoutStatusAttribute(): string
     {
+        if ($this->status === 'APPROVED' && ! $this->processing_started_at && ! $this->refund && $this->needsBankConfirmation()) return 'WAITING_BANK_CONFIRMATION';
         return $this->refund?->status === 'COMPLETED' ? 'REFUNDED' : ($this->processing_started_at ? 'PROCESSING' : $this->status);
+    }
+
+    public function needsBankConfirmation(): bool
+    {
+        return ! $this->bankAccount?->confirmed_at || $this->bankAccount->confirmed_at->lte(now()->subHours(config('refunds.bank_confirmation_hours', 24)));
     }
 
     public function getPayoutLabelAttribute(): string
     {
+        if ($this->payout_status === 'WAITING_BANK_CONFIRMATION') return 'Chờ xác nhận tài khoản nhận tiền';
         return ['PENDING' => 'Chờ Admin duyệt', 'NEEDS_INFO' => 'Chờ bổ sung thông tin', 'APPROVED' => 'Đã phê duyệt', 'PROCESSING' => 'Đang xử lý hoàn tiền', 'REFUNDED' => 'Đã hoàn tiền', 'REJECTED' => 'Đã từ chối'][$this->payout_status] ?? $this->payout_status;
     }
 

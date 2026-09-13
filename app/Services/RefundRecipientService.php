@@ -17,7 +17,7 @@ class RefundRecipientService
         ];
     }
 
-    public function save(RefundRequest $item, array $data): void
+    public function save(RefundRequest $item, array $data, ?string $confirmedAt = null): void
     {
         $item->bankAccount()->updateOrCreate([], [
             'bank_code' => $data['bank_code'] ?? null,
@@ -25,7 +25,7 @@ class RefundRecipientService
             'account_number' => $data['bank_account_number'],
             'account_name' => $data['bank_account_holder'],
             'account_last4' => substr($data['bank_account_number'], -4),
-            'confirmed_at' => now(),
+            'confirmed_at' => $confirmedAt ?? now(),
         ]);
         $item->unsetRelation('bankAccount');
     }

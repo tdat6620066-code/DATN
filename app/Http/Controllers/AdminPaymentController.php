@@ -47,7 +47,7 @@ class AdminPaymentController extends Controller
                 $locked = Payment::with('booking')->lockForUpdate()->findOrFail($payment->id);
                 if ($locked->hasRefundActivity()) {
                     throw new \DomainException('Giao dịch đã hoàn tiền và không thể đối chiếu lại.');
-                }if ((float) $data['amount'] !== (float) ($locked->fixed_booking_id ? $locked->fixedBooking->total_price : $locked->booking->total_amount)) {
+                }if ((float) $data['amount'] !== (float) ($locked->purpose === 'SERVICE' ? $locked->amount : ($locked->fixed_booking_id ? $locked->fixedBooking->total_price : $locked->booking->total_amount))) {
                     throw new \DomainException('Số tiền giao dịch không khớp tổng tiền booking.');
                 }$old = $locked->status;
                 $new = $data['action'] === 'MARK_PAID' ? 'PAID' : 'FAILED';

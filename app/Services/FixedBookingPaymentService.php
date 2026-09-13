@@ -14,7 +14,7 @@ class FixedBookingPaymentService
     {
         return DB::transaction(function () use ($group) {
             $group = FixedBooking::lockForUpdate()->findOrFail($group->id);
-            if (! in_array($group->status, ['AWAITING_PAYMENT', 'PAYMENT_FAILED']) || $group->expires_at?->isFuture()) {
+            if ($group->status !== 'AWAITING_PAYMENT' || $group->expires_at?->isFuture()) {
                 return $group->status === 'EXPIRED';
             }
             $payment = $group->payment()->lockForUpdate()->firstOrFail();
@@ -23,9 +23,9 @@ class FixedBookingPaymentService
         }, 3);
     }
 
-    private function release(FixedBooking $group, Payment $payment): void
+    private function release(FixedBooking $group, Payment $payment, string $status = 'EXPIRED'): void
     {
-        $group->update(['status' => 'EXPIRED']);
+        $group->update(['status' => $status]);
         $payment->update(['status' => 'FAILED']);
         foreach ($group->bookings()->lockForUpdate()->get() as $booking) {
             if (in_array($booking->status, ['PENDING_PAYMENT', 'HOLD'])) {
@@ -33,7 +33,7 @@ class FixedBookingPaymentService
                 $booking->bookingDetails()->update(['status' => 'CANCELLED']);
             }
         }
-        app(CustomerNotificationService::class)->fixedBooking($group, 'EXPIRED');
+        app(CustomerNotificationService::class)->fixedBooking($group, $status === 'PAYMENT_FAILED' ? 'FAILED' : 'EXPIRED');
     }
 
     public function settle(Payment $payment, bool $success, ?string $transactionId = null, string $method = 'vnpay'): bool
@@ -46,11 +46,16 @@ class FixedBookingPaymentService
             if ($payment->status === 'PAID') {
                 return true; // Duplicate callbacks must never reset a refunded child.
             }
-            if (! in_array($group->status, ['AWAITING_PAYMENT', 'PAYMENT_FAILED'])) {
+            if ($group->status !== 'AWAITING_PAYMENT') {
                 return false;
             }
             if (! $group->expires_at || $group->expires_at->lessThanOrEqualTo(now())) {
                 $this->release($group, $payment);
+                return false;
+            }
+            if (! $success) {
+                $payment->update(['transaction_id' => $transactionId ?? $payment->transaction_id, 'payment_method' => $method]);
+                $this->release($group, $payment, 'PAYMENT_FAILED');
                 return false;
             }
             $bookings = $group->bookings()->lockForUpdate()->get();

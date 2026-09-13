@@ -11,12 +11,12 @@
 <button class="btn btn-dark">Áp dụng</button></form></div>
 <div class="row g-3 mb-4">
 @foreach([
-['Tổng tiền thanh toán', number_format($kpis['gross_revenue']).'đ', 'Theo ngày thanh toán thành công'],
-['Tổng tiền hoàn', number_format($kpis['refund_amount']).'đ', 'Chỉ khoản đã hoàn thành công trong kỳ'],
-['Doanh thu thực nhận', number_format($kpis['net_revenue']).'đ', 'Tổng thanh toán − tổng tiền hoàn'],
-['Booking hoàn thành', number_format($kpis['completed']), 'Theo ngày hoàn thành lượt chơi'],
+['Doanh thu sân', number_format($kpis['revenue']).'đ', 'Lượt đã hoàn thành, theo ngày sử dụng'],
+['Tiền đã thu', number_format($kpis['gross_revenue']).'đ', 'Theo ngày thanh toán thành công'],
+['Đã hoàn tiền', number_format($kpis['refund_amount']).'đ', 'Chỉ khoản đã chi trả hoàn tất trong kỳ'],
+['Tiền thu ròng', number_format($kpis['net_revenue']).'đ', 'Tiền đã thu − tiền đã hoàn'],
 ] as [$label, $value, $note])
-<div class="col-12 col-md-6 col-xl-3"><article class="card h-100 border-0 shadow-sm p-4 {{ $loop->iteration === 3 ? 'bg-success text-white' : '' }}"><span>{{ $label }}</span><strong class="fs-3 my-2">{{ $value }}</strong><small>{{ $note }}</small></article></div>
+<div class="col-12 col-md-6 col-xl-3"><article class="card h-100 border-0 shadow-sm p-4 {{ $loop->first ? 'bg-success text-white' : '' }}"><span>{{ $label }}</span><strong class="fs-3 my-2">{{ $value }}</strong><small>{{ $note }}</small></article></div>
 @endforeach
 </div>
 <p class="text-muted small">Tiền thu tính theo ngày thanh toán; tiền hoàn tính theo ngày hoàn thành. Khoản hoàn cho giao dịch kỳ trước vẫn trừ trong kỳ hoàn tiền, nên thực nhận có thể âm. Yêu cầu chờ duyệt và hoàn tiền đang xử lý chưa được trừ.</p>
@@ -26,7 +26,7 @@
 @endforeach
 </div>
 <div class="row g-3">
-<div class="col-lg-8"><section class="card border-0 shadow-sm p-3"><h2 class="h5">Booking & dòng tiền theo ngày</h2><div style="height:340px"><canvas id="performanceChart"></canvas></div></section></div>
+<div class="col-lg-8"><section class="card border-0 shadow-sm p-3 mb-3"><h2 class="h5">Doanh thu sân theo ngày sử dụng</h2><div style="height:240px"><canvas id="courtRevenueChart"></canvas></div></section><section class="card border-0 shadow-sm p-3"><h2 class="h5">Dòng tiền theo ngày giao dịch</h2><a href="{{ route('admin.reports.cash-flow', ['from'=>$from->toDateString(), 'to'=>$to->toDateString()]) }}">Xem báo cáo dòng tiền</a><div style="height:300px"><canvas id="performanceChart"></canvas></div></section></div>
 <div class="col-lg-4"><section class="card border-0 shadow-sm p-3"><h2 class="h5">Sân được đặt nhiều</h2><p>Tỷ lệ lấp đầy: <strong>{{ $kpis['occupancy_rate'] }}%</strong></p>
 @forelse($popularCourts as $court)<div class="d-flex justify-content-between border-top py-3"><div><strong>{{ $court->name }}</strong><br><small>{{ $court->courtType?->name }} · {{ $court->code }}</small></div><span>{{ $court->booking_count }} lượt</span></div>@empty<p>Chưa có dữ liệu.</p>@endforelse
 </section></div></div>
@@ -37,16 +37,19 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 const chartData = @json($chart);
+new Chart(document.getElementById('courtRevenueChart'), {
+    type: 'bar', data: {labels: chartData.labels, datasets: [{label: 'Doanh thu sân', data: chartData.revenue, backgroundColor: '#23875f'}]},
+    options: {responsive: true, maintainAspectRatio: false, scales: {y: {beginAtZero: true, ticks: {callback: v => new Intl.NumberFormat('vi-VN', {notation: 'compact'}).format(v) + 'đ'}}}}
+});
 new Chart(document.getElementById('performanceChart'), {
-type: 'bar',
+type: 'line',
 data: {labels: chartData.labels, datasets: [
-{label: 'Booking', data: chartData.bookings, backgroundColor: '#a8dbc4', yAxisID: 'y'},
 {label: 'Tổng thanh toán', data: chartData.gross_revenue, type: 'line', borderColor: '#23875f', pointRadius: 2, yAxisID: 'revenue'},
 {label: 'Đã hoàn tiền', data: chartData.refund_amount, type: 'line', borderColor: '#d07936', pointRadius: 2, yAxisID: 'revenue'},
-{label: 'Thực nhận', data: chartData.revenue, type: 'line', borderColor: '#0a5266', pointRadius: 2, yAxisID: 'revenue'}
+{label: 'Tiền thu ròng', data: chartData.net_cash, type: 'line', borderColor: '#0a5266', pointRadius: 2, yAxisID: 'revenue'}
 ]},
 options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'bottom'}}, scales: {
-x: {grid: {display: false}}, y: {beginAtZero: true, ticks: {precision: 0}},
+x: {grid: {display: false}},
 revenue: {position: 'right', beginAtZero: true, grid: {display: false}, ticks: {callback: v => new Intl.NumberFormat('vi-VN', {notation: 'compact'}).format(v) + 'đ'}}
 }}
 });

@@ -1,318 +1,83 @@
 @extends('layouts.employee')
-
 @section('title', 'Lịch đặt sân - SmashZone')
 @section('page_heading', 'Lịch đặt sân')
-
 @push('styles')
-<style>
-    .schedule-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
-    .schedule-toolbar .mode-tabs {
-        display: inline-flex;
-        gap: 5px;
-        padding: 4px;
-        border-radius: 11px;
-        background: #e9f0ed;
-    }
-    .schedule-toolbar .mode-tabs a {
-        padding: 8px 17px;
-        border-radius: 8px;
-        color: #5c747d;
-        font-size: 12px;
-        font-weight: 800;
-        text-decoration: none;
-        transition: .2s;
-    }
-    .schedule-toolbar .mode-tabs a.active {
-        background: #0b3041;
-        color: #fff;
-    }
-    .schedule-nav {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .schedule-nav a {
-        display: grid;
-        place-items: center;
-        width: 36px;
-        height: 36px;
-        border: 1px solid #dbe5e1;
-        border-radius: 9px;
-        color: #41606c;
-        text-decoration: none;
-        transition: .2s;
-    }
-    .schedule-nav a:hover {
-        border-color: #08b96b;
-        color: #00874e;
-    }
-    .schedule-nav .nav-label {
-        min-width: 160px;
-        text-align: center;
-        font-size: 14px;
-        font-weight: 800;
-        color: #153443;
-    }
-    .schedule-datepicker {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-    }
-    .schedule-datepicker i {
-        position: absolute;
-        left: 12px;
-        z-index: 1;
-        pointer-events: none;
-        color: #08b96b;
-        font-size: 15px;
-    }
-    .schedule-datepicker input[type="date"] {
-        height: 38px;
-        padding: 0 12px 0 36px;
-        border: 1px solid #dbe5e1;
-        border-radius: 9px;
-        background: #fff;
-        color: #153443;
-        font-size: 12px;
-        font-weight: 700;
-        font-family: inherit;
-        cursor: pointer;
-        outline: none;
-    }
-    .schedule-datepicker input[type="date"]:focus {
-        border-color: #08b96b;
-        box-shadow: 0 0 0 3px rgba(8, 185, 107, .12);
-    }
-    .schedule-wrap {
-        overflow-x: auto;
-        border: 1px solid #dfe8e4;
-        border-radius: 16px;
-        background: #fff;
-    }
-    .schedule-table {
-        min-width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-    .schedule-table th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: #f7faf8;
-        padding: 12px 14px;
-        border-bottom: 1px solid #e6edea;
-        text-align: center;
-        white-space: nowrap;
-    }
-    .schedule-table th.court-col {
-        position: sticky;
-        left: 0;
-        z-index: 3;
-        text-align: left;
-        min-width: 190px;
-    }
-    .schedule-table th .dow {
-        display: block;
-        color: #819198;
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: .5px;
-        text-transform: uppercase;
-    }
-    .schedule-table th .day-num {
-        display: block;
-        font-size: 16px;
-        font-weight: 800;
-        color: #153443;
-    }
-    .schedule-table th.is-today .day-num {
-        display: inline-grid;
-        place-items: center;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: #08b96b;
-        color: #fff;
-    }
-    .schedule-table th.is-outside {
-        background: #f0f4f2;
-    }
-    .schedule-table th.is-outside .day-num,
-    .schedule-table th.is-outside .dow {
-        color: #aebbbb;
-    }
-    .schedule-table td {
-        vertical-align: top;
-        padding: 8px;
-        border-bottom: 1px solid #eef2f0;
-        border-right: 1px solid #f1f4f2;
-        min-width: 140px;
-        height: 100px;
-    }
-    .schedule-table td.court-col {
-        position: sticky;
-        left: 0;
-        z-index: 1;
-        background: #fff;
-        min-width: 190px;
-    }
-    .schedule-table td.court-col .court-name {
-        font-size: 13px;
-        font-weight: 800;
-        color: #163847;
-    }
-    .schedule-table td.court-col .court-sub {
-        color: #819198;
-        font-size: 11px;
-        margin-top: 3px;
-    }
-    .slot-chip {
-        display: flex;
-        align-items: flex-start;
-        gap: 7px;
-        padding: 7px 8px;
-        margin-bottom: 5px;
-        border-radius: 8px;
-        border-left: 3px solid #08b96b;
-        background: #eafaf2;
-        color: #0b5c3a;
-        font-size: 11px;
-        cursor: default;
-    }
-    .slot-chip .time {
-        font-weight: 800;
-        white-space: nowrap;
-    }
-    .slot-chip .cust {
-        line-height: 1.35;
-        font-weight: 700;
-    }
-    .slot-chip .cust small {
-        display: block;
-        color: #5e7a6b;
-        font-weight: 600;
-    }
-    .slot-chip.status-pending_payment { border-left-color: #f59e0b; background: #fff6e5; color: #9a6408; }
-    .slot-chip.status-checked_in { border-left-color: #0ea5e9; background: #e8f4fc; color: #0b6390; }
-    .slot-chip.status-completed { border-left-color: #64748b; background: #eef1f3; color: #475569; }
-    .cell-empty {
-        color: #c3cdc9;
-        font-size: 11px;
-        text-align: center;
-        padding-top: 24px;
-    }
-    .schedule-legend {
-        display: flex;
-        gap: 18px;
-        flex-wrap: wrap;
-        margin-top: 14px;
-        color: #6b7d84;
-        font-size: 12px;
-        font-weight: 700;
-    }
-    .schedule-legend span { display: flex; align-items: center; gap: 6px; }
-    .legend-dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-</style>
+<link rel="stylesheet" href="{{ asset('css/employee-schedule.css') }}">
 @endpush
-
 @section('content')
-<div class="schedule-toolbar">
-    <div class="mode-tabs">
-        <a class="{{ $mode === 'day' ? 'active' : '' }}" href="{{ route('employee.schedule', ['mode' => 'day', 'date' => $date->toDateString()]) }}">Ngày</a>
-        <a class="{{ $mode === 'week' ? 'active' : '' }}" href="{{ route('employee.schedule', ['mode' => 'week', 'date' => $date->toDateString()]) }}">Tuần</a>
-        <a class="{{ $mode === 'month' ? 'active' : '' }}" href="{{ route('employee.schedule', ['mode' => 'month', 'date' => $date->toDateString()]) }}">Tháng</a>
-    </div>
-
-    <div class="schedule-datepicker">
-        <i class="bi bi-calendar3"></i>
-        <input type="date" id="scheduleDateInput" value="{{ $date->toDateString() }}">
-    </div>
-
-    <div class="schedule-nav">
-        @if($mode === 'day')
-            <a href="{{ route('employee.schedule', ['mode' => 'day', 'date' => $date->copy()->subDay()->toDateString()]) }}"><i class="bi bi-chevron-left"></i></a>
-            <span class="nav-label">{{ $date->translatedFormat('l, d/m/Y') }}</span>
-            <a href="{{ route('employee.schedule', ['mode' => 'day', 'date' => $date->copy()->addDay()->toDateString()]) }}"><i class="bi bi-chevron-right"></i></a>
-        @elseif($mode === 'week')
-            <a href="{{ route('employee.schedule', ['mode' => 'week', 'date' => $date->copy()->subWeek()->toDateString()]) }}"><i class="bi bi-chevron-left"></i></a>
-            <span class="nav-label">Tuần {{ $start->format('d/m') }} - {{ $end->format('d/m/Y') }}</span>
-            <a href="{{ route('employee.schedule', ['mode' => 'week', 'date' => $date->copy()->addWeek()->toDateString()]) }}"><i class="bi bi-chevron-right"></i></a>
-        @else
-            <a href="{{ route('employee.schedule', ['mode' => 'month', 'date' => $date->copy()->subMonth()->toDateString()]) }}"><i class="bi bi-chevron-left"></i></a>
-            <span class="nav-label">Tháng {{ $date->translatedFormat('m/Y') }}</span>
-            <a href="{{ route('employee.schedule', ['mode' => 'month', 'date' => $date->copy()->addMonth()->toDateString()]) }}"><i class="bi bi-chevron-right"></i></a>
-        @endif
-        <a href="{{ route('employee.schedule', ['mode' => $mode]) }}" title="Hôm nay"><i class="bi bi-dot"></i></a>
-    </div>
-</div>
-
-<div class="schedule-wrap">
-    <table class="schedule-table">
-        <thead>
-            <tr>
-                <th class="court-col">Sân</th>
-                @foreach($dates as $d)
-                    <th class="{{ $d->isToday() ? 'is-today' : '' }} {{ $mode === 'month' && $d->month !== $date->month ? 'is-outside' : '' }}">
-                        <span class="dow">{{ $d->translatedFormat('D') }}</span>
-                        <span class="day-num">{{ $d->day }}</span>
-                        <span class="dow">{{ $d->format('m/Y') }}</span>
-                    </th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($courts as $court)
-                <tr>
-                    <td class="court-col">
-                        <div class="court-name">{{ $court->name }}</div>
-                        <div class="court-sub">{{ $court->courtType?->name ?? 'Sân cầu lông' }}</div>
-                    </td>
-                    @foreach($dates as $d)
-                        <td>
-                            @php
-                                $cellBookings = $bookingDetails->where('court_id', $court->id)->where('booking_date', $d->toDateString());
-                            @endphp
-                            @if($cellBookings->isNotEmpty())
-                                @foreach($cellBookings as $detail)
-                                    <div class="slot-chip status-{{ strtolower($detail->booking->status) }}" title="{{ $detail->booking->user->name }} · {{ $detail->booking->booking_code }} · {{ $detail->booking->status }}">
-                                        <span class="time">{{ $detail->timeSlot->name }}</span>
-                                        <span class="cust">{{ $detail->booking->user->name }}<small>{{ $detail->booking->booking_code }}</small></span>
-                                    </div>
-                                @endforeach
-                            @else
-                                <div class="cell-empty">Trống</div>
-                            @endif
-                        </td>
-                    @endforeach
-                </tr>
-            @empty
-                <tr><td colspan="{{ $dates->count() + 1 }}" class="cell-empty" style="padding:40px;">Hiện chưa có sân hoạt động.</td></tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
-
-<div class="schedule-legend">
-    <span><i class="legend-dot" style="background:#08b96b"></i>Đã xác nhận</span>
-    <span><i class="legend-dot" style="background:#f59e0b"></i>Chờ thanh toán</span>
-    <span><i class="legend-dot" style="background:#0ea5e9"></i>Đã nhận sân</span>
-    <span><i class="legend-dot" style="background:#64748b"></i>Đã hoàn thành</span>
+@php
+    $labels = ['CONFIRMED'=>'● Đã đặt','PENDING_PAYMENT'=>'⏳ Giữ chỗ','CHECKED_IN'=>'▶ Đang chơi','COMPLETED'=>'✓ Hoàn thành','CANCELLED'=>'✕ Đã hủy','INCIDENT'=>'⚠ Sự cố','MAINTENANCE'=>'⚠ Bảo trì'];
+    $url = fn ($changes) => route('employee.schedule', array_merge(request()->only('court_id','status','search'), ['mode'=>$mode,'date'=>$date->toDateString()], $changes));
+    $previous = $date->copy(); $next = $date->copy();
+    if ($mode === 'month') { $previous->subMonthNoOverflow(); $next->addMonthNoOverflow(); } elseif ($mode === 'week') { $previous->subWeek(); $next->addWeek(); } else { $previous->subDay(); $next->addDay(); }
+@endphp
+<div class="sz-calendar">
+<p class="text-muted small">Theo dõi tình trạng sân và booking · {{ $start->format('d/m') }} – {{ $end->format('d/m/Y') }}</p>
+<div class="sc-stats">@foreach(['bookings'=>'Đơn trong kỳ','playing'=>'Đang chơi','holds'=>'Giữ chỗ','incidents'=>'Sự cố chưa xử lý'] as $key=>$label)<div><strong>{{ $stats[$key] }}</strong><span>{{ $label }}</span></div>@endforeach</div>
+<form class="sc-toolbar" method="GET">
+<div class="sc-tabs">@foreach(['day'=>'Ngày','week'=>'Tuần','month'=>'Tháng'] as $value=>$label)<a class="{{ $mode === $value ? 'selected' : '' }}" href="{{ $url(['mode'=>$value]) }}">{{ $label }}</a>@endforeach</div>
+<input type="hidden" name="mode" value="{{ $mode }}">
+<label><span class="visually-hidden">Ngày xem lịch</span><input type="date" name="date" value="{{ $date->toDateString() }}"></label>
+<a href="{{ $url(['date'=>$previous->toDateString()]) }}" aria-label="Kỳ trước">❮</a><a href="{{ $url(['date'=>today()->toDateString()]) }}">Hôm nay</a><a href="{{ $url(['date'=>$next->toDateString()]) }}" aria-label="Kỳ sau">❯</a>
+<select name="court_id" aria-label="Lọc sân"><option value="">Tất cả sân</option>@foreach($allCourts as $court)<option value="{{ $court->id }}" @selected(request('court_id') == $court->id)>{{ $court->name }}</option>@endforeach</select>
+<select name="status" aria-label="Lọc trạng thái"><option value="">Tất cả trạng thái</option>@foreach($labels as $key=>$label)<option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>@endforeach</select>
+<input type="search" name="search" value="{{ request('search') }}" placeholder="Mã đơn / khách hàng" aria-label="Tìm mã đơn hoặc khách hàng"><button class="btn btn-primary btn-sm">Áp dụng</button>
+</form>
+<div class="sc-legend">@foreach($labels as $key=>$label)<span class="sc-state state-{{ $key }}">{{ $label }}</span>@endforeach<span>✓ Trống: nền nhạt</span></div>
+<p class="small text-muted">{{ $mode === 'day' ? 'Bấm booking để xem nhanh và thao tác. Cuộn ngang để xem toàn bộ khung giờ.' : 'Bấm ngày để mở lịch vận hành chi tiết.' }} Số khung sử dụng được tính trên toàn bộ booking, kể cả khi đang lọc.</p>
+@if($courts->isEmpty() || $timeSlots->isEmpty())<div class="sc-empty">Chưa có sân hoặc khung giờ phù hợp.</div>
+@elseif($mode === 'month')
+<div class="sc-month">@foreach(['T2','T3','T4','T5','T6','T7','CN'] as $label)<strong class="sc-weekday">{{ $label }}</strong>@endforeach
+@foreach($dates as $day)
+@php
+$daily = collect($courts)->map(fn ($c) => $cells[$c->id.'|'.$day->toDateString()]);
+$capacity = $courts->count() * $timeSlots->count(); $used = $daily->sum('used');
+@endphp
+<a class="sc-month-day {{ $day->month !== $date->month ? 'outside' : '' }} {{ $day->isToday() ? 'today' : '' }}" href="{{ $url(['mode'=>'day','date'=>$day->toDateString()]) }}"><strong>{{ $day->format('d/m') }}</strong><span>{{ $daily->sum('count') }} lượt đặt sân</span><progress max="{{ max(1,$capacity) }}" value="{{ $used }}"></progress><span>{{ round($used / max(1,$capacity)*100) }}% khung đã đặt</span><small>{{ $daily->filter(fn ($c) => $c['free'] > 0)->count() }} sân còn khung trống</small></a>
+@endforeach</div>
+@else
+<div class="sc-scroll"><table class="sc-table"><thead><tr><th class="sc-court">Sân</th>
+@if($mode === 'day')<th><div class="sc-hours" style="--slots:{{ $timeSlots->count() }}">@foreach($timeSlots as $slot)<span>{{ substr($slot->start_time,0,5) }}<small>{{ substr($slot->end_time,0,5) }}</small></span>@endforeach</div></th>
+@else @foreach($dates as $day)<th class="{{ $day->isToday() ? 'today' : '' }}"><a href="{{ $url(['mode'=>'day','date'=>$day->toDateString()]) }}">{{ ['CN','T2','T3','T4','T5','T6','T7'][$day->dayOfWeek] }} · {{ $day->format('d/m') }}</a></th>@endforeach @endif
+</tr></thead><tbody>
+@foreach($courts as $court)<tr><th class="sc-court">{{ $court->name }}<small>{{ $court->courtType?->name }}</small></th>
+@foreach($dates as $day)
+@php $cell = $cells[$court->id.'|'.$day->toDateString()]; @endphp
+<td>
+@if($mode === 'week')<a class="sc-utilization" href="{{ $url(['mode'=>'day','date'=>$day->toDateString(),'court_id'=>$court->id]) }}">{{ $cell['used'] }}/{{ $timeSlots->count() }} khung đã đặt <small>· {{ $cell['free'] }} trống</small></a>@endif
+<div class="{{ $mode === 'day' ? 'sc-track' : 'sc-week-blocks' }}" style="--slots:{{ $timeSlots->count() }}">
+@foreach($cell['blocked'] as $slotId=>$reason)
+@if(!request('search') && (!request('status') || request('status') === 'MAINTENANCE'))
+<div class="sc-block state-MAINTENANCE" @if($mode === 'day') style="grid-column:{{ $timeSlots->search(fn ($s)=>$s->id === $slotId)+1 }}" @endif title="{{ $reason }}">⚠ Bảo trì<small>{{ substr($timeSlots->firstWhere('id',$slotId)->start_time,0,5) }} · {{ $reason }}</small></div>
+@endif @endforeach
+@foreach($cell['blocks'] as $block)
+@php $booking=$block['booking']; $dialogId='booking-'.$court->id.'-'.$day->format('Ymd').'-'.$booking->id.'-'.$loop->index; @endphp
+<button type="button" class="sc-block state-{{ $block['state'] }}" @if($mode === 'day') style="grid-column:{{ $block['column'] }} / span {{ $block['span'] }}" @endif data-dialog="{{ $dialogId }}"><strong>{{ $block['start'] }} – {{ $block['end'] }}</strong><span>{{ $booking->booking_code }}</span><span>{{ $booking->user?->name }}</span><small>{{ $labels[$block['state']] }}{{ $block['incident'] ? ' · ⚠ Sự cố' : '' }}</small><small>{{ $booking->payment_status === 'PAID' ? '✓ Đã thanh toán tiền sân' : 'Chưa thanh toán / đã hoàn' }}</small>@if($block['state'] === 'PENDING_PAYMENT' && $booking->hold_expires_at)<small data-hold-until="{{ $booking->hold_expires_at->toIso8601String() }}">Đang giữ chỗ</small>@endif</button>
+@endforeach
+</div></td>
+@endforeach</tr>@endforeach
+</tbody></table></div>
+@endif
+@foreach($courts as $court) @foreach($dates as $day) @foreach($cells[$court->id.'|'.$day->toDateString()]['blocks'] as $block)
+@php
+$booking=$block['booking']; $dialogId='booking-'.$court->id.'-'.$day->format('Ymd').'-'.$booking->id.'-'.$loop->index;
+$services=$booking->services->filter(fn ($line)=>!$line->service_order_id || $booking->serviceOrders->contains(fn ($o)=>$o->id === $line->service_order_id && $o->status !== 'CANCELLED'));
+$extra=$booking->serviceOrders->where('status','!=','CANCELLED')->sum(fn ($o)=>(float)$o->payment->amount);
+$phone=$booking->user?->phone; $masked=$phone ? substr($phone,0,2).str_repeat('*',max(0,strlen($phone)-4)).substr($phone,-2) : 'Chưa có';
+@endphp
+<dialog id="{{ $dialogId }}" class="sc-dialog"><div class="sc-dialog-heading"><div><small>CHI TIẾT BOOKING</small><h2>{{ $booking->booking_code }}</h2></div><button type="button" data-close aria-label="Đóng">×</button></div>
+<dl><dt>Khách</dt><dd>{{ $booking->user?->name }} · {{ $masked }}</dd><dt>Sân / ngày</dt><dd>{{ $court->name }} · {{ $day->format('d/m/Y') }}</dd><dt>Giờ</dt><dd>{{ $block['start'] }} – {{ $block['end'] }}</dd><dt>Booking</dt><dd>{{ $labels[$block['state']] }}{{ $block['incident'] ? ' · ⚠ Sự cố chưa xử lý' : '' }}</dd><dt>Thanh toán sân</dt><dd>{{ ['PAID'=>'Đã thanh toán','PENDING'=>'Chờ thanh toán','REFUNDED'=>'Đã hoàn tiền','PARTIALLY_REFUNDED'=>'Đã hoàn một phần'][$booking->payment_status] ?? $booking->payment_status }}</dd><dt>Tiền booking</dt><dd>{{ number_format($booking->total_amount,0,',','.') }}đ</dd><dt>Dịch vụ thu riêng</dt><dd>{{ number_format($extra,0,',','.') }}đ</dd><dt>Tổng booking + dịch vụ</dt><dd><strong>{{ number_format($booking->total_amount+$extra,0,',','.') }}đ</strong></dd></dl>
+<p class="small text-muted">Số tiền tính cho toàn booking; dịch vụ cũ đã gộp trong booking không cộng lại.</p>
+@if($services->isNotEmpty())<h3 class="h6">Dịch vụ</h3><ul>@foreach($services as $line)<li>{{ $line->quantity }} × {{ $line->item?->name }}</li>@endforeach</ul>@endif
+<div class="sc-actions">
+@if($booking->status === 'CONFIRMED' && $day->isToday() && auth()->user()->hasPermission('bookings.checkin'))<form method="POST" action="{{ route('employee.bookings.check-in',$booking) }}">@csrf<button class="btn btn-primary btn-sm">Check-in</button></form>@endif
+@if(auth()->user()->hasPermission('bookings.view'))
+@if($booking->status === 'CHECKED_IN' && auth()->user()->hasPermission('services.manage'))<a class="btn btn-outline-primary btn-sm" href="{{ route('employee.bookings.show',$booking) }}#booking-services">Thêm dịch vụ</a>@endif
+<a class="btn btn-outline-secondary btn-sm" href="{{ route('employee.bookings.show',$booking) }}">Chi tiết</a>@endif
+</div></dialog>
+@endforeach @endforeach @endforeach
 </div>
 @endsection
-
 @push('scripts')
-<script>
-    document.getElementById('scheduleDateInput')?.addEventListener('change', function () {
-        if (this.value) {
-            window.location.href = "{{ route('employee.schedule') }}?mode={{ $mode }}&date=" + this.value;
-        }
-    });
-</script>
+<script src="{{ asset('js/employee-schedule.js') }}" defer></script>
 @endpush

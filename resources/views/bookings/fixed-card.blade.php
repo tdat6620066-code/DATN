@@ -11,7 +11,7 @@
         <p>{{ $group->bookings->count() }} buổi · {{ \Carbon\Carbon::parse($group->definition['start_date'])->format('d/m/Y') }} – {{ \Carbon\Carbon::parse($group->definition['end_date'])->format('d/m/Y') }}</p>
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <strong>{{ number_format($group->total_price ?? $group->bookings->sum('total_amount'), 0, ',', '.') }}đ</strong>
-            <a class="btn btn-outline-primary btn-sm" href="{{ route('bookings.fixed.show', $group) }}">{{ in_array($group->status, ['AWAITING_PAYMENT','PAYMENT_FAILED']) ? 'Xem lịch và thanh toán' : 'Xem các buổi đã đặt' }}</a>
+            <a class="btn btn-outline-primary btn-sm" href="{{ route('bookings.fixed.show', $group) }}">{{ $group->status === 'AWAITING_PAYMENT' ? 'Xem lịch và thanh toán' : 'Xem chi tiết lịch' }}</a>
         </div>
     </div>
 </article>

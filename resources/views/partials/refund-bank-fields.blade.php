@@ -1,5 +1,6 @@
 <label class="form-label">Ngân hàng</label>
-<input name="bank_name" class="form-control mb-2" maxlength="100" placeholder="Ví dụ: MB Bank" autocomplete="off" required>
+<input name="bank_name" class="form-control mb-2" maxlength="100" placeholder="Ví dụ: MB Bank" autocomplete="off" list="refund-bank-options" required>
+<datalist id="refund-bank-options"><option value="MB Bank"><option value="Vietcombank"><option value="BIDV"><option value="VietinBank"><option value="Agribank"><option value="Techcombank"><option value="ACB"><option value="VPBank"><option value="TPBank"><option value="Sacombank"></datalist>
 <label class="form-label">Số tài khoản</label>
 <input name="bank_account_number" class="form-control mb-2" inputmode="numeric" pattern="[0-9]{6,34}" maxlength="34" autocomplete="off" required>
 <label class="form-label">Tên chủ tài khoản</label>

@@ -217,6 +217,29 @@ class RecurringBookingTest extends TestCase
         $this->assertDatabaseCount('fixed_bookings', 0);
     }
 
+    public function test_daily_booking_also_requires_consecutive_hours_on_server(): void
+    {
+        $late = TimeSlot::create(['name' => '22:00 - 23:00', 'start_time' => '22:00', 'end_time' => '23:00', 'duration' => 60, 'status' => 'ACTIVE']);
+        $this->court->prices()->create(['time_slot_id' => $late->id, 'price' => 150000, 'day_type' => 'WEEKDAY', 'effective_from' => '2026-01-01', 'status' => 'ACTIVE']);
+        $payload = ['court_id' => $this->court->id, 'booking_date' => '2026-09-15', 'time_slot_ids' => [$this->slot->id, $late->id]];
+        $this->post(route('bookings.store'), $payload)->assertSessionHasErrors('time_slot_ids');
+        $this->assertDatabaseCount('bookings', 0);
+        try {
+            app(\App\Services\BookingService::class)->createBooking($this->customer->id, [
+                ['court_id' => $this->court->id, 'booking_date' => '2026-09-15', 'time_slot_id' => $this->slot->id],
+                ['court_id' => $this->court->id, 'booking_date' => '2026-09-15', 'time_slot_id' => $late->id],
+            ]);
+            $this->fail('A service caller must not bypass the consecutive-hours rule.');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('liền nhau', json_decode($e->getMessage(), true)[0]['message']);
+        }
+        $this->assertDatabaseCount('bookings', 0);
+        $payload['time_slot_ids'] = [$this->otherSlot->id, $this->slot->id];
+        $this->post(route('bookings.store'), $payload)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('bookings', 1);
+        $this->assertDatabaseCount('booking_details', 2);
+    }
+
     public function test_conflicting_part_of_consecutive_session_can_be_explicitly_skipped(): void
     {
         $existing = $this->occupied('2026-09-15');
@@ -303,14 +326,58 @@ class RecurringBookingTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'CUSTOMER']))->post(route('bookings.fixed.pay', $group))->assertForbidden();
     }
 
-    public function test_failed_payment_can_retry_only_within_the_original_hold(): void
+    public function test_failed_payment_releases_every_slot_and_cannot_be_revived(): void
     {
         $group = $this->checkoutGroup();
         $this->get(route('bookings.vnpay.ipn', $this->callbackData($group, ['vnp_ResponseCode' => '24', 'vnp_TransactionStatus' => '02'])))->assertJson(['RspCode' => '00']);
         $this->assertSame('PAYMENT_FAILED', $group->fresh()->status);
-        $this->assertSame(2, $group->bookings()->where('status', 'PENDING_PAYMENT')->count());
-        $this->get(route('bookings.vnpay.ipn', $this->callbackData($group)))->assertJson(['RspCode' => '00']);
-        $this->assertSame('ACTIVE', $group->fresh()->status);
+        $this->assertSame(2, $group->bookings()->where('status', 'EXPIRED')->count());
+        foreach ($group->bookings as $booking) {
+            foreach ($booking->bookingDetails as $detail) {
+                $this->assertSame('AVAILABLE', app(\App\Services\CourtAvailabilityService::class)->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+            }
+        }
+        $this->get(route('bookings.fixed.show', $group))->assertOk()->assertSee('Thanh toán thất bại')->assertDontSee('Thanh toán VNPay 300.000đ');
+        $this->post(route('bookings.fixed.pay', $group))->assertSessionHas('error');
+        $this->get(route('bookings.vnpay.ipn', $this->callbackData($group)))->assertJson(['RspCode' => '02']);
+        $this->travel(16)->minutes();
+        $this->artisan('bookings:expire-holds')->assertSuccessful();
+        $this->assertSame(1, \App\Models\Notification::where('unique_key', 'fixed-booking:FAILED:'.$group->id)->count());
+        $this->assertSame(0, \App\Models\Notification::where('unique_key', 'fixed-booking:EXPIRED:'.$group->id)->count());
+        $this->assertSame('PAYMENT_FAILED', $group->fresh()->status);
+    }
+
+    public function test_ten_sessions_across_courts_are_all_held_then_released_on_failure(): void
+    {
+        $this->occupied('2026-09-29');
+        $draft = $this->review($this->preview($this->definition(['end_date' => '2026-11-17'])), [
+            '2026-09-29-'.$this->slot->id => $this->alternative->id.'-'.$this->slot->id,
+        ]);
+        $this->post(route('bookings.store-recurring'), $this->confirmation($draft))->assertSessionHasNoErrors();
+        $group = FixedBooking::firstOrFail();
+        $details = $group->bookings->flatMap->bookingDetails;
+        $this->assertCount(10, $details);
+        $this->assertCount(2, $details->pluck('court_id')->unique());
+        $availability = app(\App\Services\CourtAvailabilityService::class);
+        $other = User::factory()->create();
+        foreach ($details as $detail) {
+            $this->assertSame('HOLD', $availability->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+            try {
+                app(\App\Services\BookingService::class)->createBooking($other->id, [[
+                    'court_id' => $detail->court_id, 'time_slot_id' => $detail->time_slot_id,
+                    'booking_date' => $detail->booking_date->toDateString(),
+                ]], null, ['booking_type' => 'weekly']);
+                $this->fail('Every held session must reject another customer.');
+            } catch (\Exception $exception) {
+                $errors = json_decode($exception->getMessage(), true);
+                $this->assertSame('Khung giờ này đang được giữ', $errors[0]['message'] ?? null);
+            }
+        }
+        $this->get(route('bookings.vnpay.ipn', $this->callbackData($group, ['vnp_ResponseCode' => '24', 'vnp_TransactionStatus' => '02'])))->assertJsonPath('RspCode', '00');
+        foreach ($details as $detail) {
+            $this->assertSame('AVAILABLE', $availability->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+        }
+        $this->assertSame(10, $group->bookings()->where('status', 'EXPIRED')->count());
     }
 
     public function test_expiration_releases_all_slots_and_late_payment_does_not_revive_them(): void
@@ -363,6 +430,7 @@ class RecurringBookingTest extends TestCase
     {
         $single = app(\App\Services\BookingService::class)->createBooking($this->customer->id,
             [['court_id' => $this->court->id, 'time_slot_id' => $this->slot->id, 'booking_date' => '2026-09-15']]);
+        $this->travelTo($single->hold_expires_at);
         $group = $this->checkoutGroup();
         $singleData = $this->callbackData($group, ['vnp_TxnRef' => $single->id.now()->format('YmdHis'), 'vnp_Amount' => '15000000']);
         $this->get(route('bookings.vnpay.ipn', $singleData))->assertJson(['RspCode' => '02']);
@@ -436,7 +504,7 @@ class RecurringBookingTest extends TestCase
         $singles = [];
         for ($i = 0; $i < 16; $i++) {
             $singles[] = app(\App\Services\BookingService::class)->createBooking($this->customer->id,
-                [['court_id' => $this->alternative->id, 'time_slot_id' => $this->slot->id, 'booking_date' => '2026-09-15']])->id;
+                [['court_id' => $this->alternative->id, 'time_slot_id' => $this->slot->id, 'booking_date' => \Carbon\Carbon::parse('2026-09-15')->addDays($i)->toDateString()]])->id;
         }
         $page = $this->get(route('bookings.index'))->assertOk()->viewData('bookings');
         $this->assertSame(17, $page->total());
