@@ -101,7 +101,7 @@
                 <h5><i class="bi bi-qr-code me-2"></i>Mã QR check-in</h5>
             </div>
             <div class="qr-body">
-                <!-- <div class="booking-code-pill mb-3">{{ $booking->booking_code }}</div> -->
+                <div class="booking-code-pill mb-3">{{ $booking->booking_code }}</div><br>
 
                 <div class="qr-box">
                     {!! $qr_code !!}
@@ -109,7 +109,7 @@
 
                 <p class="text-muted small mb-0 mt-3">
                     <i class="bi bi-info-circle me-1"></i>
-                    Xuất trình mã QR này tại sân để nhân viên check-in.
+                    Mã được tạo tự động cho đơn này. Quét mã để xem thông tin mới nhất; xuất trình tại sân để nhân viên xác nhận nhận sân.
                 </p>
 
                 <div class="qr-info">
@@ -119,7 +119,7 @@
                     </div>
                     <div class="row-line">
                         <span>Trạng thái</span>
-                        <strong>{{ $booking->status === 'CHECKED_IN' ? 'Đã nhận sân' : 'Đã xác nhận' }}</strong>
+                        <strong>{{ ['PENDING_PAYMENT'=>'Chờ thanh toán', 'CONFIRMED'=>'Đã xác nhận', 'CHECKED_IN'=>'Đã nhận sân', 'COMPLETED'=>'Đã hoàn thành', 'CANCELLED'=>'Đã hủy', 'EXPIRED'=>'Đã hết hạn'][$booking->status] ?? 'Chưa xác định' }}</strong>
                     </div>
                     @foreach($booking->bookingDetails as $detail)
                     <div class="row-line">

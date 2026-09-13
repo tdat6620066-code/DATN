@@ -39,9 +39,13 @@ class BookingService
      * Create booking with transaction and locking
      * UC18, UC19, UC20
      */
-    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [], ?float $allocatedDiscount = null)
+    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [], ?float $allocatedDiscount = null, array $services = [])
     {
-        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata, $allocatedDiscount) {
+        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata, $allocatedDiscount, $services) {
+            // Lock all owners before any consistent read, including multi-court requests.
+            // This also keeps lock order identical to recurring checkout.
+            Court::whereIn('id', array_column($bookingDetails, 'court_id'))->orderBy('id')->lockForUpdate()->get();
+            TimeSlot::whereIn('id', array_column($bookingDetails, 'time_slot_id'))->orderBy('id')->lockForUpdate()->get();
             // Validate and lock all booking details
             $maxDays = in_array($metadata['booking_type'] ?? 'daily', ['weekly', 'monthly'], true)
                 ? config('booking.max_recurring_days', 365)
@@ -81,7 +85,7 @@ class BookingService
                 'total_amount' => $totalAmount,
                 'status' => 'PENDING_PAYMENT',
                 'payment_status' => 'PENDING',
-                'hold_expires_at' => now()->addMinutes(config('booking.hold_timeout', 10)),
+                'hold_expires_at' => now()->addMinutes(config('booking.hold_timeout', 5)),
             ] + $metadata);
 
             // Create booking details
@@ -103,6 +107,10 @@ class BookingService
             }
 
             // Create payment record
+            if ($services) {
+                app(ServiceOrderService::class)->includeInBooking($booking, $services);
+                $totalAmount = $booking->total_amount;
+            }
             if (empty($metadata['fixed_booking_id'])) {
                 $this->paymentService->createPayment($booking, $totalAmount);
             }
@@ -475,33 +483,7 @@ class BookingService
      */
     public function checkoutBooking(Booking $booking, ?int $employeeId = null): Booking
     {
-        return DB::transaction(function () use ($booking, $employeeId) {
-            $lockedBooking = Booking::query()
-                ->with('bookingDetails')
-                ->lockForUpdate()
-                ->findOrFail($booking->id);
-
-            if ($lockedBooking->status !== 'CHECKED_IN') {
-                throw new \DomainException('Chỉ booking đã check-in mới được check-out.');
-            }
-
-            $checkedOutAt = now();
-
-            $lockedBooking->update([
-                'status' => 'COMPLETED',
-                'checked_out_at' => $checkedOutAt,
-                'checked_out_by' => $employeeId,
-            ]);
-
-            $lockedBooking->bookingDetails()->where('status', '!=', 'CANCELLED')->update(['status' => 'COMPLETED']);
-
-            $courtIds = $lockedBooking->bookingDetails->pluck('court_id')->unique();
-            Court::query()
-                ->whereIn('id', $courtIds)
-                ->update(['availability_status' => 'AVAILABLE']);
-
-            return $lockedBooking->fresh(['bookingDetails.court']);
-        });
+        return app(BookingOperationsService::class)->checkout($booking, \App\Models\User::findOrFail($employeeId));
     }
 
     /**

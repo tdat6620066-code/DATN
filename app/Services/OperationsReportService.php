@@ -18,6 +18,7 @@ class OperationsReportService
 
         return [
             'total' => $details->pluck('booking_id')->unique()->count(),
+            'no_show' => $details->where('booking.status', 'NO_SHOW')->pluck('booking_id')->unique()->count(),
             'completed' => $details->where('status', 'COMPLETED')->pluck('booking_id')->unique()->count(),
             'cancelled' => $details->where('status', 'CANCELLED')->pluck('booking_id')->unique()->count(),
             'incident' => $incidentBookings->count(),

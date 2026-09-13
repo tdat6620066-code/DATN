@@ -8,7 +8,7 @@ class Payment extends Model
 {
     protected $fillable = [
         'booking_id', 'fixed_booking_id', 'transaction_id', 'amount', 'payment_method',
-        'status', 'paid_at', 'refunded_amount', 'refund_status',
+        'status', 'paid_at', 'refunded_amount', 'refund_status', 'purpose',
     ];
 
     protected $casts = [
@@ -31,13 +31,15 @@ class Payment extends Model
 
     public function scopeForBooking($query, Booking $booking)
     {
-        return $query->where(function ($q) use ($booking) {
+        return $query->where('purpose', 'BOOKING')->where(function ($q) use ($booking) {
             $q->where('booking_id', $booking->id);
             if ($booking->fixed_booking_id) {
                 $q->orWhere('fixed_booking_id', $booking->fixed_booking_id);
             }
         });
     }
+
+    public function serviceOrder() { return $this->hasOne(ServiceOrder::class); }
 
     public function hasRefundActivity(): bool
     {

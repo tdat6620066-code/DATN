@@ -15,6 +15,7 @@
 @include('partials.refund-receipt', ['receipt' => $item->refund])
 @elseif($item->status !== 'APPROVED')<p>Yêu cầu chưa được Admin phê duyệt.</p>
 @elseif(!$item->processing_started_at || !$item->refund_method)
+@if($item->needsBankConfirmation())<p class="alert alert-warning">Chờ khách xác nhận tài khoản nhận tiền. Chỉ bắt đầu chuyển khoản sau khi khách xác nhận lại tại trang chi tiết đơn hoặc yêu cầu hỗ trợ.</p>@endif
 <form method="POST" action="{{ route('special-refunds.processing',$item) }}">@csrf
 <label>Phương thức hoàn tiền</label><select name="refund_method" class="form-select mb-3" required><option value="BANK_TRANSFER">Chuyển khoản ngân hàng</option><option value="CASH">Tiền mặt</option></select>
 <p>Kiểm tra thông tin nhận tiền với khách trước khi bắt đầu. Thao tác này chưa ghi nhận tiền đã hoàn.</p><button class="sz-action sz-action--primary"><i class="bi bi-wallet2" aria-hidden="true"></i>Bắt đầu chi trả</button></form>

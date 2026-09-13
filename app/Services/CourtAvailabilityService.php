@@ -121,11 +121,7 @@ class CourtAvailabilityService
             ->where('status', 'PENDING')
             ->whereHas('booking', function ($query) {
                 $query->where('status', 'PENDING_PAYMENT')
-                    ->where('hold_expires_at', '>', now())
-                    ->where(function ($query) {
-                        $query->whereDoesntHave('fixedBooking')
-                            ->orWhereHas('fixedBooking', fn ($q) => $q->whereIn('status', ['AWAITING_PAYMENT', 'PAYMENT_FAILED']));
-                    });
+                    ->where('hold_expires_at', '>', now());
             })
             ->exists();
     }

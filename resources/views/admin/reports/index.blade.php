@@ -1,10 +1,16 @@
 @extends('layouts.admin')
-@section('page_heading', 'Báo cáo booking và hoàn tiền')
+@section('page_heading', 'Báo cáo doanh thu sân')
 @section('content')
 <div class="d-flex flex-wrap gap-3 justify-content-between mb-4">
-<a href="{{ route('admin.dashboard', ['from'=>$from->toDateString(), 'to'=>$to->toDateString()]) }}" class="btn btn-outline-success">Báo cáo dòng tiền</a>
+<a href="{{ route('admin.reports.cash-flow', ['from'=>$from->toDateString(), 'to'=>$to->toDateString()]) }}" class="btn btn-outline-success">Báo cáo thanh toán / dòng tiền</a>
 <form class="d-flex gap-2" method="GET"><label>Từ ngày<input type="date" class="form-control" name="from" value="{{ $from->toDateString() }}"></label><label>Đến ngày<input type="date" class="form-control" name="to" value="{{ $to->toDateString() }}"></label><button class="btn btn-dark">Áp dụng</button></form>
 </div>
+<section class="card p-4 mb-4"><h1 class="h4">Doanh thu sân theo ngày sử dụng</h1>
+<strong class="fs-2">{{ number_format($revenue['revenue']) }}đ</strong><p>{{ $revenue['slots'] }} lượt đã hoàn thành trong kỳ.</p>
+<p>Ghi nhận theo ngày sử dụng của lượt đã hoàn thành, sau phân bổ giảm giá. Lượt bị hủy không ghi nhận doanh thu. Khoản hoàn đã chi trả được điều chỉnh về lượt sử dụng liên quan; tiền ra vẫn được ghi riêng theo ngày hoàn tiền trong báo cáo dòng tiền.</p>
+<table class="table"><thead><tr><th>Ngày sử dụng</th><th>Doanh thu sân</th></tr></thead><tbody>@forelse($revenue['daily'] as $date=>$amount)<tr><td>{{ $date }}</td><td>{{ number_format($amount) }}đ</td></tr>@empty<tr><td colspan="2">Chưa có lượt hoàn thành trong kỳ.</td></tr>@endforelse</tbody></table>
+<h2 class="h5">Theo sân</h2><table class="table"><thead><tr><th>Sân</th><th>Lượt hoàn thành</th><th>Doanh thu</th></tr></thead><tbody>@foreach($revenue['courts'] as $row)<tr><td>{{ $row['name'] }}</td><td>{{ $row['slots'] }}</td><td>{{ number_format($row['amount']) }}đ</td></tr>@endforeach</tbody></table>
+</section>
 <section class="card p-4 mb-4"><h2 class="h4">Booking theo ngày sử dụng sân</h2>
 <p>Đếm booking có lượt sân trong kỳ, không dựa vào ngày thanh toán. Booking có nhiều lượt được đếm một lần trong mỗi chỉ số; các nhóm trạng thái có thể giao nhau. Sự cố tính theo ngày của lượt sân gốc, kể cả khi khách đã đổi lịch.</p>
 <div class="row g-3">

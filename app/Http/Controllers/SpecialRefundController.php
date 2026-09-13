@@ -167,6 +167,9 @@ class SpecialRefundController extends Controller
             if ($data['refund_method'] === 'BANK_TRANSFER' && (! $item->bank_name || ! $item->bank_account_number || ! $item->bank_account_holder)) {
                 throw ValidationException::withMessages(['refund_method' => 'Khách cần cung cấp đầy đủ thông tin nhận chuyển khoản.']);
             }
+            if ($data['refund_method'] === 'BANK_TRANSFER' && ! $item->processing_started_at && $item->needsBankConfirmation()) {
+                throw ValidationException::withMessages(['refund_method' => 'Khách cần xác nhận lại tài khoản nhận tiền trước khi chuyển khoản.']);
+            }
             if (! $item->processing_started_at || ! $item->refund_method) {
                 $item->forceFill(['processing_started_at' => $item->processing_started_at ?? now(), 'refund_method' => $data['refund_method']])->save();
                 $notifications->refundProgress($item, 'PROCESSING');

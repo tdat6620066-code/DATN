@@ -25,6 +25,10 @@ class AdminDashboardTest extends TestCase
             'booking_id' => $booking->id, 'amount' => 250000,
             'status' => 'PAID', 'paid_at' => now(),
         ]);
+        $type = \App\Models\CourtType::create(['name' => 'Standard']);
+        $court = \App\Models\Court::create(['name' => 'Court', 'code' => 'KPI', 'court_type_id' => $type->id, 'status' => 'ACTIVE']);
+        $slot = \App\Models\TimeSlot::create(['name' => 'Morning', 'start_time' => '08:00', 'end_time' => '09:00', 'duration' => 60, 'status' => 'ACTIVE']);
+        $booking->bookingDetails()->create(['court_id' => $court->id, 'time_slot_id' => $slot->id, 'booking_date' => today(), 'price' => 250000, 'subtotal' => 250000, 'status' => 'COMPLETED']);
 
         $this->actingAs($admin)->get(route('admin.dashboard', [
             'from' => today()->toDateString(), 'to' => today()->toDateString(),

@@ -2,6 +2,7 @@
 @section('title', 'Chi tiết giao dịch - SmashZone')
 @section('page_heading', 'Chi tiết giao dịch')
 @section('content')
+@if($payment->purpose === 'SERVICE')<p class="badge text-bg-primary">Thanh toán dịch vụ riêng</p>@endif
 <div class="alert alert-light border">Giao dịch thu: <strong>{{ $payment->status }}</strong> · Tiền gốc: {{ number_format($payment->amount) }}đ · Đã hoàn: {{ number_format($payment->refunded_amount) }}đ · Trạng thái hoàn: {{ $payment->refund_status }}</div>
 <a href="{{ route('admin.payments.index') }}">← Danh sách giao dịch</a><h1 class="h3 fw-bold my-3">{{ $payment->transaction_id ?: 'Giao dịch #'.$payment->id }}</h1>
 <div class="row g-4"><div class="col-lg-7"><section class="card border-0 shadow-sm p-4 mb-4"><h2 class="h5">Thông tin giao dịch</h2><dl class="row mb-0"><dt class="col-4">Booking</dt><dd class="col-8">{{ ($payment->fixedBooking?->code ?? $payment->booking?->booking_code) }}</dd><dt class="col-4">Khách hàng</dt><dd class="col-8">{{ ($payment->fixedBooking?->user ?? $payment->booking?->user)?->name }} · {{ ($payment->fixedBooking?->user ?? $payment->booking?->user)?->email }}</dd><dt class="col-4">Số tiền</dt><dd class="col-8">{{ number_format($payment->amount) }}đ</dd><dt class="col-4">Trạng thái</dt><dd class="col-8">{{ $payment->status }}</dd></dl></section>

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
@@ -179,6 +180,8 @@ class AuthController extends Controller
                     'Đăng ký tài khoản thành công!'
                 );
 
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
 
             // Ghi log lỗi
@@ -191,7 +194,7 @@ class AuthController extends Controller
             );
 
             return back()
-                ->withInput()
+                ->withInput($request->except('password', 'password_confirmation'))
                 ->with(
                     'error',
                     'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.'

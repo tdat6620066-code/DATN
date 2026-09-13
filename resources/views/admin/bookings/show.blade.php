@@ -23,4 +23,5 @@
 @endif
 </aside></div>
 </div>
+@include('partials.service-orders')
 @endsection

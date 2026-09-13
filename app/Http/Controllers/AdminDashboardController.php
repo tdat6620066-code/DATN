@@ -28,7 +28,8 @@ class AdminDashboardController extends Controller
         abort_if($from->diffInDays($to) > 366, 422, 'Khoảng thống kê tối đa là 366 ngày.');
 
         $periodBookings = Booking::whereBetween('created_at', [$from, $to]);
-        $report = $reports->report($from, $to);
+        $report = $reports->cashFlow($from, $to);
+        $courtRevenue = $reports->courtRevenue($from, $to);
         $bookedSlots = BookingDetail::whereBetween('booking_date', [$from->toDateString(), $to->toDateString()])
             ->where('status', '!=', 'CANCELLED')
             ->whereHas('booking', fn ($query) => $query->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']))
@@ -41,7 +42,7 @@ class AdminDashboardController extends Controller
             'courts' => Court::count(),
             'customers' => User::where('role', 'CUSTOMER')->count(),
             'bookings' => (clone $periodBookings)->count(),
-            'revenue' => $report['net_revenue'],
+            'revenue' => $courtRevenue['revenue'],
             'gross_revenue' => $report['gross_revenue'],
             'refund_amount' => $report['refund_amount'],
             'net_revenue' => $report['net_revenue'],
@@ -57,7 +58,8 @@ class AdminDashboardController extends Controller
             'bookings' => $days->map(fn ($day) => $bookingDaily[$day->toDateString()] ?? 0)->values(),
             'gross_revenue' => $days->map(fn ($day) => (float) ($report['gross_daily'][$day->toDateString()] ?? 0))->values(),
             'refund_amount' => $days->map(fn ($day) => (float) ($report['refund_daily'][$day->toDateString()] ?? 0))->values(),
-            'revenue' => $days->map(fn ($day) => round((float) ($report['gross_daily'][$day->toDateString()] ?? 0) - (float) ($report['refund_daily'][$day->toDateString()] ?? 0), 2))->values(),
+            'revenue' => $days->map(fn ($day) => (float) ($courtRevenue['daily'][$day->toDateString()] ?? 0))->values(),
+            'net_cash' => $days->map(fn ($day) => round((float) ($report['gross_daily'][$day->toDateString()] ?? 0) - (float) ($report['refund_daily'][$day->toDateString()] ?? 0), 2))->values(),
         ];
 
         $popularCourts = Court::with('courtType')

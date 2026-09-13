@@ -37,11 +37,16 @@ class IncidentTicketController extends Controller
     public function store(Request $request, Booking $booking, IncidentTicketService $service)
     {
         abort_unless($booking->user_id === $request->user()->id, 403);
-        $data = $request->validate([
+        $bankFields = array_keys(\App\Services\RefundRecipientService::rules());
+        $validator = validator($request->all(), [
             'booking_detail_id' => ['required', 'integer'], 'type' => ['required', Rule::in(array_keys(CourtIncident::TYPES))],
             'description' => ['required', 'string', 'min:10', 'max:4000'],
             'requested_solution' => ['required', Rule::in(array_keys(CourtIncident::SOLUTIONS))],
-        ] + $this->fileRules());
+        ] + $this->fileRules() + ($request->input('requested_solution') === 'REFUND' ? \App\Services\RefundRecipientService::rules() : []));
+        // Sensitive recipient values must never be flashed by a later validation exception.
+        foreach ($bankFields as $field) $request->request->remove($field);
+        if ($validator->fails()) return back()->withErrors($validator)->withInput($request->except('evidences'));
+        $data = $validator->validated();
         $paths = [];
         try {
             $ticket = DB::transaction(function () use ($request, $booking, $data, $service, &$paths) {
@@ -55,6 +60,9 @@ class IncidentTicketController extends Controller
                 $detail = $locked->bookingDetails()->findOrFail($data['booking_detail_id']);
                 $ticket = CourtIncident::create(['incident_code' => 'TK-'.Str::uuid(), 'source' => 'CUSTOMER', 'booking_id' => $locked->id, 'booking_detail_id' => $detail->id, 'active_booking_id' => $locked->id, 'court_id' => $detail->court_id, 'customer_id' => $request->user()->id, 'reported_by' => $request->user()->id, 'type' => $data['type'], 'description' => $data['description'], 'requested_solution' => $data['requested_solution'], 'severity' => 'MEDIUM', 'status' => 'PENDING']);
                 $this->evidence($request, $ticket, $paths);
+                if ($data['requested_solution'] === 'REFUND') {
+                    $ticket->forceFill(['refund_recipient' => \Illuminate\Support\Arr::only($data, array_keys(\App\Services\RefundRecipientService::rules())) + ['confirmed_at' => now()->toIso8601String()]])->save();
+                }
                 $ticket->forceFill(['booking_snapshot' => ['court_id' => $detail->court_id, 'date' => $detail->booking_date->toDateString(), 'time_slot_id' => $detail->time_slot_id, 'start_time' => $detail->timeSlot->start_time, 'end_time' => $detail->timeSlot->end_time]])->save();
                 $ticket->updates()->create(['actor_id' => $request->user()->id, 'status' => 'PENDING', 'event_type' => 'SUBMITTED', 'note' => $data['description']]);
                 $service->notify($ticket, 'Đã ghi nhận yêu cầu hỗ trợ, chờ nhân viên tiếp nhận.', false);
@@ -78,7 +86,7 @@ class IncidentTicketController extends Controller
 
         $timeline = app(IncidentTimelineService::class)->ticket($ticket);
 
-        return view('incident-tickets.show', compact('ticket', 'staff', 'timeline'));
+        return response()->view('incident-tickets.show', compact('ticket', 'staff', 'timeline'))->header('Cache-Control', 'private, no-store');
     }
 
     public function supplement(Request $request, CourtIncident $ticket, IncidentTicketService $service)

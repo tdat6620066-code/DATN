@@ -80,6 +80,29 @@ class ManualRefundPayoutTest extends TestCase
         $this->assertDatabaseHas('refunds', ['refund_method' => 'CASH', 'processed_by' => $admin->id]);
     }
 
+    public function test_stale_bank_requires_owner_confirmation_and_processing_locks_it(): void
+    {
+        $customer = User::factory()->create();
+        $admin = User::factory()->create(['role' => 'ADMIN']);
+        $booking = Booking::create(['booking_code' => 'STALE-BANK', 'user_id' => $customer->id, 'total_amount' => 200000, 'status' => 'CONFIRMED', 'payment_status' => 'PAID']);
+        Payment::create(['booking_id' => $booking->id, 'amount' => 200000, 'status' => 'PAID', 'paid_at' => now()]);
+        $item = RefundRequest::create(['booking_id' => $booking->id, 'requested_by' => $customer->id, 'reason_code' => 'COURT_FAILURE', 'reason' => 'Failure', 'amount' => 200000, 'status' => 'APPROVED']);
+        $bank = ['bank_name' => 'MB Bank', 'bank_account_number' => '001234567890', 'bank_account_holder' => 'TEST CUSTOMER', 'recipient_confirmed' => 1];
+        $this->actingAs($customer)->post(route('refund-recipient.update', $item), $bank)->assertSessionHasNoErrors();
+        $this->travel(24)->hours();
+        $this->assertSame('WAITING_BANK_CONFIRMATION', $item->fresh()->payout_status);
+        $this->actingAs($admin)->post(route('special-refunds.processing', $item), ['refund_method' => 'BANK_TRANSFER'])->assertSessionHasErrors('refund_method');
+        $confirmation = ['recipient_confirmed' => 1, 'account_version' => hash('sha256', $item->fresh()->bankAccount->getRawOriginal('account_number'))];
+        $this->actingAs(User::factory()->create())->post(route('refund-recipient.confirm', $item), $confirmation)->assertForbidden();
+        $this->actingAs($customer)->post(route('refund-recipient.confirm', $item), array_replace($confirmation, ['account_version' => 'old']))->assertSessionHasErrors('recipient_confirmed');
+        $this->post(route('refund-recipient.confirm', $item), $confirmation)->assertSessionHasNoErrors();
+        $this->assertSame('APPROVED', $item->fresh()->payout_status);
+        $this->actingAs($admin)->post(route('special-refunds.processing', $item), ['refund_method' => 'BANK_TRANSFER'])->assertSessionHasNoErrors();
+        $this->assertSame('PROCESSING', $item->fresh()->payout_status);
+        $this->actingAs($customer)->post(route('refund-recipient.update', $item), $bank)->assertSessionHasErrors();
+        $this->post(route('refund-recipient.confirm', $item), $confirmation)->assertSessionHasErrors('recipient_confirmed');
+    }
+
     public function test_receipt_image_is_required_and_invalid_uploads_do_not_complete_payout(): void
     {
         $admin = User::factory()->create(['role' => 'ADMIN']);

@@ -30,25 +30,35 @@ class PaymentService
      */
     public function markAsPaid(Payment $payment, $transactionId = null, $paymentMethod = null)
     {
+        if ($payment->purpose === 'SERVICE') {
+            if (! app(ServiceOrderService::class)->settle($payment, true, $transactionId, $paymentMethod ?? 'vnpay')) throw new \DomainException('Khoản dịch vụ đã hủy hoặc hết hạn.');
+            return $payment->refresh();
+        }
         if ($payment->fixed_booking_id) {
             if (! app(FixedBookingPaymentService::class)->settle($payment, true, $transactionId, $paymentMethod ?? 'vnpay')) {
                 throw new \DomainException('Lịch cố định đã hết hạn hoặc không còn đủ buổi để xác nhận.');
             }
             return $payment->refresh();
         }
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $transactionId, $paymentMethod) {
-            $courtIds = $payment->booking->bookingDetails()->pluck('court_id');
+        $courtIds = $payment->booking->bookingDetails()->pluck('court_id');
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $transactionId, $paymentMethod, $courtIds) {
             \App\Models\Court::whereIn('id', $courtIds)->orderBy('id')->lockForUpdate()->get();
+            $booking = Booking::lockForUpdate()->findOrFail($payment->booking_id);
             $locked = Payment::lockForUpdate()->findOrFail($payment->id);
+            $locked->setRelation('booking', $booking);
             if ($locked->status !== 'PAID' && ! $locked->hasRefundActivity()) {
+                if ($locked->booking->status === 'EXPIRED' || $locked->booking->isHoldExpired()) {
+                    throw new \DomainException('Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.');
+                }
                 foreach ($locked->booking->bookingDetails()->with('timeSlot')->get() as $detail) {
                     $held = \App\Models\BookingDetail::where('court_id', $detail->court_id)->whereDate('booking_date', $detail->booking_date)
+                        ->where('booking_id', '!=', $locked->booking_id)
                         ->where('status', '!=', 'CANCELLED')->whereHas('timeSlot', fn ($q) => $q->where('start_time', '<', $detail->timeSlot->end_time)->where('end_time', '>', $detail->timeSlot->start_time))
-                        ->whereHas('booking', fn ($q) => $q->whereHas('fixedBooking', fn ($f) => $f->where('status', '!=', 'LEGACY'))
+                        ->whereHas('booking', fn ($q) => $q
                             ->where(fn ($b) => $b->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'])
                                 ->orWhere(fn ($h) => $h->where('status', 'PENDING_PAYMENT')->where('hold_expires_at', '>', now()))))->exists();
                     if ($held) {
-                        throw new \DomainException('Khung giờ đang được giữ cho lịch cố định. Vui lòng liên hệ nhân viên để đối chiếu thanh toán.');
+                        throw new \DomainException('Khung giờ đã được đặt hoặc đang được giữ chỗ. Vui lòng liên hệ nhân viên để đối chiếu thanh toán.');
                     }
                 }
             }
@@ -73,6 +83,7 @@ class PaymentService
             'status' => 'CONFIRMED',
             'payment_status' => 'PAID',
             'confirmed_at' => now(),
+            'hold_expires_at' => null,
         ]);
 
         // Update booking details status
@@ -92,28 +103,24 @@ class PaymentService
      */
     public function markAsFailed(Payment $payment, $transactionId = null)
     {
+        if ($payment->purpose === 'SERVICE') {
+            app(ServiceOrderService::class)->settle($payment, false, $transactionId, 'ADMIN_RECONCILIATION');
+            return $payment->refresh();
+        }
         if ($payment->fixed_booking_id) {
             app(FixedBookingPaymentService::class)->settle($payment, false, $transactionId);
             return $payment->refresh();
         }
-        $payment->refresh();
-        if ($payment->status === 'PAID' || $payment->hasRefundActivity()) return $payment;
-        $wasFailed = $payment->status === 'FAILED';
-        $payment->update([
-            'status' => 'FAILED',
-            'transaction_id' => $transactionId ?? $payment->transaction_id,
-        ]);
-
-        // Update booking status to PENDING_PAYMENT (still on hold)
-        $payment->booking->update([
-            'payment_status' => 'FAILED',
-        ]);
-
-        if (! $wasFailed) {
-            $this->notifications->payment($payment->booking, 'FAILED');
-        }
-
-        return $payment;
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $transactionId) {
+            $booking = Booking::lockForUpdate()->findOrFail($payment->booking_id);
+            $locked = Payment::lockForUpdate()->findOrFail($payment->id);
+            if ($locked->status === 'PAID' || $locked->hasRefundActivity() || $booking->status !== 'PENDING_PAYMENT') return $locked;
+            $locked->update(['status' => 'FAILED', 'transaction_id' => $transactionId ?? $locked->transaction_id]);
+            $booking->update(['status' => 'EXPIRED', 'payment_status' => 'FAILED']);
+            $booking->bookingDetails()->update(['status' => 'CANCELLED']);
+            $this->notifications->payment($booking, 'FAILED');
+            return $locked;
+        }, 3);
     }
 
     /**

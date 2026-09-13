@@ -77,6 +77,18 @@ class IncidentTicketService
             $booking->update(['status' => 'CANCELLED', 'cancelled_at' => now(), 'hold_expires_at' => null]);
         }
 
+        if ($ticket->requested_solution === 'REFUND' && ($ticket->proposed_solution ?? 'REFUND') === 'REFUND' && $ticket->refund_recipient) {
+            $request = $resolution->refundRequests()->create([
+                'booking_id' => $booking->id, 'requested_by' => $ticket->reported_by,
+                'amount' => $amount, 'reason_code' => $ticket->type, 'reason' => $ticket->description,
+                'status' => 'APPROVED', 'cancel_booking' => false,
+                'reviewed_by' => $admin->id, 'reviewed_at' => now(), 'decision_note' => $ticket->review_note,
+            ]);
+            app(RefundRecipientService::class)->save($request, $ticket->refund_recipient, $ticket->refund_recipient['confirmed_at']);
+            $resolution->update(['choice' => 'REFUND', 'status' => 'REFUND_PENDING']);
+            app(CustomerNotificationService::class)->refundProgress($request, 'APPROVED');
+        }
+
     }
 
     public function closeIfResolved(IncidentResolution $resolution): void

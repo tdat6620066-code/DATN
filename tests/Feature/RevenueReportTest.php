@@ -43,7 +43,7 @@ class RevenueReportTest extends TestCase
         $admin = User::factory()->create(['role' => 'ADMIN']);
         $this->actingAs($admin)->get(route('admin.dashboard', ['from' => '2026-09-01', 'to' => '2026-09-02']))->assertOk()
             ->assertViewHas('kpis', fn ($k) => $k['gross_revenue'] === 830000.0 && $k['refund_amount'] === 350000.0 && $k['net_revenue'] === 480000.0)
-            ->assertViewHas('chart', fn ($c) => $c['gross_revenue']->all() === [830000.0, 0.0] && $c['refund_amount']->all() === [0.0, 350000.0] && $c['revenue']->all() === [830000.0, -350000.0]);
+            ->assertViewHas('chart', fn ($c) => $c['gross_revenue']->all() === [830000.0, 0.0] && $c['refund_amount']->all() === [0.0, 350000.0] && $c['net_cash']->all() === [830000.0, -350000.0] && $c['revenue']->all() === [0.0, 0.0]);
         $this->assertDatabaseCount('payments', 4);
         $this->assertDatabaseCount('bookings', 4);
         $this->assertSame('200000.00', $full->fresh()->amount);

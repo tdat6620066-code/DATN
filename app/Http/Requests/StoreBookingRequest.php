@@ -20,6 +20,9 @@ class StoreBookingRequest extends FormRequest
             'time_slot_ids' => 'required|array|min:1',
             'time_slot_ids.*' => 'integer|exists:time_slots,id|distinct',
             'voucher_code' => 'nullable|string|max:50',
+            'services' => 'nullable|array|max:100',
+            'services.*.service_item_id' => 'required|integer|distinct|exists:service_items,id',
+            'services.*.quantity' => 'required|integer|min:0|max:1000',
         ];
     }
 

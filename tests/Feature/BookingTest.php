@@ -75,10 +75,94 @@ class BookingTest extends TestCase
     /**
      * Test 1: Guest cannot access booking creation page
      */
+    public function test_booking_can_include_services_with_server_prices(): void
+    {
+        $item = \App\Models\ServiceItem::create(['code' => 'WATER', 'name' => 'Nước uống', 'price' => 10000, 'stock' => 3, 'is_active' => true]);
+        $user = User::factory()->create(['role' => 'CUSTOMER']);
+        $this->actingAs($user)->get('/booking/create')->assertOk()->assertSee('Dịch vụ thêm')->assertSee('Nước uống');
+        $response = $this->post(route('bookings.store'), [
+            'court_id' => Court::first()->id, 'booking_date' => today()->addDay()->toDateString(),
+            'time_slot_ids' => [TimeSlot::first()->id],
+            'services' => [['service_item_id' => $item->id, 'quantity' => 2, 'price' => 1]],
+        ]);
+        $response->assertSessionHasNoErrors()->assertSessionMissing('error');
+        $booking = \App\Models\Booking::firstOrFail();
+        $response->assertRedirect(route('bookings.show', $booking));
+        $this->assertEquals(170000, $booking->total_amount);
+        $this->assertEquals(170000, $booking->payment->amount);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('service_orders', 0);
+        $this->assertEquals(20000, $booking->services()->sum('subtotal'));
+        $this->get(route('bookings.show', $booking))->assertOk()->assertSee('170.000')->assertSee('Nước uống');
+        $this->assertEquals(1, $item->fresh()->stock);
+        app(\App\Services\PaymentService::class)->markAsPaid($booking->payment, 'INCLUDED-TEST', 'vnpay');
+        $this->assertEquals('PAID', $booking->fresh()->payment_status);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertEquals(1, $item->fresh()->stock);
+    }
+
+    public function test_expired_booking_releases_included_services_once(): void
+    {
+        $item = \App\Models\ServiceItem::create(['code' => 'WATER', 'name' => 'Nước uống', 'price' => 10000, 'stock' => 3, 'is_active' => true]);
+        $this->actingAs(User::factory()->create(['role' => 'CUSTOMER']))->post(route('bookings.store'), [
+            'court_id' => Court::first()->id, 'booking_date' => today()->addDay()->toDateString(),
+            'time_slot_ids' => [TimeSlot::first()->id], 'services' => [['service_item_id' => $item->id, 'quantity' => 2]],
+        ])->assertSessionMissing('error');
+        $this->travel(6)->minutes();
+        $this->artisan('bookings:expire-holds')->assertSuccessful();
+        $booking = \App\Models\Booking::firstOrFail();
+        $this->assertEquals('EXPIRED', $booking->status);
+        $this->assertEquals(3, $item->fresh()->stock);
+        app(\App\Services\ServiceOrderService::class)->releaseIncludedStock($booking);
+        $this->assertEquals(3, $item->fresh()->stock);
+    }
+
+    public function test_insufficient_service_stock_rolls_back_booking(): void
+    {
+        $item = \App\Models\ServiceItem::create(['code' => 'WATER', 'name' => 'Nước uống', 'price' => 10000, 'stock' => 1, 'is_active' => true]);
+        $this->actingAs(User::factory()->create(['role' => 'CUSTOMER']))->post(route('bookings.store'), [
+            'court_id' => Court::first()->id, 'booking_date' => today()->addDay()->toDateString(),
+            'time_slot_ids' => [TimeSlot::first()->id],
+            'services' => [['service_item_id' => $item->id, 'quantity' => 2]],
+        ])->assertSessionHas('error');
+        $this->assertDatabaseCount('bookings', 0);
+        $this->assertDatabaseCount('payments', 0);
+        $this->assertDatabaseCount('service_orders', 0);
+        $this->assertEquals(1, $item->fresh()->stock);
+    }
+
     public function test_guest_redirected_to_login_on_booking_create()
     {
         $response = $this->get('/booking/create');
         $response->assertRedirect('/login');
+    }
+
+    public function test_each_booking_automatically_has_a_qr_that_opens_current_information(): void
+    {
+        $user = User::factory()->create(['role' => 'CUSTOMER']);
+        $this->actingAs($user)->post(route('bookings.store'), [
+            'court_id' => Court::first()->id, 'booking_date' => today()->addDay()->toDateString(),
+            'time_slot_ids' => [TimeSlot::first()->id],
+        ])->assertSessionMissing('error');
+        $booking = Booking::firstOrFail();
+        $qr = app(\App\Services\QRCodeService::class);
+        $url = $qr->buildQRData($booking);
+        $this->get(route('bookings.show', $booking))->assertOk()->assertSee('<svg', false)->assertSee('Mã QR của đơn đặt sân');
+        $this->get(route('bookings.qr', $booking))->assertOk()->assertSee($booking->booking_code)->assertSee('Chờ thanh toán');
+        $this->assertTrue($qr->verifyQRCode($url)['valid']);
+        auth()->logout();
+        $this->get($url)->assertOk()->assertSee($booking->booking_code)->assertSee('Sân 1')->assertSee('Chờ thanh toán')->assertDontSee($user->email);
+        $booking->update(['status' => 'CANCELLED']);
+        $this->get($url)->assertOk()->assertSee('Đã hủy');
+        $this->assertSame($url, $qr->buildQRData($booking->fresh()));
+        $other = $booking->replicate();
+        $other->booking_code = 'OTHER-QR';
+        $other->save();
+        $this->assertNotSame($url, $qr->buildQRData($other));
+        $tampered = str_replace('/booking-qr/'.$booking->id.'?', '/booking-qr/'.$other->id.'?', $url);
+        $this->get($tampered)->assertForbidden();
+        $this->assertFalse($qr->verifyQRCode($tampered)['valid']);
+        $this->get(route('bookings.qr.scan', $booking))->assertForbidden();
     }
 
     /**

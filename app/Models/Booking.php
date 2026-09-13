@@ -8,10 +8,19 @@ class Booking extends Model
 {
     protected static function booted(): void
     {
+        static::updating(function (Booking $booking) {
+            if ($booking->isDirty('status') && $booking->status === 'COMPLETED' && ! $booking->checkout_exception_reason) {
+                app(\App\Services\BookingOperationsService::class)->assertCheckoutReady($booking);
+            }
+        });
         static::updated(function (Booking $booking) {
-            if ($booking->wasChanged('status') && $booking->fixed_booking_id && in_array($booking->status, ['COMPLETED', 'CANCELLED'])) {
+            if ($booking->wasChanged('status') && in_array($booking->status, ['CANCELLED', 'EXPIRED', 'NO_SHOW'])) {
+                app(\App\Services\ServiceOrderService::class)->releaseIncludedStock($booking);
+                foreach ($booking->serviceOrders()->where('status', 'PENDING')->get() as $order) app(\App\Services\ServiceOrderService::class)->cancel($order);
+            }
+            if ($booking->wasChanged('status') && $booking->fixed_booking_id && in_array($booking->status, ['COMPLETED', 'CANCELLED', 'NO_SHOW'])) {
                 FixedBooking::whereKey($booking->fixed_booking_id)->where('status', 'ACTIVE')
-                    ->whereDoesntHave('bookings', fn ($q) => $q->whereNotIn('status', ['COMPLETED', 'CANCELLED']))
+                    ->whereDoesntHave('bookings', fn ($q) => $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'NO_SHOW']))
                     ->update(['status' => 'COMPLETED']);
             }
         });
@@ -20,7 +29,8 @@ class Booking extends Model
     protected $fillable = [
         'booking_code', 'user_id', 'subtotal', 'discount', 'total_amount',
         'status', 'payment_status', 'booking_type', 'start_date', 'end_date', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
-        'checked_in_at', 'checked_out_at', 'fixed_booking_id', 'recurrence_key'
+        'checked_in_at', 'checked_out_at', 'checked_in_by', 'checked_out_by', 'fixed_booking_id', 'recurrence_key',
+        'no_show_at', 'no_show_by', 'checkout_exception_reason', 'extended_from_id'
     ];
 
     protected $casts = [
@@ -34,6 +44,7 @@ class Booking extends Model
         'cancelled_at' => 'datetime',
         'checked_in_at' => 'datetime',
         'checked_out_at' => 'datetime',
+        'no_show_at' => 'datetime',
     ];
 
     public function user()
@@ -53,8 +64,11 @@ class Booking extends Model
 
     public function payment()
     {
-        return $this->hasOne(Payment::class);
+        return $this->hasOne(Payment::class)->where('purpose', 'BOOKING');
     }
+
+    public function payments() { return $this->hasMany(Payment::class); }
+    public function serviceOrders() { return $this->hasMany(ServiceOrder::class); }
 
     public function getPaymentAttribute()
     {
@@ -89,6 +103,6 @@ class Booking extends Model
 
     public function isHoldExpired()
     {
-        return $this->hold_expires_at && $this->hold_expires_at < now();
+        return $this->hold_expires_at && $this->hold_expires_at <= now();
     }
 }

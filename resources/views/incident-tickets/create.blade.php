@@ -15,6 +15,19 @@
 <label>Mô tả sự cố</label><textarea name="description" class="form-control mb-3" rows="4" minlength="10" maxlength="4000" required>{{ old('description') }}</textarea>
 @include('partials.media-upload', ['label' => 'Ảnh/video minh chứng (tùy chọn)'])
 <label>Mong muốn xử lý</label><select name="requested_solution" class="form-select mb-3" required>@foreach(\App\Models\CourtIncident::SOLUTIONS as $code=>$label)<option value="{{ $code }}" @selected(old('requested_solution') === $code)>{{ $label }}</option>@endforeach</select>
+<fieldset id="incident-refund-bank" class="border rounded p-3 mb-3">
+<legend class="h6">Thông tin nhận hoàn tiền</legend>
+@include('partials.refund-bank-fields')
+</fieldset>
+<script>
+(() => {
+    const solution = document.querySelector('[name="requested_solution"]');
+    const bank = document.getElementById('incident-refund-bank');
+    function updateRecipient() { const refund = solution.value === 'REFUND'; bank.hidden = !refund; bank.disabled = !refund; }
+    solution.addEventListener('change', updateRecipient);
+    updateRecipient();
+})();
+</script>
 <p class="sz-help">Nhân viên sẽ xác minh và cập nhật kết quả trong yêu cầu của bạn.</p><div class="sz-action-bar"><button class="sz-action sz-action--primary"><i class="bi bi-send" aria-hidden="true"></i>Gửi báo cáo</button><a class="sz-action" href="{{ route('bookings.show', $booking) }}">Quay lại</a></div></form>
 @else<p>Booking đã có yêu cầu đang mở. Mở yêu cầu ở trên để bổ sung hoặc theo dõi.</p>@endif
 </div>

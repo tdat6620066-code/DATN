@@ -1,12 +1,13 @@
 @php
-    $actions = ['SPECIAL_REFUND' => 'Hoàn tiền đặc biệt', 'UPDATED' => 'Cập nhật đơn đặt sân', 'CANCELLED' => 'Hủy đơn đặt sân', 'COURT_CHANGED' => 'Chuyển sân', 'CHECKED_IN' => 'Khách đã nhận sân', 'COMPLETED' => 'Hoàn thành lượt chơi', 'SERVICE_ADDED' => 'Thêm dịch vụ', 'SERVICE_REMOVED' => 'Xóa dịch vụ'];
+    $actions = ['SERVICE_DELIVERED' => 'Đã giao dịch vụ', 'SPECIAL_REFUND' => 'Hoàn tiền đặc biệt', 'UPDATED' => 'Cập nhật đơn đặt sân', 'CANCELLED' => 'Hủy đơn đặt sân', 'COURT_CHANGED' => 'Chuyển sân', 'CHECKED_IN' => 'Khách đã nhận sân', 'COMPLETED' => 'Hoàn thành lượt chơi', 'SERVICE_ADDED' => 'Thêm dịch vụ', 'SERVICE_REMOVED' => 'Xóa dịch vụ'];
     $statuses = ['PENDING_PAYMENT' => 'Chờ thanh toán', 'CONFIRMED' => 'Đã xác nhận', 'CHECKED_IN' => 'Đang sử dụng sân', 'COMPLETED' => 'Đã hoàn thành', 'CANCELLED' => 'Đã hủy', 'EXPIRED' => 'Đã hết hạn', 'PENDING' => 'Chờ thanh toán', 'PAID' => 'Đã thanh toán', 'REFUNDED' => 'Đã hoàn tiền', 'PARTIALLY_REFUNDED' => 'Đã hoàn một phần', 'FAILED' => 'Thất bại'];
-    $fields = ['status' => 'Trạng thái', 'payment_status' => 'Thanh toán', 'refund_amount' => 'Số tiền hoàn', 'note' => 'Ghi chú', 'court' => 'Sân', 'value' => in_array($log->action, ['SERVICE_ADDED', 'SERVICE_REMOVED']) ? 'Dịch vụ' : 'Trạng thái'];
+    $fields = ['service_amount' => 'Tiền dịch vụ', 'source' => 'Nguồn thêm', 'status' => 'Trạng thái', 'payment_status' => 'Thanh toán', 'refund_amount' => 'Số tiền hoàn', 'note' => 'Ghi chú', 'court' => 'Sân', 'value' => in_array($log->action, ['SERVICE_ADDED', 'SERVICE_REMOVED']) ? 'Dịch vụ' : 'Trạng thái'];
     $before = $log->old_values ?? [];
     $after = $log->new_values ?? [];
     $format = static function ($key, $value) use ($statuses) {
+        if ($key === 'source') return ['at_court' => 'Staff thêm tại sân', 'pre_booking' => 'Khách chọn trước giờ chơi'][$value] ?? $value;
         if ($value === null || $value === '') return '—';
-        if ($key === 'refund_amount' && is_numeric($value)) return number_format((float) $value, 0, ',', '.').'đ';
+        if (in_array($key, ['refund_amount', 'service_amount']) && is_numeric($value)) return number_format((float) $value, 0, ',', '.').'đ';
         if (in_array($key, ['status', 'payment_status', 'value']) && is_string($value)) return $statuses[$value] ?? $value;
         return is_scalar($value) ? (string) $value : 'Thông tin đã cập nhật';
     };

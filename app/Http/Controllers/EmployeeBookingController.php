@@ -35,40 +35,12 @@ class EmployeeBookingController extends Controller
 
     public function checkIn(Booking $booking, Request $request)
     {
-        abort_unless($request->user()->hasPermission('bookings.checkin'), 403);
-        try {
-            DB::transaction(function () use ($booking, $request) {
-                $locked = Booking::lockForUpdate()->with(['payment', 'bookingDetails.timeSlot'])->findOrFail($booking->id);
-                if ($locked->status === 'CHECKED_IN') throw new \DomainException('Đơn đã được check-in.');
-                if ($locked->status !== 'CONFIRMED') throw new \DomainException('Chỉ đơn đã xác nhận mới được check-in.');
-                if (!in_array($locked->payment_status, ['PAID', 'PARTIALLY_REFUNDED'], true) && !in_array($locked->payment?->status, ['PAID', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Khách hàng chưa hoàn tất thanh toán.');
-                if (! $locked->bookingDetails->contains(fn ($d) => $d->booking_date->isToday())) throw new \DomainException('Đơn không có lịch chơi hôm nay.');
-                $old = $locked->status;
-                $locked->update(['status' => 'CHECKED_IN', 'checked_in_at' => now(), 'checked_in_by' => $request->user()->id]);
-                $locked->bookingDetails()->where('status', '!=', 'CANCELLED')->whereDate('booking_date', today())->update(['status' => 'CHECKED_IN']);
-                $this->notifications->statusChanged($locked, 'CHECKED_IN');
-                $this->audit($locked, $request, 'CHECKED_IN', $old, 'CHECKED_IN');
-            });
-            return back()->with('success', 'Khách đã check-in thành công.');
-        } catch (\DomainException $e) { return back()->with('error', $e->getMessage()); }
+        return app(BookingOperationsController::class)->checkIn($request, $booking, app(\App\Services\BookingOperationsService::class));
     }
 
     public function complete(Booking $booking, Request $request)
     {
-        abort_unless($request->user()->hasPermission('bookings.checkout'), 403);
-        try {
-            DB::transaction(function () use ($booking, $request) {
-                $locked = Booking::lockForUpdate()->with('payment')->findOrFail($booking->id);
-                if ($locked->status !== 'CHECKED_IN') throw new \DomainException('Khách chưa check-in hoặc đơn đã hoàn thành.');
-                if (!in_array($locked->payment_status, ['PAID', 'PARTIALLY_REFUNDED'], true) || !in_array($locked->payment?->status, ['PAID', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Đơn còn khoản thanh toán chưa xử lý.');
-                $locked->update(['status' => 'COMPLETED', 'checked_out_at' => now(), 'checked_out_by' => $request->user()->id]);
-                $locked->bookingDetails()->where('status', '!=', 'CANCELLED')->update(['status' => 'COMPLETED']);
-                $locked->bookingDetails()->with('court')->get()->each(fn ($d) => $d->court->update(['availability_status' => 'AVAILABLE']));
-                $this->notifications->statusChanged($locked, 'COMPLETED');
-                $this->audit($locked, $request, 'COMPLETED', 'CHECKED_IN', 'COMPLETED');
-            });
-            return back()->with('success', 'Đơn đã hoàn thành và sân đã được giải phóng.');
-        } catch (\DomainException $e) { return back()->with('error', $e->getMessage()); }
+        return app(BookingOperationsController::class)->checkout($request, $booking, app(\App\Services\BookingOperationsService::class));
     }
 
     public function pay(Booking $booking, Request $request)
@@ -80,6 +52,7 @@ class EmployeeBookingController extends Controller
                 $locked = Booking::lockForUpdate()->with('payment')->findOrFail($booking->id);
                 if ($locked->fixedBooking && $locked->fixedBooking->status !== 'LEGACY') throw new \DomainException('Lịch cố định phải thanh toán toàn bộ tại trang lịch cố định.');
                 if (! $locked->payment || $locked->payment->status === 'PAID') throw new \DomainException('Đơn không còn khoản phải thu.');
+                if ($locked->status === 'PENDING_PAYMENT' && $locked->isHoldExpired()) throw new \DomainException('Thời gian giữ chỗ đã hết. Vui lòng tạo đơn mới.');
                 if (round((float) $data['amount'], 2) !== round((float) $locked->total_amount, 2)) throw new \DomainException('Số tiền thanh toán phải bằng tổng tiền của đơn.');
                 if (in_array($locked->status, ['CANCELLED', 'EXPIRED', 'COMPLETED'], true) || in_array($locked->payment->status, ['REFUNDED', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Không thể thu tiền cho đơn đã kết thúc hoặc hoàn tiền.');
                 $transactionId = $data['transaction_id'] ?: 'POS-'.now()->format('YmdHis').'-'.$locked->id;
@@ -94,41 +67,14 @@ class EmployeeBookingController extends Controller
 
     public function addService(Booking $booking, Request $request)
     {
-        abort_unless($request->user()->hasPermission('services.manage'), 403);
-        $data = $request->validate(['service_item_id' => ['required', 'exists:service_items,id'], 'quantity' => ['required', 'integer', 'min:1']]);
-        try {
-            DB::transaction(function () use ($booking, $request, $data) {
-                $locked = Booking::lockForUpdate()->findOrFail($booking->id);
-                if ($locked->status !== 'CHECKED_IN') throw new \DomainException('Chỉ thêm dịch vụ khi khách đang sử dụng sân.');
-                if ($locked->fixedBooking && $locked->fixedBooking->status !== 'LEGACY') throw new \DomainException('Không thể cộng dịch vụ vào giao dịch lịch cố định đã chốt.');
-                $item = ServiceItem::lockForUpdate()->where('is_active', true)->findOrFail($data['service_item_id']);
-                if ($item->stock !== null && $item->stock < $data['quantity']) throw new \DomainException('Dịch vụ hiện không đủ số lượng.');
-                $subtotal = (float) $item->price * $data['quantity'];
-                BookingService::create(['booking_id' => $locked->id, 'service_item_id' => $item->id, 'added_by' => $request->user()->id, 'quantity' => $data['quantity'], 'unit_price' => $item->price, 'subtotal' => $subtotal]);
-                if ($item->stock !== null) $item->decrement('stock', $data['quantity']);
-                $locked->increment('subtotal', $subtotal); $locked->increment('total_amount', $subtotal);
-                $locked->payment?->increment('amount', $subtotal);
-                if ($locked->payment_status === 'PAID') { $locked->update(['payment_status' => 'PENDING']); $locked->payment?->update(['status' => 'PENDING']); }
-                $this->audit($locked, $request, 'SERVICE_ADDED', null, $item->name.' x'.$data['quantity']);
-            });
-            return back()->with('success', 'Thêm dịch vụ thành công.');
-        } catch (\DomainException $e) { return back()->with('error', $e->getMessage()); }
+        return app(ServiceOrderController::class)->store($request, $booking, app(\App\Services\ServiceOrderService::class));
     }
 
     public function removeService(Booking $booking, BookingService $service, Request $request)
     {
-        abort_unless($request->user()->hasPermission('services.manage'), 403);
         abort_unless($service->booking_id === $booking->id, 404);
-        if ($booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') return back()->with('error', 'Không thể sửa giao dịch lịch cố định đã chốt.');
-        DB::transaction(function () use ($booking, $service, $request) {
-            $locked = Booking::lockForUpdate()->findOrFail($booking->id);
-            if ($locked->status !== 'CHECKED_IN') throw new \DomainException('Không thể sửa dịch vụ của đơn đã hoàn tất.');
-            $amount = (float) $service->subtotal; $item = $service->item;
-            if ($item->stock !== null) $item->increment('stock', $service->quantity);
-            $service->delete(); $locked->decrement('subtotal', $amount); $locked->decrement('total_amount', $amount); $locked->payment?->decrement('amount', $amount);
-            $this->audit($locked, $request, 'SERVICE_REMOVED', $item->name, null);
-        });
-        return back()->with('success', 'Đã xóa dịch vụ khỏi đơn.');
+        if (! $service->service_order_id) return back()->with('error', 'Dịch vụ cũ đã gộp vào tiền sân, không được sửa giao dịch đã chốt.');
+        return app(ServiceOrderController::class)->cancel($request, \App\Models\ServiceOrder::findOrFail($service->service_order_id), app(\App\Services\ServiceOrderService::class));
     }
 
     private function employee(Request $request): void { abort_unless(in_array($request->user()->role, ['EMPLOYEE', 'ADMIN'], true), 403); }

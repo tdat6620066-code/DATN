@@ -48,24 +48,56 @@ class EmployeeDashboardController extends Controller
             $mode = 'day';
         }
 
-        $date = $request->query('date') ? Carbon::parse($request->query('date')) : Carbon::today();
-
-        $courts = Court::where('status', 'ACTIVE')->orderBy('name')->get();
+        $request->validate(['date' => ['nullable', 'date_format:Y-m-d'], 'court_id' => ['nullable', 'integer'], 'status' => ['nullable', 'in:PENDING_PAYMENT,CONFIRMED,CHECKED_IN,COMPLETED,CANCELLED,INCIDENT,MAINTENANCE'], 'search' => ['nullable', 'string', 'max:100']]);
+        $date = $request->filled('date') ? Carbon::parse($request->query('date')) : Carbon::today();
+        $allCourts = Court::with('courtType')->where('status', 'ACTIVE')->orderBy('name')->get();
+        $courts = $request->filled('court_id') ? $allCourts->where('id', $request->integer('court_id')) : $allCourts;
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->orderBy('start_time')->get();
-
         [$start, $end, $dates] = $this->scheduleRange($mode, $date);
-
-        $bookingDetails = BookingDetail::query()
-            ->whereBetween('booking_date', [$start->toDateString(), $end->toDateString()])
-            ->whereHas('booking', fn ($query) => $query
-                ->whereIn('status', ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED']))
-            ->with(['booking.user', 'court', 'timeSlot'])
-            ->orderBy('booking_date')
-            ->get();
-
-        return view('employee.schedule', compact(
-            'mode', 'date', 'dates', 'start', 'end', 'courts', 'timeSlots', 'bookingDetails'
-        ));
+        $bookingDetails = BookingDetail::whereIn('court_id', $courts->pluck('id'))
+            ->whereDate('booking_date', '>=', $start->toDateString())->whereDate('booking_date', '<=', $end->toDateString())
+            ->whereHas('booking', fn ($q) => $q->whereIn('status', ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED']))
+            ->with(['booking.user', 'booking.services.item', 'booking.serviceOrders.payment', 'timeSlot'])->get()
+            ->filter(fn ($d) => $d->booking->status !== 'PENDING_PAYMENT' || ! $d->booking->isHoldExpired());
+        $incidents = \App\Models\CourtIncident::whereNotIn('status', ['RESOLVED', 'REJECTED'])->whereIn('booking_id', $bookingDetails->pluck('booking_id'))->get();
+        $maintenance = \App\Models\MaintenanceSchedule::whereIn('court_id', $courts->pluck('id'))->where('status', '!=', 'CANCELLED')
+            ->whereRaw('DATE(COALESCE(start_date, maintenance_date)) <= ?', [$end->toDateString()])
+            ->whereRaw('DATE(COALESCE(end_date, maintenance_date)) >= ?', [$start->toDateString()])->get();
+        $cells = []; $stats = ['bookings' => $bookingDetails->pluck('booking_id')->unique()->count(), 'playing' => $bookingDetails->where('booking.status', 'CHECKED_IN')->pluck('booking_id')->unique()->count(), 'holds' => $bookingDetails->where('booking.status', 'PENDING_PAYMENT')->pluck('booking_id')->unique()->count(), 'incidents' => $incidents->count()];
+        foreach ($courts as $court) foreach ($dates as $day) {
+            $key = $court->id.'|'.$day->toDateString();
+            $details = $bookingDetails->filter(fn ($d) => $d->court_id === $court->id && $d->booking_date->toDateString() === $day->toDateString());
+            $blocks = collect(); $occupied = []; $blocked = [];
+            foreach ($timeSlots as $index => $slot) {
+                $repair = $maintenance->first(fn ($m) => $m->court_id === $court->id && ($m->start_date ?? $m->maintenance_date)->toDateString() <= $day->toDateString() && ($m->end_date ?? $m->maintenance_date)->toDateString() >= $day->toDateString() && $m->start_time < $slot->end_time && $m->end_time > $slot->start_time);
+                if ($repair || ($court->operational_status && $court->operational_status !== 'AVAILABLE')) $blocked[$slot->id] = $repair?->reason ?? $court->status_reason ?? 'Sân tạm ngừng phục vụ';
+            }
+            foreach ($details->groupBy('booking_id') as $group) {
+                $booking = $group->first()->booking;
+                $state = $booking->status;
+                $hasIncident = $incidents->contains('booking_id', $booking->id);
+                $active = $group->filter(fn ($d) => $d->status !== 'CANCELLED' && $state !== 'CANCELLED');
+                foreach ($active as $d) $occupied[$d->time_slot_id] = true;
+                if ($request->filled('status') && ($request->status === 'INCIDENT' ? ! $hasIncident : $request->status !== $state)) continue;
+                $search = mb_strtolower(trim($request->query('search', '')));
+                if ($search !== '' && ! str_contains(mb_strtolower($booking->booking_code.' '.$booking->user?->name), $search)) continue;
+                $segments = []; $lastEnd = null;
+                foreach ($group->sortBy('timeSlot.start_time') as $detail) {
+                    if ($lastEnd !== $detail->timeSlot->start_time) $segments[] = collect();
+                    $segments[array_key_last($segments)]->push($detail); $lastEnd = $detail->timeSlot->end_time;
+                }
+                foreach ($segments as $segment) {
+                    $first = $segment->first(); $last = $segment->last();
+                    $blocks->push(['booking' => $booking, 'state' => $first->status === 'CANCELLED' ? 'CANCELLED' : $state, 'incident' => $hasIncident,
+                        'start' => substr($first->timeSlot->start_time, 0, 5), 'end' => substr($last->timeSlot->end_time, 0, 5),
+                        'column' => max(0, $timeSlots->search(fn ($s) => $s->id === $first->time_slot_id)) + 1, 'span' => $segment->count()]);
+                }
+            }
+            $cells[$key] = ['blocks' => $blocks, 'used' => count($occupied), 'blocked' => $blocked,
+                'free' => max(0, $timeSlots->count() - count(array_unique(array_merge(array_keys($occupied), array_keys($blocked))))),
+                'count' => $details->pluck('booking_id')->unique()->count()];
+        }
+        return view('employee.schedule', compact('mode', 'date', 'dates', 'start', 'end', 'courts', 'allCourts', 'timeSlots', 'cells', 'stats'));
     }
 
     /**

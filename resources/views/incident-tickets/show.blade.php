@@ -21,6 +21,12 @@
 <div><dt>Loại sự cố</dt><dd>{{ \App\Models\CourtIncident::TYPES[$ticket->type] }}</dd></div>
 <div><dt>Mong muốn của khách</dt><dd>{{ \App\Models\CourtIncident::SOLUTIONS[$ticket->requested_solution] }}</dd></div>
 </dl>
+@if($ticket->refund_recipient && !$ticket->resolutions()->exists())
+<div class="border-top pt-3"><h3 class="h6">Thông tin nhận hoàn tiền</h3>
+<p>{{ $ticket->refund_recipient['bank_name'] }} · ********{{ substr($ticket->refund_recipient['bank_account_number'], -4) }}</p>
+@if(auth()->id() === $ticket->reported_by || auth()->user()->hasPermission('refunds.process'))<p>{{ $ticket->refund_recipient['bank_account_holder'] }}</p>@endif
+<small>Đã xác nhận: {{ \Carbon\Carbon::parse($ticket->refund_recipient['confirmed_at'])->format('d/m/Y H:i') }}</small></div>
+@endif
 <p class="text-break border-top pt-3 mb-0">{{ $ticket->description }}</p>
 @if($ticket->evidences->isNotEmpty())
 <div class="mt-3"><h3 class="h6">Ảnh/video minh chứng ({{ $ticket->evidences->count() }})</h3>

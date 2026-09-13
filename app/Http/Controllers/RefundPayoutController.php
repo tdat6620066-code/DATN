@@ -62,4 +62,23 @@ class RefundPayoutController extends Controller
 
         return back()->with('success', 'Đã lưu thông tin nhận tiền. Chỉ nhân sự có quyền xử lý hoàn tiền được xem đầy đủ.');
     }
+
+    public function confirmRecipient(Request $request, RefundRequest $refundRequest)
+    {
+        abort_unless($refundRequest->booking->user_id === $request->user()->id, 403);
+        $data = $request->validate(['recipient_confirmed' => ['accepted'], 'account_version' => ['required', 'string']]);
+        DB::transaction(function () use ($refundRequest, $data) {
+            Booking::lockForUpdate()->findOrFail($refundRequest->booking_id);
+            $item = RefundRequest::lockForUpdate()->findOrFail($refundRequest->id);
+            $bank = $item->bankAccount()->lockForUpdate()->first();
+            if (! in_array($item->status, ['PENDING', 'APPROVED', 'NEEDS_INFO'], true) || $item->processing_started_at || $item->refund()->exists()) {
+                throw ValidationException::withMessages(['recipient_confirmed' => 'Thông tin nhận tiền đã khóa khi bắt đầu xử lý.']);
+            }
+            if (! $bank || ! hash_equals(hash('sha256', $bank->getRawOriginal('account_number')), $data['account_version'])) {
+                throw ValidationException::withMessages(['recipient_confirmed' => 'Thông tin tài khoản đã thay đổi. Vui lòng tải lại trang để kiểm tra.']);
+            }
+            $bank->update(['confirmed_at' => now()]);
+        });
+        return back()->with('success', 'Đã xác nhận lại thông tin tài khoản nhận hoàn tiền.');
+    }
 }
