@@ -366,6 +366,24 @@ class BookingTest extends TestCase
         $response->assertSessionHas('recurring_preview.conflicts', fn (array $conflicts) => count($conflicts) >= 1);
     }
 
+    public function test_an_active_single_booking_hold_blocks_another_customer(): void
+    {
+        $firstCustomer = User::factory()->create();
+        $secondCustomer = User::factory()->create();
+        $court = Court::firstOrFail();
+        $slot = TimeSlot::firstOrFail();
+        $date = now()->addDays(7)->toDateString();
+        $payload = ['court_id' => $court->id, 'booking_date' => $date, 'time_slot_ids' => [$slot->id]];
+
+        $this->actingAs($firstCustomer)->post(route('bookings.store'), $payload)->assertRedirect();
+
+        $this->assertSame(CourtAvailabilityService::STATUS_HOLD,
+            app(CourtAvailabilityService::class)->checkAvailability($court->id, \Carbon\Carbon::parse($date), $slot->id));
+        $this->actingAs($secondCustomer)->post(route('bookings.store'), $payload)
+            ->assertSessionHas('booking_errors');
+        $this->assertDatabaseCount('bookings', 1);
+    }
+
     private function createConfirmedDetail(User $user, Court $court, TimeSlot $slot, \Carbon\Carbon $date): void
     {
         $booking = Booking::create([
