@@ -364,8 +364,11 @@
         @endforeach
         <div class="checkout-discount-row">
             <span>Ưu đãi</span>
-            <span><a href="#">Chọn ưu đãi áp dụng</a><span class="checkout-add">+</span></span>
+            <span><a href="{{ route('bookings.vouchers', $booking) }}">{{ $discount > 0 ? 'Đổi ưu đãi' : 'Chọn ưu đãi áp dụng' }}</a><span class="checkout-add">+</span></span>
         </div>
+        @if($discount > 0)
+            <div class="checkout-discount-row"><span>Giảm giá</span><span>-{{ number_format($discount, 0, ',', '.') }} ₫</span></div>
+        @endif
         <div class="checkout-payable-row">
             <span>Số tiền cần thanh toán</span>
             <span>{{ number_format($total, 0, ',', '.') }} ₫</span>
@@ -695,11 +698,4 @@
 @include('partials.refund-recipient', ['refundRequest' => $refundRequest])
 @endforeach
 @include('partials.service-orders')
-<section class="card p-4 my-3 text-center">
-    <h2 class="h5">Mã QR của đơn đặt sân</h2>
-    <p>{{ $booking->booking_code }} · Mã được tạo tự động cho đơn này.</p>
-    <div>{!! app(\App\Services\QRCodeService::class)->generateQRCode($booking) !!}</div>
-    <p class="small text-muted mt-3">Quét mã để xem lịch sân, dịch vụ và trạng thái thanh toán mới nhất.</p>
-    <a href="{{ route('bookings.qr', $booking) }}">Mở mã QR và thông tin đơn</a>
-</section>
 @endsection

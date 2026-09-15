@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Banner, Booking, Court, News, Promotion, Review, TimeSlot, User};
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Models\Banner;
+use App\Models\Booking;
+use App\Models\Court;
+use App\Models\News;
+use App\Models\Review;
+use App\Models\TimeSlot;
+use App\Models\User;
+use App\Models\Voucher;
 
 class HomeController extends Controller
 {
@@ -55,13 +60,13 @@ class HomeController extends Controller
             ->limit(8)
             ->get();
 
-        // Get active promotions
-        $promotions = Promotion::where('status', 'ACTIVE')
+        // Vouchers created by administrators are visible as public promotions.
+        $vouchers = Voucher::query()
+            ->where('status', 'ACTIVE')
             ->where('start_at', '<=', now())
-            ->where(function ($query) {
-                $query->whereNull('end_at')
-                    ->orWhere('end_at', '>=', now());
-            })
+            ->where('end_at', '>=', now())
+            ->where(fn ($query) => $query->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit'))
+            ->orderBy('end_at')
             ->limit(5)
             ->get();
 
@@ -92,7 +97,7 @@ class HomeController extends Controller
             'banners' => $banners,
             'featured_courts' => $featuredCourts,
             'most_booked_courts' => $mostBookedCourts,
-            'promotions' => $promotions,
+            'vouchers' => $vouchers,
             'news' => $news,
             'reviews' => $reviews,
             'statistics' => $statistics,

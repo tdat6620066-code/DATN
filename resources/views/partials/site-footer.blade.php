@@ -22,8 +22,9 @@
                 <h4>Khám phá</h4>
                 <a href="{{ route('home') }}">Trang chủ</a>
                 <a href="{{ route('courts.index') }}">Sân cầu lông</a>
-                <a href="{{ route('home') }}#offers">Khuyến mãi</a>
-                <a href="{{ route('home') }}#news">Tin tức</a>
+                <a href="{{ route('promotions.index') }}">Khuyến mãi</a>
+                <a href="{{ route('news.index') }}">Tin tức</a>
+                <a href="{{ route('about.index') }}">Giới thiệu</a>
             </div>
             <div>
                 <h4>Hỗ trợ</h4>

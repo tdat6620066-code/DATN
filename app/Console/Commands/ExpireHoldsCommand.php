@@ -39,7 +39,7 @@ class ExpireHoldsCommand extends Command
 
             foreach ($bookings as $booking) {
                 // Update booking status to EXPIRED
-                $booking->update(['status' => 'EXPIRED']);
+                $booking->update(['status' => 'EXPIRED', 'payment_status' => 'FAILED']);
 
                 // Update all booking details to CANCELLED
                 $booking->bookingDetails()->update(['status' => 'CANCELLED']);

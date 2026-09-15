@@ -74,7 +74,20 @@ class BookingHoldTest extends TestCase
         $this->assertDatabaseCount('bookings', 2);
         $this->artisan('bookings:expire-holds')->assertSuccessful();
         $this->assertSame('EXPIRED', $booking->fresh()->status);
+        $this->assertSame('FAILED', $booking->fresh()->payment_status);
         $this->assertSame('HOLD', $this->availability());
+    }
+
+    public function test_booking_owner_sees_expired_hold_message_instead_of_403_when_starting_payment(): void
+    {
+        $booking = $this->hold();
+        $this->travelTo($booking->hold_expires_at);
+        $this->artisan('bookings:expire-holds')->assertSuccessful();
+
+        $this->actingAs($this->customer)
+            ->get(route('bookings.vnpay', $booking))
+            ->assertRedirect(route('bookings.show', $booking))
+            ->assertSessionHas('error');
     }
 
     public function test_payment_before_deadline_keeps_slot_booked_after_deadline(): void

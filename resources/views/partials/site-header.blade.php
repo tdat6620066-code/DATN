@@ -89,9 +89,9 @@
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'sc-active' : '' }}">Trang chủ</a>
             <a href="{{ route('courts.index') }}" class="{{ request()->routeIs('courts.*') ? 'sc-active' : '' }}">Sân cầu lông</a>
             <a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.index') ? 'sc-active' : '' }}">Đặt lịch</a>
-            <a href="{{ route('home') }}#offers">Khuyến mãi</a>
-            <a href="{{ route('home') }}#news">Tin tức</a>
-            <a href="{{ route('home') }}#why">Giới thiệu</a>
+            <a href="{{ route('promotions.index') }}" class="{{ request()->routeIs('promotions.*') ? 'sc-active' : '' }}">Khuyến mãi</a>
+            <a href="{{ route('news.index') }}" class="{{ request()->routeIs('news.*') ? 'sc-active' : '' }}">Tin tức</a>
+            <a href="{{ route('about.index') }}" class="{{ request()->routeIs('about.*') ? 'sc-active' : '' }}">Giới thiệu</a>
         </nav>
         <div class="sc-nav-actions">
             @auth

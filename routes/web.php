@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminAnnouncementController;
+use App\Http\Controllers\AboutController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCourtController;
 use App\Http\Controllers\AdminCourtTypeController;
@@ -26,7 +27,9 @@ use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromotionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +92,11 @@ Route::get('/', [
     HomeController::class,
     'index',
 ])->name('home');
+
+Route::get('/khuyen-mai', [PromotionController::class, 'index'])->name('promotions.index');
+Route::get('/tin-tuc', [NewsController::class, 'index'])->name('news.index');
+Route::get('/tin-tuc/{news:slug}', [NewsController::class, 'show'])->name('news.show');
+Route::get('/gioi-thieu', [AboutController::class, 'index'])->name('about.index');
 
 /*
 |--------------------------------------------------------------------------
@@ -900,6 +908,16 @@ Route::middleware([
         BookingController::class,
         'show',
     ])->name('bookings.show');
+
+    Route::get('/booking/{booking}/vouchers', [
+        BookingController::class,
+        'vouchers',
+    ])->name('bookings.vouchers');
+
+    Route::post('/booking/{booking}/vouchers/{voucher}', [
+        BookingController::class,
+        'applyVoucher',
+    ])->name('bookings.vouchers.apply');
 
     /*
     | QR booking

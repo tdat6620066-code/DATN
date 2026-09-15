@@ -80,6 +80,7 @@ class BookingService
             $booking = Booking::create([
                 'booking_code' => $this->generateBookingCode(),
                 'user_id' => $userId,
+                'voucher_id' => $voucherId,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
                 'total_amount' => $totalAmount,

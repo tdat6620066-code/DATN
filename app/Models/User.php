@@ -27,6 +27,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         'address',
         'google_id',
         'last_login_at',
+        'permissions',
         'notification_preferences',
     ];
 

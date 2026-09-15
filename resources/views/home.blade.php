@@ -208,6 +208,8 @@
         .promotion-card h3 { margin: 8px 0; font-size: 17px; font-weight: 700; }
         .promotion-card p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 14px; }
         .promotion-card a, .news-card a { color: var(--brand); font-size: 13px; font-weight: 700; }
+        .voucher-card { display:flex; flex-direction:column; min-height:220px; padding:20px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+        .voucher-card__top { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#087c42; }.voucher-card__top strong{font-size:18px;color:#063848}.voucher-card__badge{font-size:10px;font-weight:800}.voucher-card h2{margin:14px 0 12px;font-size:17px;font-weight:800}.voucher-card__code{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px dashed #a5cdb3;border-radius:9px;background:#f1fbf4}.voucher-card code{font-weight:800;color:#087c42}.copy-voucher{border:0;background:transparent;color:#087c42;font-size:12px;font-weight:700}.voucher-card dl{margin:13px 0 0}.voucher-card dl div{display:flex;justify-content:space-between;margin:5px 0;font-size:11px}.voucher-card dt{color:#72838b;font-weight:500}.voucher-card dd{margin:0;font-weight:700}.voucher-card__conditions{margin:8px 0;color:var(--muted);font-size:12px;line-height:1.4}.voucher-card__action{margin-top:auto;padding-top:12px;color:var(--brand);font-size:13px;font-weight:700;text-decoration:none}
 
         /* CTA */
         .booking-cta {
@@ -343,9 +345,9 @@
             <a href="#home">Trang chủ</a>
             <a href="{{ route('courts.index') }}">Sân cầu lông</a>
             <a href="{{ route('bookings.index') }}">Đặt lịch</a>
-            <a href="#offers">Khuyến mãi</a>
-            <a href="#news">Tin tức</a>
-            <a href="#why">Giới thiệu</a>
+            <a href="{{ route('promotions.index') }}">Khuyến mãi</a>
+            <a href="{{ route('news.index') }}">Tin tức</a>
+            <a href="{{ route('about.index') }}">Giới thiệu</a>
         </nav>
         <div class="nav-actions">
             @auth
@@ -461,7 +463,7 @@
     </section>
 
     <!-- PROMOTIONS -->
-    @if($promotions->isNotEmpty())
+    @if($vouchers->isNotEmpty())
     <section class="section section-alt" id="offers">
         <div class="container-wide">
             <div class="section-head">
@@ -470,10 +472,11 @@
                 <p>Sẵn sàng cho những trận cầu nhiều cảm hứng với các ưu đãi đang diễn ra.</p>
             </div>
             <div class="promotion-grid">
-                @foreach($promotions->take(3) as $promotion)
-                    <x-promotion-card :promotion="$promotion"/>
+                @foreach($vouchers->take(3) as $voucher)
+                    <x-voucher-card :voucher="$voucher"/>
                 @endforeach
             </div>
+            <div class="text-center mt-4"><a class="btn-pill btn-primary" href="{{ route('promotions.index') }}">Xem tất cả khuyến mãi <i class="bi bi-arrow-right"></i></a></div>
         </div>
     </section>
     @endif
@@ -506,6 +509,7 @@
                     <x-news-card :news="$item"/>
                 @endforeach
             </div>
+            <div class="text-center mt-4"><a class="btn-pill btn-primary" href="{{ route('news.index') }}">Xem tất cả tin tức <i class="bi bi-arrow-right"></i></a></div>
         </div>
     </section>
     @endif
@@ -561,8 +565,8 @@
                 <a href="#home">Trang chủ</a>
                 <a href="{{ route('courts.index') }}">Sân cầu lông</a>
                 <a href="{{ route('bookings.index') }}">Đặt lịch</a>
-                <a href="#offers">Khuyến mãi</a>
-                <a href="#news">Tin tức</a>
+                <a href="{{ route('promotions.index') }}">Khuyến mãi</a>
+                <a href="{{ route('news.index') }}">Tin tức</a>
             </div>
             <div>
                 <h4>Hỗ trợ</h4>
@@ -589,6 +593,31 @@ document.addEventListener('DOMContentLoaded',()=>{if(!window.Echo)return;window.
 </script>
 @endauth
 @stack('scripts')
+<style>
+    /* Match the dark booking palette used on the court listing page. */
+    body .court-detail-modal .cdm-booking-picker {
+        background: linear-gradient(135deg, #072132, #254d64) !important;
+        color: #fff;
+    }
+    body .court-detail-modal .cdm-booking-option:has(input:checked) {
+        border-color: #072132 !important;
+        background: #edf2f5 !important;
+        color: #072132 !important;
+        box-shadow: inset 0 0 0 1px #072132 !important;
+    }
+    body .court-detail-modal .cdm-booking-option input {
+        accent-color: #072132 !important;
+    }
+    body .court-detail-modal .cdm-booking-continue {
+        background: #072132 !important;
+        border-color: #072132 !important;
+        color: #fff !important;
+    }
+    body .court-detail-modal .cdm-booking-continue:hover {
+        background: #123d55 !important;
+        border-color: #123d55 !important;
+    }
+</style>
 <script>
     const nav = document.getElementById('nav');
     window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 24), { passive: true });
@@ -611,6 +640,16 @@ document.addEventListener('DOMContentLoaded',()=>{if(!window.Echo)return;window.
             requestAnimationFrame(tick);
         }).observe(el);
     });
+
+    document.querySelectorAll('.copy-voucher').forEach((button) => button.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(button.dataset.code);
+            button.innerHTML = '<i class="bi bi-check2"></i> Đã chép';
+            setTimeout(() => button.innerHTML = '<i class="bi bi-copy"></i> Sao chép', 1800);
+        } catch (_) {
+            window.prompt('Sao chép mã giảm giá:', button.dataset.code);
+        }
+    }));
 </script>
 @auth
     @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
