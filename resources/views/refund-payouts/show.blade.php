@@ -5,6 +5,8 @@
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 <div class="sz-work-panel"><h1 class="h4">Yêu cầu hoàn tiền #{{ $item->id }}</h1>
+<ol class="d-flex flex-wrap gap-4 small ps-3 my-3" aria-label="Tiến trình hoàn tiền"><li>Gửi yêu cầu</li><li>{{ $item->status === 'APPROVED' ? 'Đã duyệt' : 'Xem xét yêu cầu' }}</li><li>{{ $item->refund?->status === 'COMPLETED' ? 'Đã chi trả' : ($item->processing_started_at ? 'Đang chi trả' : 'Chờ chi trả') }}</li></ol>
+<p class="text-muted">Duyệt số tiền và chuyển tiền là hai bước riêng. Chỉ ghi nhận đã hoàn tiền sau khi thực tế giao tiền hoặc chuyển khoản thành công.</p>
 <p>Booking: {{ $item->booking->booking_code }} · Khách: {{ $item->booking->user->name }}</p>
 <p>Đã thanh toán: {{ number_format($item->booking->total_amount) }}đ · Số tiền được duyệt: <strong>{{ number_format($item->amount) }}đ</strong></p><p>Lý do: {{ $item->reason }}</p>
 @if($item->bank_account_last4)
@@ -15,7 +17,7 @@
 @include('partials.refund-receipt', ['receipt' => $item->refund])
 @elseif($item->status !== 'APPROVED')<p>Yêu cầu chưa được Admin phê duyệt.</p>
 @elseif(!$item->processing_started_at || !$item->refund_method)
-@if($item->needsBankConfirmation())<p class="alert alert-warning">Chờ khách xác nhận tài khoản nhận tiền. Chỉ bắt đầu chuyển khoản sau khi khách xác nhận lại tại trang chi tiết đơn hoặc yêu cầu hỗ trợ.</p>@endif
+@if($item->needsBankConfirmation())<p class="alert alert-warning">Nếu chuyển khoản: cần khách cung cấp hoặc xác nhận lại tài khoản tại chi tiết booking. Nếu giao tiền mặt: không cần tài khoản ngân hàng.</p>@endif
 <form method="POST" action="{{ route('special-refunds.processing',$item) }}">@csrf
 <label>Phương thức hoàn tiền</label><select name="refund_method" class="form-select mb-3" required><option value="BANK_TRANSFER">Chuyển khoản ngân hàng</option><option value="CASH">Tiền mặt</option></select>
 <p>Kiểm tra thông tin nhận tiền với khách trước khi bắt đầu. Thao tác này chưa ghi nhận tiền đã hoàn.</p><button class="sz-action sz-action--primary"><i class="bi bi-wallet2" aria-hidden="true"></i>Bắt đầu chi trả</button></form>

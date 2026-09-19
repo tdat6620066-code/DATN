@@ -11,7 +11,7 @@ class AdminCustomerController extends Controller
     public function index(Request $request)
     {
         $this->admin($request);
-        $customers = User::where('role', 'CUSTOMER')->withCount('bookings')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(15)->withQueryString();
+        $customers = User::where('role', 'CUSTOMER')->withCount('bookings')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('segment'), fn ($q) => $q->where('customer_segment', $request->segment))->latest()->paginate(15)->withQueryString();
 
         return view('admin.customers.index', compact('customers'));
     }
@@ -35,7 +35,7 @@ class AdminCustomerController extends Controller
     public function update(User $customer, Request $request)
     {
         $this->customer($customer, $request);
-        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($customer)], 'phone' => ['nullable', 'string', 'max:30']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($customer)], 'phone' => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($customer)], 'customer_segment' => ['sometimes', Rule::in(['NEW', 'REGULAR', 'VIP'])]]);
         $customer->update($data);
 
         return redirect()->route('admin.customers.show', $customer)->with('success', 'Đã cập nhật thông tin khách hàng.');

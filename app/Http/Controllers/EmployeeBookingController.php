@@ -30,7 +30,8 @@ class EmployeeBookingController extends Controller
         $this->employee($request);
         $booking->load(['user', 'bookingDetails.court', 'bookingDetails.timeSlot', 'payment', 'services.item']);
         $serviceItems = ServiceItem::where('is_active', true)->orderBy('name')->get();
-        return view('employee.bookings.show', compact('booking', 'serviceItems'));
+        $sessionBookings = app(\App\Services\BookingExtensionService::class)->session($booking);
+        return view('employee.bookings.show', compact('booking', 'serviceItems', 'sessionBookings'));
     }
 
     public function checkIn(Booking $booking, Request $request)
@@ -55,7 +56,8 @@ class EmployeeBookingController extends Controller
                 if ($locked->status === 'PENDING_PAYMENT' && $locked->isHoldExpired()) throw new \DomainException('Thời gian giữ chỗ đã hết. Vui lòng tạo đơn mới.');
                 if (round((float) $data['amount'], 2) !== round((float) $locked->total_amount, 2)) throw new \DomainException('Số tiền thanh toán phải bằng tổng tiền của đơn.');
                 if (in_array($locked->status, ['CANCELLED', 'EXPIRED', 'COMPLETED'], true) || in_array($locked->payment->status, ['REFUNDED', 'PARTIALLY_REFUNDED'], true)) throw new \DomainException('Không thể thu tiền cho đơn đã kết thúc hoặc hoàn tiền.');
-                $transactionId = $data['transaction_id'] ?: 'POS-'.now()->format('YmdHis').'-'.$locked->id;
+                if ($locked->status === 'PENDING_PAYMENT' && (!$locked->hold_expires_at || $locked->hold_expires_at->lte(now()))) throw new \DomainException('Thời gian giữ sân đã hết. Vui lòng đặt lại.');
+                $transactionId = ($data['transaction_id'] ?? null) ?: 'POS-'.now()->format('YmdHis').'-'.$locked->id;
                 $locked->payment->update(['amount' => $data['amount'], 'payment_method' => $data['payment_method'], 'transaction_id' => $transactionId, 'status' => 'PAID', 'paid_at' => now()]);
                 $locked->update(['payment_status' => 'PAID', 'status' => $locked->status === 'PENDING_PAYMENT' ? 'CONFIRMED' : $locked->status, 'confirmed_at' => $locked->confirmed_at ?? now()]);
                 $this->notifications->payment($locked, 'PAID');

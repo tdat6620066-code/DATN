@@ -5,7 +5,7 @@
 @include('partials.detail-styles')
 <div class="sz-ticket py-3">
 <header class="sz-ticket-header">
-<div><a class="small text-decoration-none" href="{{ route('incident-tickets.index') }}">← Yêu cầu hỗ trợ</a><h1>Chi tiết yêu cầu</h1><div class="sz-ticket-code">{{ $ticket->incident_code }}</div></div>
+<div><a class="small text-decoration-none" href="{{ auth()->user()->role === 'CUSTOMER' ? route('bookings.show', $ticket->booking) : route('incident-tickets.index') }}">← {{ auth()->user()->role === 'CUSTOMER' ? 'Chi tiết booking' : 'Yêu cầu hỗ trợ' }}</a><h1>Chi tiết yêu cầu</h1><div class="sz-ticket-code">{{ $ticket->incident_code }}</div></div>
 <span class="sz-ticket-status">{{ \App\Models\CourtIncident::TICKET_STATUSES[$ticket->status] }}</span>
 </header>
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
@@ -82,6 +82,9 @@
 @foreach($ticket->resolutions as $resolution)
 @foreach($resolution->refundRequests as $refund)
 <p class="mt-3">Yêu cầu hoàn #{{ $refund->id }} · {{ number_format($refund->amount) }}đ · {{ $refund->payout_label }}</p>
+@if(in_array(auth()->user()->role, ['ADMIN','EMPLOYEE']) && auth()->user()->hasPermission('refunds.process'))
+<a class="btn btn-primary mb-3" href="{{ route('refund-payouts.show', $refund) }}">{{ $refund->refund ? 'Xem biên nhận hoàn tiền' : 'Mở khoản hoàn & chi trả' }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+@endif
 @include('partials.refund-recipient', ['refundRequest'=>$refund])
 @endforeach
 @endforeach

@@ -1,5 +1,11 @@
 <?php
 
+\Illuminate\Support\Facades\Route::middleware(['auth', 'active', 'role:EMPLOYEE', 'permission:bookings.view'])->prefix('employee/bookings')->name('employee.bookings.')->group(function () {
+    \Illuminate\Support\Facades\Route::get('/{booking}/extension-options', [\App\Http\Controllers\EmployeeCounterController::class, 'extensionOptions'])->middleware('permission:payments.counter')->name('extension-options');
+    \Illuminate\Support\Facades\Route::post('/{booking}/extend', [\App\Http\Controllers\EmployeeCounterController::class, 'extend'])->middleware('permission:payments.counter')->name('extend');
+    \Illuminate\Support\Facades\Route::post('/{booking}/session-checkout', [\App\Http\Controllers\EmployeeCounterController::class, 'checkoutSession'])->middleware('permission:bookings.checkout')->name('session-checkout');
+});
+
 use App\Http\Controllers\AdminAnnouncementController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCourtController;
@@ -29,6 +35,7 @@ use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
 
 Route::middleware(['auth', 'active', 'role:ADMIN,EMPLOYEE'])->prefix('operations')->name('operations.')->group(function () {
     Route::post('/lookup', [\App\Http\Controllers\BookingOperationsController::class, 'lookup'])->name('lookup');
@@ -869,6 +876,9 @@ Route::middleware([
         'store',
     ])->name('bookings.store');
 
+    Route::post('/booking/{booking}/reviews', [\App\Http\Controllers\CustomerReviewController::class, 'store'])
+        ->middleware('throttle:10,1')->name('bookings.reviews.store');
+
     /*
     | Booking định kỳ
     */
@@ -968,3 +978,6 @@ Route::middleware(['auth','active','role:ADMIN,EMPLOYEE','permission:refunds.pro
 });
 Route::post('/refund-requests/{refundRequest}/recipient', [\App\Http\Controllers\RefundPayoutController::class,'recipient'])->middleware(['auth','active','role:CUSTOMER'])->name('refund-recipient.update');
 Route::post('/refund-requests/{refundRequest}/recipient/confirm', [\App\Http\Controllers\RefundPayoutController::class,'confirmRecipient'])->middleware(['auth','active','role:CUSTOMER'])->name('refund-recipient.confirm');
+
+require __DIR__.'/admin-management.php';
+require __DIR__.'/employee-operations.php';

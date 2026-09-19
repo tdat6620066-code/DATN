@@ -381,7 +381,7 @@ class AuthController extends Controller
             isset($user->status)
             &&
             (
-                $user->status === 'BLOCKED'
+                in_array($user->status, ['LOCKED', 'INACTIVE', 'BLOCKED'], true)
                 ||
                 $user->status === 'BANNED'
                 ||

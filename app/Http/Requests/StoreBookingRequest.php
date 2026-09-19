@@ -20,6 +20,7 @@ class StoreBookingRequest extends FormRequest
             'time_slot_ids' => 'required|array|min:1',
             'time_slot_ids.*' => 'integer|exists:time_slots,id|distinct',
             'voucher_code' => 'nullable|string|max:50',
+            'daily_duration_confirmed' => 'sometimes|accepted',
             'services' => 'nullable|array|max:100',
             'services.*.service_item_id' => 'required|integer|distinct|exists:service_items,id',
             'services.*.quantity' => 'required|integer|min:0|max:1000',
@@ -46,6 +47,14 @@ class StoreBookingRequest extends FormRequest
         $validator->after(function ($validator) {
             if ($validator->errors()->isEmpty() && ! TimeSlot::areConsecutive(TimeSlot::whereIn('id', $this->input('time_slot_ids'))->get())) {
                 $validator->errors()->add('time_slot_ids', 'Chỉ được chọn các khung giờ liền nhau, không cách quãng hoặc chồng lấn.');
+            }
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+            $duration = app(\App\Services\DailyBookingDurationService::class);
+            $minutes = $duration->totalMinutes($this->user()->id, $this->input('booking_date'), $this->input('time_slot_ids'));
+            if ($minutes >= config('booking.daily_confirmation_minutes', 240) && ! $this->boolean('daily_duration_confirmed')) {
+                $validator->errors()->add('daily_duration_confirmed', $duration->warning($minutes, $this->input('booking_date')));
             }
         });
     }

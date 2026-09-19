@@ -5,8 +5,8 @@
 .form-head{margin-bottom:22px}.form-head a{color:#009c5c;font-size:11px;font-weight:800;text-decoration:none}.form-head h1{margin:8px 0 4px;font-size:27px;font-weight:800}.form-head p{margin:0;color:#75878e;font-size:13px}.form-grid{display:grid;grid-template-columns:1.25fr .85fr;gap:20px}.form-card{margin-bottom:20px;padding:23px;border:1px solid #dfe8e4;border-radius:16px;background:#fff}.form-card h2{margin:0 0 19px;font-size:15px;font-weight:800}.fields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field.full{grid-column:span 2}.field label{display:block;margin-bottom:6px;color:#506970;font-size:10px;font-weight:900;text-transform:uppercase}.field input,.field select,.field textarea{width:100%;border:1px solid #dbe5e1;border-radius:9px;background:#fafcfb;padding:10px 11px;font-size:12px;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#10bd6e;box-shadow:0 0 0 3px rgba(16,189,110,.1)}.amenity-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.check-tile{padding:10px;border:1px solid #e0e8e4;border-radius:9px;font-size:11px}.check-tile input{accent-color:#0cba6b}.price-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #edf2ef;font-size:11px}.slot-price-preview{color:#07864e;font-size:12px}.image-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.image-item{position:relative}.image-item img{width:100%;height:90px;border-radius:9px;object-fit:cover}.image-item label{position:absolute;inset:auto 5px 5px;padding:4px 6px;border-radius:5px;background:rgba(8,31,43,.82);color:#fff;font-size:9px}.save-bar{position:sticky;bottom:15px;display:flex;justify-content:flex-end;gap:9px;padding:13px;border:1px solid #dfe8e4;border-radius:13px;background:rgba(255,255,255,.94);box-shadow:0 8px 28px rgba(20,50,45,.12)}.save-btn{border:0;border-radius:9px;background:#12c874;color:#063521;padding:11px 18px;font-size:11px;font-weight:900}.cancel-btn{padding:11px 16px;color:#62777f;font-size:11px;font-weight:800;text-decoration:none}@media(max-width:900px){.form-grid{grid-template-columns:1fr}}@media(max-width:550px){.fields{grid-template-columns:1fr}.field.full{grid-column:auto}}
 </style>
 @endpush
-@section('content')
-<div class="form-head"><a href="{{ route('admin.courts.index') }}">← Danh sách sân</a><h1>{{ $court ? 'Chỉnh sửa sân' : 'Thêm sân mới' }}</h1><p>Thiết lập thông tin, tiện ích, giá và hình ảnh sân.</p></div>
+@section('content')<x-admin.workspace>
+<div class="form-head"><a href="{{ route('admin.courts.index') }}">← Danh sách sân</a><x-admin.page-heading>{{ $court ? 'Chỉnh sửa sân' : 'Thêm sân mới' }}</x-admin.page-heading><p>Thiết lập thông tin, tiện ích, giá và hình ảnh sân.</p></div>
 <form method="POST" enctype="multipart/form-data" action="{{ $court ? route('admin.courts.update',$court) : route('admin.courts.store') }}">
     @csrf @if($court) @method('PUT') @endif
     <div class="form-grid"><div>
@@ -25,7 +25,7 @@
     </div></div>
     <div class="save-bar"><a class="cancel-btn" href="{{ route('admin.courts.index') }}">Hủy</a><button class="save-btn"><i class="bi bi-floppy me-1"></i>Lưu dữ liệu</button></div>
 </form>
-@endsection
+</x-admin.workspace>@endsection
 @push('scripts')
 <script>
 const priceInput = document.getElementById('default_price');

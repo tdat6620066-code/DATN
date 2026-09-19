@@ -23,6 +23,13 @@ class AdminBookingTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'ADMIN']);
         $booking = $this->booking('CONFIRMED');
+        $this->travelTo(now()->setTime(9, 0));
+        $type = \App\Models\CourtType::create(['name' => 'Audit']);
+        $court = \App\Models\Court::create(['code' => 'AUDIT', 'name' => 'Audit court', 'court_type_id' => $type->id]);
+        $slot = \App\Models\TimeSlot::create(['name' => '09-10', 'start_time' => '09:00', 'end_time' => '10:00', 'duration' => 60]);
+        $booking->bookingDetails()->create(['court_id' => $court->id, 'time_slot_id' => $slot->id, 'booking_date' => today(), 'price' => 100000, 'subtotal' => 100000]);
+        $booking->update(['payment_status' => 'PAID']);
+        $booking->payment()->create(['amount' => 100000, 'status' => 'PAID', 'paid_at' => now()]);
         $this->actingAs($admin)->put(route('admin.bookings.update', $booking), ['status' => 'CHECKED_IN', 'note' => 'Đã xác minh', 'reason' => 'Khách đã đến sân.'])->assertRedirect();
         $this->assertDatabaseHas('booking_audit_logs', ['booking_id' => $booking->id, 'actor_id' => $admin->id, 'action' => 'UPDATED', 'reason' => 'Khách đã đến sân.']);
         $this->assertSame('CHECKED_IN', $booking->fresh()->status);
@@ -39,7 +46,7 @@ class AdminBookingTest extends TestCase
     public function test_cancellation_creates_audit_log(): void
     {
         $admin = User::factory()->create(['role' => 'ADMIN']);
-        $booking = $this->booking('CONFIRMED');
+        $booking = $this->booking('PENDING_PAYMENT');
         $this->actingAs($admin)->put(route('admin.bookings.cancel', $booking), ['reason' => 'Khách yêu cầu hủy.'])->assertRedirect();
         $this->assertSame('CANCELLED', $booking->fresh()->status);
         $this->assertDatabaseHas('booking_audit_logs', ['booking_id' => $booking->id, 'action' => 'CANCELLED']);

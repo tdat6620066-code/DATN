@@ -11,6 +11,26 @@ use Illuminate\Support\Facades\DB;
 
 class AdminPricingController extends Controller
 {
+    public function slots(Request $request)
+    {
+        $this->admin($request);
+        $slots = TimeSlot::query()
+            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->search.'%'))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->orderBy('start_time')->paginate(15)->withQueryString();
+        return view('admin.pricing.slots', compact('slots'));
+    }
+
+    public function toggleSlot(TimeSlot $timeSlot, Request $request)
+    {
+        $this->admin($request);
+        if ($timeSlot->status !== 'ACTIVE' && $this->overlaps($timeSlot->start_time, $timeSlot->end_time, $timeSlot->id)) {
+            return back()->with('error', 'Khung giờ bị trùng với khung giờ đang hoạt động.');
+        }
+        $timeSlot->update(['status' => $timeSlot->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE']);
+        return back()->with('success', 'Đã cập nhật trạng thái khung giờ.');
+    }
+
     public function index(Request $request)
     {
         $this->admin($request);
@@ -38,6 +58,9 @@ class AdminPricingController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i', 'after:start_time'], 'duration' => ['required', 'integer', 'min:1']]);
+        if ($timeSlot->bookingDetails()->exists() && (substr($timeSlot->start_time, 0, 5) !== $data['start_time'] || substr($timeSlot->end_time, 0, 5) !== $data['end_time'] || (int) $timeSlot->duration !== (int) $data['duration'])) {
+            return back()->with('error', 'Khung giờ đã có lịch sử đặt sân. Hãy tạo khung giờ mới để thay đổi thời gian.');
+        }
         if ($this->overlaps($data['start_time'], $data['end_time'], $timeSlot->id)) {
             return back()->with('error', 'Khung giờ bị trùng với khung giờ hiện có.');
         } $timeSlot->update($data);

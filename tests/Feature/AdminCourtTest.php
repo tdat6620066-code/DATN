@@ -72,6 +72,6 @@ class AdminCourtTest extends TestCase
 
     private function payload(CourtType $type, TimeSlot $slot): array
     {
-        return ['name' => 'Sân Admin UC42', 'court_type_id' => $type->id, 'description' => 'Mô tả sân', 'opening_time' => '06:00', 'closing_time' => '22:00', 'status' => 'ACTIVE', 'is_featured' => 1, 'prices' => [$slot->id => 180000]];
+        return ['name' => 'Sân Admin UC42', 'court_type_id' => $type->id, 'description' => 'Mô tả sân', 'opening_time' => '06:00', 'closing_time' => '22:00', 'status' => 'ACTIVE', 'is_featured' => 1, 'default_price' => 180000];
     }
 }

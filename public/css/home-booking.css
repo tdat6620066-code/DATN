@@ -1,0 +1,96 @@
+/* Booking-first home layout, scoped to avoid changing staff and booking screens. */
+body.booking-home { background: #f7faf8; color: #064b31; padding-bottom: 104px; }
+.booking-home .container-wide { width: calc(100% - 32px); max-width: 1920px; }
+body.booking-home header#nav { position: relative; padding: 20px 0 48px; min-height: 154px; background: radial-gradient(ellipse at 80% 0%, #71a73588 0, transparent 45%), linear-gradient(125deg, #349977, #008a52 55%, #236e65) !important; box-shadow: none; overflow: visible; }
+.booking-home .nav-inner { justify-content: flex-start; gap: 18px; }
+.booking-home .brand img { width: 80px; height: 80px; object-fit: contain; border-radius: 50%; background: #fff; padding: 5px; }
+.header-account { width: min(620px, calc(100% - 130px)); }
+.header-date { color: #fff; font-size: 17px; font-weight: 600; margin: 0 0 10px; text-transform: capitalize; }
+.booking-home .nav-actions { gap: 12px; }
+.header-login, .header-register { display: flex; justify-content: center; align-items: center; min-height: 40px; flex: 1; padding: 7px 18px; border-radius: 7px; border: 2px solid #fff; color: #fff; font-weight: 600; }
+.header-login { color: #005332; background: #fff; }
+.header-login:hover { color: #007c49; background: #eefbf3; }
+.header-register:hover { color: #fff; background: #ffffff20; }
+.booking-home .nav-user-trigger { color: white; }
+.booking-home .nav-user-menu:focus-within .nav-user-dropdown { opacity: 1; visibility: visible; transform: none; }
+.language-badge { margin-left: auto; align-self: flex-start; color: #ffe637; background: #f33b50; border-radius: 50%; width: 25px; height: 25px; text-align: center; }
+.booking-toolbar { position: relative; z-index: 10; display: flex; min-height: 62px; margin: -31px 12px 14px; padding: 9px 14px; background: #fff; border-radius: 13px; box-shadow: 0 3px 5px #183b332b; }
+.toolbar-search { display: flex; align-items: center; width: 50%; border-right: 1px solid #d6ded9; }
+.toolbar-search input { width: 100%; min-width: 0; border: 0; outline: none; padding: 10px 14px; color: #155b40; background: transparent; }
+.toolbar-search input::placeholder { color: #9a9f9c; }
+.search-submit, .filter-toggle { flex-shrink: 0; border: 0; background: none; color: #008343; font-size: 23px; padding: 3px 14px; }
+.search-submit { border-right: 1px solid #d6ded9; }
+.toolbar-links { display: flex; flex: 1; justify-content: space-around; align-items: center; }
+.toolbar-links a { display: flex; align-items: center; gap: 11px; color: #007b42; font-size: 16px; }
+.toolbar-links i { font-size: 24px; }
+.booking-filter-fields { display: grid; grid-template-columns: repeat(3, 1fr) auto; align-items: end; gap: 16px; padding: 18px; margin-bottom: 14px; background: white; border: 1px solid #dce9df; border-radius: 12px; }
+.booking-banner { overflow: hidden; border-radius: 14px; background: #006839; }
+.booking-banner img { display: block; width: 100%; height: auto; max-height: 320px; object-fit: cover; }
+.booking-home #featured { padding: 12px 0 24px; scroll-margin-top: 16px; }
+.booking-home .courts-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.booking-court { min-width: 0; border: 1px solid #d3e1d9; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 3px 5px #143c3026; transition: box-shadow .2s; }
+.booking-court:hover { box-shadow: 0 5px 15px #143c3038; }
+.booking-court-image { height: clamp(140px, 10vw, 195px); position: relative; background: #ddede3; }
+.court-preview { display: block; padding: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+.court-preview img { width: 100%; height: 100%; object-fit: cover; }
+.court-preview .court-image-fallback { display: grid; }
+.booking-court-tag { position: absolute; top: 0; left: 7px; padding: 4px 12px 4px 5px; background: #00c980; color: white; border-radius: 20px; font-size: 12px; font-weight: 600; pointer-events: none; }
+.booking-court-tag i { background: white; color: #93a29b; border-radius: 50%; padding: 3px; margin-right: 5px; }
+.booking-court-actions { position: absolute; top: 7px; right: 7px; display: flex; gap: 8px; }
+.booking-court-actions form { margin: 0; }
+.booking-court-actions a, .booking-court-actions button { display: grid; place-items: center; width: 40px; height: 40px; background: white; border: 0; border-radius: 50%; color: #005d37; font-size: 21px; box-shadow: 0 2px 5px #003d3326; }
+.booking-court-info { display: flex; align-items: center; gap: 10px; padding: 17px 10px; min-height: 103px; }
+.booking-court-logo { width: 58px; height: 52px; object-fit: contain; }
+.booking-court-copy { flex: 1; min-width: 0; }
+.booking-court-copy h3 { margin: 0 0 3px; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.booking-court-copy p { margin: 0; font-size: 12px; }
+.booking-court-address { color: #626b66; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.booking-court-hours { color: #216349; margin-top: 3px !important; }
+.booking-court-book { flex-shrink: 0; align-self: flex-end; color: #fff; background: #e8ad20; padding: 9px 13px; border-radius: 6px; text-transform: uppercase; font-weight: 700; font-size: 12px; }
+.booking-court-book:hover { background: #c38d0c; color: #fff; }
+.bottom-navigation { position: fixed; bottom: 0; left: 3px; right: 3px; z-index: 1000; height: 88px; padding-bottom: env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5, 1fr); background: #fff; border: 1px solid #dbe4dd; border-radius: 16px 16px 0 0; box-shadow: 0 -3px 12px #00572f0d; }
+.bottom-navigation a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #929995; font-size: 14px; }
+.bottom-navigation i { font-size: 27px; line-height: 1.3; }
+.bottom-navigation a.active, .bottom-navigation a:hover { color: #00b533; }
+.bottom-navigation .explore i { display: grid; place-items: center; width: 70px; height: 70px; margin-top: -32px; margin-bottom: 2px; background: white; border: 2px solid #00b943; border-radius: 50%; outline: 9px solid #fff; color: #00b943; font-size: 30px; }
+.booking-home .section { padding: 32px 0; }
+.booking-home .section-head { margin-bottom: 20px; }
+.booking-home .section-head h2 { font-size: 25px; }
+.booking-home .booking-cta { padding: 30px; }
+.booking-home .ai-chat-launcher { bottom: 110px; }
+.booking-home .ai-chat-panel { bottom: 180px; }
+.booking-home :focus-visible { outline: 3px solid #e7ac20; outline-offset: 3px; }
+@media (min-width: 1600px) { .booking-banner img { max-height: none; height: 15.2vw; object-fit: cover; } }
+@media (max-width: 1050px) {
+    .booking-home .courts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .booking-court-image { height: 170px; }
+    .toolbar-links a { font-size: 13px; gap: 6px; }
+    .booking-court-logo { width: 42px; }
+}
+@media (max-width: 640px) {
+    .booking-home .container-wide { width: calc(100% - 20px); }
+    body.booking-home header#nav { padding: 16px 0 42px; min-height: 138px; }
+    .booking-home .nav-inner { gap: 12px; }
+    .booking-home .brand img { width: 56px; height: 56px; }
+    .header-account { width: auto; flex: 1; }
+    .header-date { font-size: 13px; }
+    .header-login, .header-register { font-size: 12px; min-height: 35px; padding: 6px 10px; }
+    .language-badge { display: none; }
+    .booking-home .nav-actions { gap: 8px; flex-wrap: wrap; }
+    .booking-toolbar { flex-direction: column; padding: 7px 10px; margin: -28px 8px 12px; }
+    .toolbar-search { width: 100%; border-right: 0; border-bottom: 1px solid #ecf0ed; }
+    .toolbar-search input { font-size: 14px; }
+    .toolbar-links { padding: 10px 0 3px; }
+    .toolbar-links i { font-size: 18px; }
+    .booking-filter-fields { grid-template-columns: 1fr 1fr; padding: 12px; gap: 10px; }
+    .booking-banner { border-radius: 9px; }
+    .booking-banner img { min-height: 120px; object-fit: cover; }
+    .booking-home .courts-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .booking-court-image { height: 160px; }
+    .booking-court-copy h3 { font-size: 16px; }
+    .booking-court-info { padding: 13px 10px; }
+    .bottom-navigation { height: 76px; }
+    .bottom-navigation a { font-size: 11px; }
+    .bottom-navigation i { font-size: 23px; }
+    .bottom-navigation .explore i { width: 56px; height: 56px; margin-top: -23px; font-size: 25px; outline-width: 6px; }
+}

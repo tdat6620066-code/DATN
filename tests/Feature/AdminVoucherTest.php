@@ -51,4 +51,12 @@ class AdminVoucherTest extends TestCase
     {
         return ['code' => 'SUMMER50', 'name' => 'Ưu đãi mùa hè', 'discount_type' => 'PERCENTAGE', 'discount_value' => 50, 'min_order_amount' => 100000, 'max_discount' => 200000, 'start_at' => now()->subHour(), 'end_at' => now()->addDays(10), 'usage_limit' => 10, 'conditions' => 'Áp dụng cho booking hợp lệ.', 'status' => 'ACTIVE'];
     }
+
+    public function test_search_by_code_still_respects_status_filter(): void
+    {
+        $admin = User::factory()->create(['role' => 'ADMIN']);
+        Voucher::create(array_replace($this->payload(), ['code' => 'HIDDEN-CODE', 'status' => 'INACTIVE']));
+        $this->actingAs($admin)->get(route('admin.vouchers.index', ['search' => 'HIDDEN-CODE', 'status' => 'ACTIVE']))
+            ->assertOk()->assertViewHas('vouchers', fn ($vouchers) => $vouchers->isEmpty());
+    }
 }

@@ -6,6 +6,12 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class CheckAvailabilityRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $court = $this->route('court');
+        $this->merge(['court_id' => $court instanceof \App\Models\Court ? $court->getKey() : $court]);
+    }
+
     public function authorize(): bool
     {
         return true;

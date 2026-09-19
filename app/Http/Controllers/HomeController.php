@@ -15,7 +15,7 @@ class HomeController extends Controller
     {
         // Get active banners
         $banners = Banner::where('status', 'ACTIVE')
-            ->where('start_at', '<=', now())
+            ->where(fn ($query) => $query->whereNull('start_at')->orWhere('start_at', '<=', now()))
             ->where(function ($query) {
                 $query->whereNull('end_at')
                     ->orWhere('end_at', '>=', now());
@@ -57,7 +57,7 @@ class HomeController extends Controller
 
         // Get active promotions
         $promotions = Promotion::where('status', 'ACTIVE')
-            ->where('start_at', '<=', now())
+            ->where(fn ($query) => $query->whereNull('start_at')->orWhere('start_at', '<=', now()))
             ->where(function ($query) {
                 $query->whereNull('end_at')
                     ->orWhere('end_at', '>=', now());
@@ -67,6 +67,7 @@ class HomeController extends Controller
 
         // Get latest news
         $news = News::where('status', 'PUBLISHED')
+            ->where(fn ($query) => $query->whereNull('published_at')->orWhere('published_at', '<=', now()))
             ->orderByDesc('published_at')
             ->limit(6)
             ->get();
@@ -85,8 +86,20 @@ class HomeController extends Controller
         ];
 
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->orderBy('start_time')->get(['id', 'name', 'start_time']);
-        // Chỉ dùng ảnh banner đã được quản trị viên tạo; không dùng ảnh sân làm ảnh nền banner.
-        $heroImage = $banners->first()?->image;
+        $bannerPath = $banners->first()?->image;
+        $heroImage = $bannerPath
+            ? (\Illuminate\Support\Str::startsWith($bannerPath, ['https://', 'http://', '/']) ? $bannerPath : asset('storage/'.$bannerPath))
+            : asset('images/banner.png').'?v='.filemtime(public_path('images/banner.png'));
+
+        // Homepage preview only; booking still revalidates availability and price.
+        $previewSlots = $timeSlots->filter(fn ($slot) => Carbon::parse(today()->toDateString().' '.$slot->start_time)->isFuture())->take(4);
+        $liveCourts = $featuredCourts->take(2)->map(function ($court) use ($previewSlots) {
+            return ['court' => $court, 'slots' => $previewSlots->map(function ($slot) use ($court) {
+                $status = app(\App\Services\CourtAvailabilityService::class)->checkAvailability($court->id, Carbon::today(), $slot->id);
+                $price = app(\App\Services\BookingService::class)->getCurrentPrice($court->id, $slot->id, Carbon::today());
+                return ['slot' => $slot, 'status' => $price > 0 ? $status : 'MAINTENANCE'];
+            })];
+        });
 
         return view('home', [
             'banners' => $banners,
@@ -98,6 +111,8 @@ class HomeController extends Controller
             'statistics' => $statistics,
             'timeSlots' => $timeSlots,
             'heroImage' => $heroImage,
+            'liveCourts' => $liveCourts,
+            'homeServices' => \App\Models\ServiceItem::where('is_active', true)->orderBy('name')->limit(8)->get(),
         ]);
     }
 }

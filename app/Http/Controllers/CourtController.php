@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\{CheckAvailabilityRequest, FilterCourtRequest, SearchCourtRequest};
 use App\Models\{Court, CourtPrice, CourtType, Review, TimeSlot};
 use App\Services\CourtAvailabilityService;
+use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,6 +126,30 @@ class CourtController extends Controller
                 break;
         }
 
+        $timeSlots = TimeSlot::where('status', 'ACTIVE')->orderBy('start_time')->get();
+        $courtAvailability = [];
+        // Evaluate the existing availability rules before pagination. These
+        // labels describe only the selected date and slot, never the whole day.
+        if ($filterRequest->booking_date && $filterRequest->time_slot_id) {
+            $date = Carbon::parse($filterRequest->booking_date)->startOfDay();
+            $slot = $timeSlots->firstWhere('id', (int) $filterRequest->time_slot_id);
+            if ($slot) {
+                foreach ((clone $query)->get(['courts.*']) as $candidate) {
+                    $status = $this->availabilityService->checkAvailability($candidate->id, $date, $slot->id);
+                    $price = $candidate->prices->first(fn ($price) => $price->time_slot_id == $slot->id
+                        && $price->status === 'ACTIVE' && $price->effective_from->lte($date)
+                        && (! $price->effective_to || $price->effective_to->gte($date)))?->price;
+                    if (Carbon::parse($date->toDateString().' '.$slot->start_time)->lte(now()) || ! $price || $price <= 0) {
+                        $status = CourtAvailabilityService::STATUS_MAINTENANCE;
+                    }
+                    $courtAvailability[$candidate->id] = $status ?? CourtAvailabilityService::STATUS_MAINTENANCE;
+                }
+                if ($filterRequest->availability_status) {
+                    $ids = array_keys(array_filter($courtAvailability, fn ($status) => $status === $filterRequest->availability_status));
+                    $query->whereIn('courts.id', $ids);
+                }
+            }
+        }
         $courts = $query->paginate(12)->withQueryString();
 
         $courtPreviewData = $courts->getCollection()->map(function (Court $court) {
@@ -153,6 +178,8 @@ class CourtController extends Controller
             'courtTypes' => $courtTypes,
             'keyword' => $searchRequest->keyword ?? '',
             'courtPreviewData' => $courtPreviewData,
+            'timeSlots' => $timeSlots,
+            'courtAvailability' => $courtAvailability,
         ]);
     }
 
@@ -223,19 +250,12 @@ class CourtController extends Controller
         $timeSlots = TimeSlot::where('status', 'ACTIVE')->orderBy('start_time')->get();
         $availability = [];
         foreach ($timeSlots as $slot) {
-            $price = $court->prices()
-                ->where('time_slot_id', $slot->id)
-                ->where('status', 'ACTIVE')
-                ->where('effective_from', '<=', $selectedDate->toDateString())
-                ->where(function ($query) use ($selectedDate) {
-                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $selectedDate->toDateString());
-                })
-                ->first()?->price ?? 0;
+            $price = app(BookingService::class)->getCurrentPrice($court->id, $slot->id, $selectedDate) ?? 0;
 
             $status = $this->availabilityService->checkAvailability($court->id, $selectedDate, $slot->id);
 
             $slotStart = Carbon::parse($selectedDate->toDateString() . ' ' . $slot->start_time);
-            if ($selectedDate->isToday() && $slotStart->lte(now())) {
+            if (($selectedDate->isToday() && $slotStart->lte(now())) || $price <= 0) {
                 $status = CourtAvailabilityService::STATUS_MAINTENANCE;
             }
 
@@ -262,7 +282,7 @@ class CourtController extends Controller
         $scheduleAvailability = [];
         foreach ($scheduleCourts as $scheduleCourt) {
             foreach ($timeSlots as $slot) {
-                $price = $scheduleCourt->prices->firstWhere('time_slot_id', $slot->id)?->price ?? 0;
+                $price = $availability[$slot->id]['price'];
                 $status = $this->availabilityService->checkAvailability($scheduleCourt->id, $selectedDate, $slot->id);
 
                 $slotStart = Carbon::parse($selectedDate->toDateString().' '.$slot->start_time);
@@ -303,7 +323,7 @@ class CourtController extends Controller
 
         // Validate date is within booking window
         $maxDays = config('booking.max_days', 30);
-        if ($date < now() || $date > now()->addDays($maxDays)) {
+        if ($date->lt(Carbon::today()) || $date->gt(Carbon::today()->addDays($maxDays))) {
             return response()->json(['error' => 'Ngày đặt không hợp lệ'], 400);
         }
 

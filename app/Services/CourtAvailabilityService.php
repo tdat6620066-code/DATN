@@ -104,7 +104,7 @@ class CourtAvailabilityService
             ->whereDate('booking_date', $date->toDateString())
             ->whereHas('timeSlot', fn ($q) => $q->where('start_time', '<', $slot->end_time)->where('end_time', '>', $slot->start_time))
             ->whereHas('booking', function ($query) {
-                $query->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']);
+                $query->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'NO_SHOW']);
             })
             ->exists();
     }

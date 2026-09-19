@@ -30,6 +30,9 @@ class PaymentService
      */
     public function markAsPaid(Payment $payment, $transactionId = null, $paymentMethod = null)
     {
+        if (strtoupper((string) ($paymentMethod ?? $payment->payment_method)) === 'CASH' && \App\Models\SystemSetting::valueFor('cash_enabled', '1') !== '1') {
+            throw new \DomainException('Thanh toán tiền mặt đang tạm ngừng.');
+        }
         if ($payment->purpose === 'SERVICE') {
             if (! app(ServiceOrderService::class)->settle($payment, true, $transactionId, $paymentMethod ?? 'vnpay')) throw new \DomainException('Khoản dịch vụ đã hủy hoặc hết hạn.');
             return $payment->refresh();

@@ -23,12 +23,13 @@ class ServiceOrderController extends Controller
             'items.*.service_item_id' => ['required', 'integer', 'distinct', 'exists:service_items,id'], 'items.*.quantity' => ['required', 'integer', 'min:0', 'max:1000']]);
         try {
             $service->create($booking, $request->user(), $data['items'], $data['request_key']);
-            return back()->with('success', 'Đã thêm dịch vụ phát sinh. Nhân viên có thể giao ngay và thu gộp khi trả sân.');
+            return back()->with('success', 'Đã thêm dịch vụ vào booking của khách. Cần thanh toán khoản phát sinh trước khi hoàn tất check-out.');
         } catch (\DomainException $e) { return back()->withInput()->with('error', $e->getMessage()); }
     }
 
     public function cash(Request $request, ServiceOrder $serviceOrder, ServiceOrderService $service)
     {
+        abort_unless(\App\Models\SystemSetting::valueFor('cash_enabled', '1') === '1', 422, 'Thanh toán tiền mặt đang tạm ngừng.');
         $this->access($request, $serviceOrder->booking, 'payments.counter');
         $data = $request->validate(['amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0']]);
         if (round((float) $data['amount'] * 100) !== round((float) $serviceOrder->payment->amount * 100)) return back()->withErrors(['amount' => 'Số tiền phải khớp khoản dịch vụ cần thu.']);
@@ -53,7 +54,7 @@ class ServiceOrderController extends Controller
     public function pay(Request $request, ServiceOrder $serviceOrder, VnPayService $gateway)
     {
         $this->access($request, $serviceOrder->booking);
-        if ($serviceOrder->source === 'at_court') $this->access($request, $serviceOrder->booking, 'payments.counter');
+        if (in_array($request->user()->role, ['ADMIN', 'EMPLOYEE'])) $this->access($request, $serviceOrder->booking, 'payments.counter');
         if ($serviceOrder->booking->payment_status !== 'PAID') return back()->with('error', 'Vui lòng thanh toán tiền sân trước khi thanh toán dịch vụ.');
         if (! in_array($serviceOrder->status, ['PENDING', 'DELIVERED']) || $serviceOrder->payment->status !== 'PENDING' || $serviceOrder->expires_at?->lte(now())) return back()->with('error', 'Khoản dịch vụ không còn chờ thanh toán.');
         try { return redirect()->away($gateway->createPaymentUrl($serviceOrder, route('bookings.vnpay.return'))); }

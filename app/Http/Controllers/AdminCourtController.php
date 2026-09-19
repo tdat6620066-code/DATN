@@ -17,9 +17,16 @@ class AdminCourtController extends Controller
     public function index(Request $request)
     {
         $this->authorizeAdmin($request);
-        $courts = Court::with(['courtType', 'images'])->withCount('bookingDetails')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('code', 'like', '%'.$request->search.'%')))->latest()->paginate(15)->withQueryString();
+        $courts = Court::with(['courtType', 'images'])->withCount('bookingDetails')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('code', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(15)->withQueryString();
 
         return view('admin.courts.index', compact('courts'));
+    }
+
+    public function show(Court $court, Request $request)
+    {
+        $this->authorizeAdmin($request);
+        $court->load(['courtType', 'amenities', 'images', 'prices.timeSlot']);
+        return view('admin.courts.show', compact('court'));
     }
 
     public function create(Request $request)

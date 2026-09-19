@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('page_heading', 'Duyệt hoàn tiền')
-@section('content')
+@section('content')<x-admin.workspace>
 @include('partials.incident-ui')
 <div class="d-flex justify-content-between align-items-center mb-3">
 <p class="mb-0">Kiểm tra sự cố và số tiền trước khi phê duyệt. Sau khi duyệt, khoản hoàn sẽ chuyển sang bước chi trả.</p>
@@ -36,5 +36,5 @@
 @empty
 <div class="sz-work-panel">Chưa có yêu cầu hoàn tiền chờ duyệt hoặc chờ chi trả. Mở chi tiết booking để tạo yêu cầu hoàn tiền đặc biệt, hoặc tiếp nhận yêu cầu tại Sự cố & Khiếu nại.</div>
 @endforelse
-{{ $items->links() }}
-@endsection
+<x-admin.pagination :rows="$items" />
+</x-admin.workspace>@endsection

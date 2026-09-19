@@ -39,9 +39,9 @@ class BookingService
      * Create booking with transaction and locking
      * UC18, UC19, UC20
      */
-    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [], ?float $allocatedDiscount = null, array $services = [])
+    public function createBooking($userId, $bookingDetails, $voucherCode = null, array $metadata = [], ?float $allocatedDiscount = null, array $services = [], ?Carbon $extensionStart = null)
     {
-        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata, $allocatedDiscount, $services) {
+        return DB::transaction(function () use ($userId, $bookingDetails, $voucherCode, $metadata, $allocatedDiscount, $services, $extensionStart) {
             // Lock all owners before any consistent read, including multi-court requests.
             // This also keeps lock order identical to recurring checkout.
             Court::whereIn('id', array_column($bookingDetails, 'court_id'))->orderBy('id')->lockForUpdate()->get();
@@ -50,7 +50,7 @@ class BookingService
             $maxDays = in_array($metadata['booking_type'] ?? 'daily', ['weekly', 'monthly'], true)
                 ? config('booking.max_recurring_days', 365)
                 : config('booking.max_days', 30);
-            $validatedDetails = $this->validateAndLockBookingDetails($bookingDetails, $maxDays);
+            $validatedDetails = $this->validateAndLockBookingDetails($bookingDetails, $maxDays, $extensionStart);
 
             if (! empty($validatedDetails['errors'])) {
                 throw new \Exception(json_encode($validatedDetails['errors']));
@@ -127,7 +127,7 @@ class BookingService
      * Validate and lock all booking details
      * Uses SELECT FOR UPDATE to prevent race conditions
      */
-    private function validateAndLockBookingDetails($bookingDetails, ?int $maxDays = null)
+    private function validateAndLockBookingDetails($bookingDetails, ?int $maxDays = null, ?Carbon $extensionStart = null)
     {
         $errors = [];
         $validatedDetails = [];
@@ -170,7 +170,7 @@ class BookingService
             }
 
             // Validate booking date
-            if (! $this->isValidBookingDate($bookingDate, $timeSlot, $maxDays)) {
+            if (! $this->isValidBookingDate($bookingDate, $timeSlot, $maxDays, $extensionStart)) {
                 $errors[] = [
                     'booking_date' => $detail['booking_date'],
                     'time_slot_id' => $detail['time_slot_id'],
@@ -255,7 +255,7 @@ class BookingService
     /**
      * Validate booking date
      */
-    private function isValidBookingDate(Carbon $date, TimeSlot $timeSlot, ?int $maxDays = null)
+    private function isValidBookingDate(Carbon $date, TimeSlot $timeSlot, ?int $maxDays = null, ?Carbon $extensionStart = null)
     {
         $maxDays ??= config('booking.max_days', 30);
 
@@ -273,7 +273,7 @@ class BookingService
         // A slot may not be booked once its start time has passed.
         $slotStart = Carbon::parse($date->toDateString().' '.$timeSlot->start_time);
         if ($slotStart->lte(now())) {
-            return false;
+            return $extensionStart !== null && $slotStart->equalTo($extensionStart) && now()->startOfMinute()->equalTo($extensionStart);
         }
 
         return true;

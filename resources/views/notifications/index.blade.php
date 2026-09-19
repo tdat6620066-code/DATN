@@ -1,37 +1,10 @@
-<!DOCTYPE html>
-<html lang="vi">
+@extends(auth()->user()->role === 'ADMIN' ? 'layouts.admin' : (auth()->user()->role === 'EMPLOYEE' ? 'layouts.employee' : 'layouts.app'))
+@section('title', 'Thông báo — SmashZone')
+@section('content')
+<x-customer-shell active="notifications">
 
-<head>
 
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Thông báo - SmashZone</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        rel="stylesheet"
-    >
-
-@include('partials.brand-theme')
-</head>
-
-<body>
-
-@include('partials.site-header')
-
-<div class="container py-5">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center flex-wrap gap-3 mb-4">
 
         <h2 class="fw-bold mb-0">
             Thông báo
@@ -65,7 +38,14 @@
 
     @endif
 
+    @php($lastNoticeDay = null)
+    <div class="customer-notice-timeline">
     @forelse ($notifications as $notification)
+        @php($noticeDay = $notification->created_at->toDateString())
+        @if($noticeDay !== $lastNoticeDay)
+            <h3 class="customer-notice-day">{{ $notification->created_at->isToday() ? 'Hôm nay' : ($notification->created_at->isYesterday() ? 'Hôm qua' : $notification->created_at->format('d/m/Y')) }}</h3>
+            @php($lastNoticeDay = $noticeDay)
+        @endif
 
         <div
             class="card mb-3
@@ -74,7 +54,7 @@
 
             <div class="card-body">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
 
                     <h5 class="fw-bold">
 
@@ -142,10 +122,6 @@
 
     {{ $notifications->links() }}
 
-</div>
 
-@include('partials.site-footer')
-
-</body>
-
-</html>
+</div></x-customer-shell>
+@endsection

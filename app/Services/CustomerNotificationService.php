@@ -48,6 +48,12 @@ class CustomerNotificationService
         return $this->send($booking, 'BOOKING_REJECTED', '❌ Booking bị từ chối', $content, "booking-rejected:{$booking->id}");
     }
 
+    public function rescheduled(Booking $booking, string $schedule): Notification
+    {
+        return $this->send($booking, 'BOOKING_RESCHEDULED', 'Cập nhật lịch đặt sân',
+            "Đơn {$booking->booking_code} đã được đổi lịch: {$schedule}.", 'rescheduled:'.$booking->id.':'.\Illuminate\Support\Str::uuid());
+    }
+
     public function courtChanged(Booking $booking, string $oldCourt, string $newCourt): Notification
     {
         return $this->send($booking, 'COURT_CHANGED', '⚠️ Cập nhật booking',

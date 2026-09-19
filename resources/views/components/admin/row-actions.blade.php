@@ -1,0 +1,1 @@
+<details class="admin-row-actions"><summary aria-label="Thao tác dòng" title="Thao tác"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i><span class="visually-hidden">Thao tác</span></summary><div class="admin-action-menu">{{ $slot }}</div></details>

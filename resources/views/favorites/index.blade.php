@@ -1,39 +1,9 @@
-<!DOCTYPE html>
-<html lang="vi">
+@extends('layouts.app')
+@section('title','Sân yêu thích — SmashZone')
+@section('content')
+<x-customer-shell active="favorites"><div class="customer-favorites">
 
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Sân yêu thích - SmashZone</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        rel="stylesheet"
-    >
-
-@include('partials.brand-theme')
-</head>
-
-<body>
-
-@include('partials.site-header')
-
-<div class="container py-5">
-
-    <h2 class="fw-bold mb-4">
-        Sân yêu thích
-    </h2>
+    <x-customer-page-heading eyebrow="YOUR COLLECTION" title="Sân dành riêng cho bạn" description="Giữ lại những sân yêu thích, sẵn sàng cho lần đặt tiếp theo."/>
 
     @if (session('success'))
 
@@ -117,8 +87,5 @@
 
 </div>
 
-@include('partials.site-footer')
-
-</body>
-
-</html>
+</x-customer-shell>
+@endsection

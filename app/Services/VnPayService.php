@@ -19,6 +19,7 @@ class VnPayService
      */
     public function createPaymentUrl(Booking|FixedBooking|ServiceOrder $booking, string $returnUrl): string
     {
+        abort_unless(\App\Models\SystemSetting::valueFor('vnpay_enabled', '1') === '1', 422, 'Thanh toán VNPay đang tạm ngừng.');
         $tmnCode = trim((string) config('vnpay.tmn_code'));
         $hashSecret = trim((string) config('vnpay.hash_secret'));
 
@@ -32,7 +33,7 @@ class VnPayService
             'vnp_Amount' => $this->formatAmount($booking instanceof ServiceOrder ? $booking->payment->amount : ($booking instanceof FixedBooking ? $booking->total_price : $booking->total_amount)),
             'vnp_Command' => 'pay',
             'vnp_CreateDate' => now()->format('YmdHis'),
-            'vnp_ExpireDate' => ($booking instanceof FixedBooking || $booking instanceof ServiceOrder ? $booking->expires_at : ($booking->hold_expires_at ?? now()->addMinutes(config('booking.hold_timeout', 5))))->format('YmdHis'),
+            'vnp_ExpireDate' => (($booking instanceof FixedBooking || $booking instanceof ServiceOrder ? $booking->expires_at : $booking->hold_expires_at) ?? now()->addMinutes(config('booking.hold_timeout', 5)))->format('YmdHis'),
             'vnp_CurrCode' => config('vnpay.currency', 'VND'),
             'vnp_IpAddr' => request()->ip(),
             'vnp_Locale' => config('vnpay.locale', 'vn'),

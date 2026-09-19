@@ -1,14 +1,14 @@
 /* Shared SmashZone brand palette. Status badges keep their semantic colors. */
 :root {
-    --sz-primary: #072132;
-    --sz-primary-hover: #123d55;
-    --sz-primary-soft: #edf2f5;
-    --sz-primary-border: #cfdae1;
+    --sz-primary: #15803D;
+    --sz-primary-hover: #166534;
+    --sz-primary-soft: #DCFCE7;
+    --sz-primary-border: #E2E8F0;
     --sz-on-primary: #ffffff;
-    --bs-primary: #072132;
+    --bs-primary: #15803D;
     --bs-primary-rgb: 7, 33, 50;
-    --bs-link-color: #072132;
-    --bs-link-hover-color: #123d55;
+    --bs-link-color: #15803D;
+    --bs-link-hover-color: #166534;
 }
 :root, body, body .booking-checkout-page {
     --brand: var(--sz-primary) !important;
@@ -23,10 +23,10 @@
     --staff-primary: var(--sz-primary) !important;
     --staff-dark: var(--sz-primary) !important;
     --checkout-yellow: var(--sz-primary) !important;
-    --checkout-green: #f3f6f8 !important;
-    --page: #f3f6f8 !important;
-    --bg: #f3f6f8 !important;
-    --staff-bg: #f3f6f8 !important;
+    --checkout-green: #F8FAFC !important;
+    --page: #F8FAFC !important;
+    --bg: #F8FAFC !important;
+    --staff-bg: #F8FAFC !important;
 }
 body .btn-primary, body .btn-success, body .sc-btn-primary,
 body .staff-button-primary, body .auth-submit, body .preview-btn,
@@ -48,13 +48,13 @@ body .floating-book:hover, body .cdm-footer .btn:hover {
     color: #fff !important;
 }
 body .btn-outline-primary, body .btn-outline-success {
-    --bs-btn-color: #072132;
-    --bs-btn-border-color: #072132;
+    --bs-btn-color: #15803D;
+    --bs-btn-border-color: #15803D;
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: #072132;
-    --bs-btn-hover-border-color: #072132;
-    --bs-btn-active-bg: #123d55;
-    --bs-btn-active-border-color: #123d55;
+    --bs-btn-hover-bg: #15803D;
+    --bs-btn-hover-border-color: #15803D;
+    --bs-btn-active-bg: #166534;
+    --bs-btn-active-border-color: #166534;
     --bs-btn-active-color: #fff;
 }
 body .sc-nav, body header#nav, body .admin-sidebar, body .staff-sidebar, body .footer {
@@ -66,22 +66,22 @@ body .sc-nav-links a:hover, body .sc-nav-links a.sc-active, body .sc-user-trigge
 body .sc-nav-links a.sc-active { text-decoration: underline; text-underline-offset: 7px; }
 body .sc-nav .sc-btn-primary { background: #fff !important; border-color: #fff !important; color: var(--sz-primary) !important; }
 body .sc-nav .sc-btn-primary:hover { background: #e2eaf0 !important; }
-body .sc-notification-link { background: #16394e; border-color: #416074; color: #fff; }
-body .sc-notification-link:hover { background: #254d64; border-color: #9bb3c3; color: #fff; }
+body .sc-notification-link { background: #166534; border-color: #15803D; color: #fff; }
+body .sc-notification-link:hover { background: #166534; border-color: #9bb3c3; color: #fff; }
 body .sc-notification-link:focus-visible { outline-color: #fff; }
-body .sc-notification-badge { box-shadow: 0 0 0 2px #072132; }
+body .sc-notification-badge { box-shadow: 0 0 0 2px #15803D; }
 body header#nav .nav-links a, body header#nav .nav-user, body header#nav .nav-user-trigger { color: #e2eaf0; }
 body header#nav .nav-links a:hover, body header#nav .nav-user-trigger:hover { color: #fff; }
-body header#nav .btn-primary { background: #fff !important; color: #072132 !important; }
-body header#nav .home-notification-link { color: #fff; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid #416074; border-radius: 12px; background: #16394e; }
+body header#nav .btn-primary { background: #fff !important; color: #15803D !important; }
+body header#nav .home-notification-link { color: #fff; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid #15803D; border-radius: 12px; background: #166534; }
 body header#nav .home-notification-badge { top: -5px; right: -5px; }
-body .ai-chat-launcher, body .ai-chat-header, body .ai-chat-send, body .ai-chat-message.user .ai-chat-bubble { background: #072132; color: #fff; }
-body .ai-chat-suggestion { border-color: #cfdae1; color: #072132; }
-body .settings-head i, body .back-link { color: #072132; }
+body .ai-chat-launcher, body .ai-chat-header, body .ai-chat-send, body .ai-chat-message.user .ai-chat-bubble { background: #15803D; color: #fff; }
+body .ai-chat-suggestion { border-color: #E2E8F0; color: #15803D; }
+body .settings-head i, body .back-link { color: #15803D; }
 body .admin-nav a.active, body .admin-nav a:hover,
-body .staff-nav a.active, body .staff-nav a:hover { background: #1b3d52; color: #fff; box-shadow: inset 3px 0 #9fbdcf; }
-body .admin-avatar, body .staff-avatar { background: #dce8ef; color: #072132; }
-body .admin-label, body .staff-label { color: #9cb5c4; }
+body .staff-nav a.active, body .staff-nav a:hover { background: #DCFCE7; color: #fff; box-shadow: inset 3px 0 #15803D; }
+body .admin-avatar, body .staff-avatar { background: #DCFCE7; color: #15803D; }
+body .admin-label, body .staff-label { color: #64748B; }
 body .auth-visual { background-image: linear-gradient(135deg, rgba(7,33,50,.97), rgba(18,61,85,.9)), url('https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1400&q=85'); }
 body .auth-message h1 span, body .auth-eyebrow, body .auth-benefits i { color: #bdd6e5; }
 body .auth-visual::before { border-color: #527084; box-shadow: 0 0 0 70px rgba(189,214,229,.04), 0 0 0 145px rgba(189,214,229,.03); }
@@ -90,19 +90,19 @@ body .auth-link-btn:hover, body .checkout-panel h2, body .checkout-amount,
 body .checkout-discount-row a, body .checkout-notice strong, body .checkout-notice a,
 body .checkout-close, body .detail-head a { color: var(--sz-primary); }
 body .form-control:focus, body .form-select:focus, body .auth-field input:focus,
-body .checkout-input:focus { border-color: #426b83; box-shadow: 0 0 0 3px rgba(7,33,50,.12); }
-body input[type="checkbox"], body input[type="radio"] { accent-color: #072132; }
-body .form-check-input:checked { background-color: #072132; border-color: #072132; }
-body .day-option input:checked + span, body .booking-type-option:has(input:checked) { border-color: #072132; background: #edf2f5; color: #072132; box-shadow: inset 0 0 0 1px #072132; }
+body .checkout-input:focus { border-color: #15803D; box-shadow: 0 0 0 3px rgba(7,33,50,.12); }
+body input[type="checkbox"], body input[type="radio"] { accent-color: #15803D; }
+body .form-check-input:checked { background-color: #15803D; border-color: #15803D; }
+body .day-option input:checked + span, body .booking-type-option:has(input:checked) { border-color: #15803D; background: #DCFCE7; color: #15803D; box-shadow: inset 0 0 0 1px #15803D; }
 body .booking-tag, body .step-number, body .card-head i,
 body .summary-note, body .preview-total, body .checkout-notice,
-body .why-icon, body .review-avatar { background: #edf2f5; color: #072132; }
-body .preview-total strong:last-child, body .summary-note i { color: #072132; }
+body .why-icon, body .review-avatar { background: #DCFCE7; color: #15803D; }
+body .preview-total strong:last-child, body .summary-note i { color: #15803D; }
 body .court-image-fallback, body .cdm-fallback, body .promotion-visual,
-body .booking-type-picker { background: linear-gradient(135deg, #072132, #254d64); color: #fff; }
-body .checkout-add { background: #072132; color: #fff; }
-body .cdm-gallery { background: #072132; }
-body .cdm-thumb.active, body .cdm-thumb:hover { border-color: #9fbdcf; }
-body .cdm-amenities h3::before, body .cdm-desc h3::before { background: #072132; }
-body .hero { background-color: #edf2f5; }
+body .booking-type-picker { background: linear-gradient(135deg, #15803D, #166534); color: #fff; }
+body .checkout-add { background: #15803D; color: #fff; }
+body .cdm-gallery { background: #15803D; }
+body .cdm-thumb.active, body .cdm-thumb:hover { border-color: #15803D; }
+body .cdm-amenities h3::before, body .cdm-desc h3::before { background: #15803D; }
+body .hero { background-color: #DCFCE7; }
 body .booking-cta::before { background: linear-gradient(90deg, rgba(237,242,245,.94), rgba(218,231,239,.75)); }

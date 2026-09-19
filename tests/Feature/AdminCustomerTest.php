@@ -30,7 +30,7 @@ class AdminCustomerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'ADMIN']);
         $customer = User::factory()->create(['email' => 'locked@example.com', 'password' => 'password', 'role' => 'CUSTOMER', 'status' => 'LOCKED']);
-        $this->post('/login', ['email' => 'locked@example.com', 'password' => 'password'])->assertSessionHasErrors('email');
+        $this->post('/login', ['login' => 'locked@example.com', 'password' => 'password'])->assertSessionHasErrors('login');
         $this->actingAs($admin)->put(route('admin.customers.toggle-status', $customer))->assertRedirect();
         $this->assertSame('ACTIVE', $customer->fresh()->status);
     }

@@ -22,7 +22,7 @@ class AdminMaintenanceController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['court_id' => ['required', 'exists:courts,id'], 'start_date' => ['required', 'date', 'after_or_equal:today'], 'end_date' => ['required', 'date', 'after_or_equal:start_date'], 'reason' => ['required', 'string', 'max:2000']]);
-        $affected = BookingDetail::with(['booking.user', 'timeSlot'])->where('court_id', $data['court_id'])->whereBetween('booking_date', [$data['start_date'], $data['end_date']])->whereHas('booking', fn ($q) => $q->whereIn('status', ['CONFIRMED', 'CHECKED_IN']))->get();
+        $affected = BookingDetail::with(['booking.user', 'timeSlot'])->where('court_id', $data['court_id'])->whereDate('booking_date', '>=', $data['start_date'])->whereDate('booking_date', '<=', $data['end_date'])->where('status', '!=', 'CANCELLED')->whereHas('booking', fn ($q) => $q->whereIn('status', ['CONFIRMED', 'CHECKED_IN']))->get();
         if ($affected->isNotEmpty()) {
             return back()->withInput()->with('affected_bookings', $affected)->with('error', 'Đang có booking trong khoảng bảo trì. Vui lòng xử lý booking trước.');
         }$court = Court::findOrFail($data['court_id']);

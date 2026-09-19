@@ -29,6 +29,7 @@ class StoreRecurringBookingRequest extends FormRequest
             'time_slot_ids.*' => 'integer|exists:time_slots,id|distinct',
             'time_slot_id' => 'nullable|exists:time_slots,id',
             'voucher_code' => 'nullable|string|max:50',
+            'daily_duration_confirmed' => 'sometimes|accepted',
         ];
     }
 
@@ -68,6 +69,23 @@ class StoreRecurringBookingRequest extends FormRequest
                     return;
                 }
                 $previous = $slot;
+            }
+            if (! $this->boolean('daily_duration_confirmed')) {
+                $duration = app(\App\Services\DailyBookingDurationService::class);
+                $end = \Carbon\Carbon::parse($this->input('end_date'));
+                for ($date = \Carbon\Carbon::parse($this->input('start_date')); $date->lte($end); $date->addDay()) {
+                    $matches = $this->input('booking_type', 'weekly') === 'monthly'
+                        ? in_array($date->day, $this->input('days_of_month', []))
+                        : in_array($date->dayOfWeek, $this->input('days_of_week', []));
+                    if (! $matches) {
+                        continue;
+                    }
+                    $minutes = $duration->totalMinutes($this->user()->id, $date->toDateString(), $ids);
+                    if ($minutes >= config('booking.daily_confirmation_minutes', 240)) {
+                        $validator->errors()->add('daily_duration_confirmed', $duration->warning($minutes, $date->toDateString()).' Xác nhận này áp dụng cho các ngày trong lịch cố định đang chọn.');
+                        break;
+                    }
+                }
             }
         });
     }

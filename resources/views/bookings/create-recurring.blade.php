@@ -23,6 +23,7 @@
     <div class="recurring-layout"><section>
         <div class="recurring-card"><div class="card-head"><i class="bi bi-repeat"></i><h2>Thiết lập lịch đặt sân</h2></div><div class="card-body"><span class="booking-tag"><i class="bi bi-arrow-repeat"></i>{{ $bookingType === 'monthly' ? 'Đặt theo tháng' : 'Đặt theo tuần' }}</span>
         <form action="{{ route('bookings.recurring.preview') }}" method="POST">@csrf<input type="hidden" name="booking_type" value="{{ $bookingType }}">
+            @include('partials.daily-duration-confirmation')
             <div class="booking-step"><h3 class="step-title"><span class="step-number">1</span>Chọn sân và khung giờ</h3><div class="row g-3"><div class="col-md-6"><label class="form-label" for="court_id">Sân cầu lông</label>
                 @if(isset($selectedCourt) && $selectedCourt)
                     <input type="hidden" name="court_id" value="{{ $selectedCourt->id }}">

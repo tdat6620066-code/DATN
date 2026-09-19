@@ -41,65 +41,71 @@ class CourtRevenueTest extends TestCase
         return app(RevenueReportService::class)->courtRevenue(Carbon::parse($from), Carbon::parse($to ?? $from)->endOfDay());
     }
 
-    public function test_service_date_and_cash_date_are_independent_and_only_completed_slots_earn_revenue(): void
+    public function test_revenue_uses_payment_date_even_before_play_and_does_not_move_at_checkout(): void
     {
-        $booking = $this->booking('2026-12-15', 'CONFIRMED');
+        $booking = $this->booking('2027-03-15', 'CONFIRMED');
         $booking->payment->update(['paid_at' => '2027-01-15 10:00:00']);
-        $this->assertSame(0.0, $this->revenue('2026-12-15')['revenue']);
-        $booking->update(['status' => 'COMPLETED', 'checked_out_at' => '2026-12-16']);
-        $this->assertSame(150000.0, $this->revenue('2026-12-15')['revenue']);
-        $this->assertSame(0.0, $this->revenue('2027-01-15')['revenue']);
-        $cash = app(RevenueReportService::class)->cashFlow(Carbon::parse('2027-01-15'), Carbon::parse('2027-01-15')->endOfDay());
-        $this->assertSame(150000.0, $cash['gross_revenue']);
-        $this->assertSame(0.0, app(RevenueReportService::class)->cashFlow(Carbon::parse('2026-12-15'), Carbon::parse('2026-12-15')->endOfDay())['gross_revenue']);
+        $this->assertSame(150000.0, $this->revenue('2027-01-15')['revenue']);
+        $this->assertSame(0.0, $this->revenue('2027-03-15')['revenue']);
+        $booking->update(['status' => 'COMPLETED']);
+        $this->assertSame(150000.0, $this->revenue('2027-01-15')['revenue']);
+        $this->assertSame(0.0, $this->revenue('2027-03-15')['revenue']);
     }
 
-    public function test_one_receipt_for_ten_sessions_is_distributed_and_cancelled_session_is_zero(): void
+    public function test_fixed_receipt_is_counted_once_and_refunds_do_not_rewrite_payment_day(): void
     {
-        $group = FixedBooking::create(['code' => 'FIX-REV', 'user_id' => $this->customer->id, 'confirmation_key' => str()->uuid(), 'definition' => [], 'occurrences' => [], 'status' => 'ACTIVE', 'total_price' => 1500000]);
-        $payment = Payment::create(['fixed_booking_id' => $group->id, 'amount' => 1500000, 'status' => 'PAID', 'paid_at' => '2026-09-11 10:00:00']);
-        for ($i = 0; $i < 10; $i++) {
-            $booking = $this->booking(Carbon::parse('2026-09-15')->addWeeks($i)->toDateString(), $i === 2 ? 'CANCELLED' : 'COMPLETED', $group);
-            if ($i === 2) {
-                $request = RefundRequest::create(['booking_id' => $booking->id, 'requested_by' => $this->customer->id, 'amount' => 150000, 'reason' => 'Court closed', 'status' => 'APPROVED']);
-                Refund::create(['refund_request_id' => $request->id, 'payment_id' => $payment->id, 'amount' => 150000, 'refund_code' => 'REF-REV', 'status' => 'COMPLETED', 'processed_at' => '2026-10-01 10:00:00']);
-            }
+        $group = FixedBooking::create(['code'=>'FIX-REV','user_id'=>$this->customer->id,'confirmation_key'=>str()->uuid(),'definition'=>[],'occurrences'=>[],'status'=>'ACTIVE','total_price'=>1500000]);
+        $payment = Payment::create(['fixed_booking_id'=>$group->id,'amount'=>1500000,'status'=>'PAID','paid_at'=>'2026-09-11 10:00:00']);
+        for ($i=0;$i<10;$i++) $booking=$this->booking(Carbon::parse('2026-09-15')->addWeeks($i)->toDateString(),'CONFIRMED',$group);
+        $booking->update(['status'=>'CANCELLED']);
+        $booking->bookingDetails()->update(['status'=>'CANCELLED']);
+        $request=RefundRequest::create(['booking_id'=>$booking->id,'requested_by'=>$this->customer->id,'amount'=>150000,'reason'=>'Court closed','status'=>'APPROVED']);
+        Refund::create(['refund_request_id'=>$request->id,'payment_id'=>$payment->id,'amount'=>150000,'refund_code'=>'REF-REV','status'=>'COMPLETED','processed_at'=>'2026-10-01 10:00:00']);
+        $report=$this->revenue('2026-09-11');
+        $this->assertSame(1500000.0,$report['revenue']);
+        $this->assertSame(10,$report['slots']);
+        $this->assertSame(1500000.0,$report['courts']->sum('amount'));
+        $this->assertSame(0.0,$this->revenue('2026-09-15')['revenue']);
+        $this->assertSame(-150000.0,app(RevenueReportService::class)->cashFlow(Carbon::parse('2026-10-01'),Carbon::parse('2026-10-01')->endOfDay())['net_revenue']);
+        $this->assertDatabaseCount('payments',1);
+    }
+
+    public function test_receipt_amount_after_discount_is_allocated_across_all_slots(): void
+    {
+        $booking=$this->booking('2026-09-15');
+        $booking->update(['subtotal'=>300000,'total_amount'=>270000]);
+        $booking->payment->update(['amount'=>270000]);
+        $booking->bookingDetails()->create(['court_id'=>$this->court->id,'time_slot_id'=>$this->slot->id,'booking_date'=>'2026-10-15','price'=>150000,'subtotal'=>150000,'status'=>'CONFIRMED']);
+        $report=$this->revenue('2026-09-11');
+        $this->assertSame(270000.0,$report['revenue']);
+        $this->assertSame(270000.0,$report['daily']['2026-09-11']);
+        $this->assertSame(270000.0,$report['courts']->sum('amount'));
+        $this->assertSame(2,$report['slots']);
+        $this->assertSame(0.0,$this->revenue('2026-09-15')['revenue']);
+    }
+
+    public function test_pending_failed_and_service_payments_are_not_court_revenue(): void
+    {
+        $booking=$this->booking('2026-09-15');
+        foreach (['PENDING','FAILED'] as $status) {
+            $booking->payment->update(['status'=>$status]);
+            $this->assertSame(0.0,$this->revenue('2026-09-11')['revenue']);
         }
-        $this->assertSame(0.0, $this->revenue('2026-09-11')['revenue']);
-        $this->assertSame(150000.0, $this->revenue('2026-09-15')['revenue']);
-        $this->assertSame(0.0, $this->revenue('2026-09-29')['revenue']);
-        $this->assertSame(1350000.0, $this->revenue('2026-09-01', '2026-12-31')['revenue']);
-        $cash = app(RevenueReportService::class)->cashFlow(Carbon::parse('2026-09-11'), Carbon::parse('2026-09-11')->endOfDay());
-        $this->assertSame(1500000.0, $cash['gross_revenue']);
-        $this->assertSame(0.0, $cash['refund_amount']);
-        $this->assertSame(-150000.0, app(RevenueReportService::class)->cashFlow(Carbon::parse('2026-10-01'), Carbon::parse('2026-10-01')->endOfDay())['net_revenue']);
-        $this->assertDatabaseCount('payments', 1);
+        $booking->payment->update(['status'=>'PAID','paid_at'=>null]);
+        $this->assertSame(0.0,$this->revenue('2026-09-11')['revenue']);
+        Payment::create(['booking_id'=>$booking->id,'purpose'=>'SERVICE','amount'=>20000,'status'=>'PAID','paid_at'=>'2026-09-11 12:00:00']);
+        $this->assertSame(0.0,$this->revenue('2026-09-11')['revenue']);
     }
 
-    public function test_discount_allocation_uses_all_slots_and_completed_refunds_only(): void
+    public function test_dashboard_reports_and_export_use_payment_date(): void
     {
-        $booking = $this->booking('2026-09-15');
-        $booking->update(['subtotal' => 300000, 'total_amount' => 270000]);
-        $booking->bookingDetails()->create(['court_id' => $this->court->id, 'time_slot_id' => $this->slot->id, 'booking_date' => '2026-10-15', 'price' => 150000, 'subtotal' => 150000, 'status' => 'COMPLETED']);
-        $this->assertSame(135000.0, $this->revenue('2026-09-15')['revenue']);
-        $this->assertSame(270000.0, $this->revenue('2026-09-01', '2026-10-31')['revenue']);
-        $request = RefundRequest::create(['booking_id' => $booking->id, 'requested_by' => $this->customer->id, 'amount' => 30000, 'reason' => 'Partial', 'status' => 'APPROVED']);
-        $refund = Refund::create(['refund_request_id' => $request->id, 'payment_id' => $booking->payment->id, 'amount' => 30000, 'refund_code' => 'PARTIAL-REV', 'status' => 'PROCESSING']);
-        $this->assertSame(135000.0, $this->revenue('2026-09-15')['revenue']);
-        $refund->update(['status' => 'COMPLETED', 'processed_at' => '2026-11-01']);
-        $this->assertSame(120000.0, $this->revenue('2026-09-15')['revenue']);
-        $booking->bookingDetails()->whereDate('booking_date', '2026-10-15')->update(['status' => 'CANCELLED']);
-        $this->assertSame(120000.0, $this->revenue('2026-09-01', '2026-10-31')['revenue']);
-    }
-
-    public function test_admin_reports_default_to_service_revenue_and_cash_has_separate_route(): void
-    {
-        $this->booking('2026-09-15');
-        $admin = User::factory()->create(['role' => 'ADMIN']);
-        $range = ['from' => '2026-09-15', 'to' => '2026-09-15'];
-        $this->actingAs($admin)->get(route('admin.reports.index', $range))->assertOk()->assertViewHas('revenue', fn ($r) => $r['revenue'] === 150000.0);
-        $this->get(route('admin.reports.cash-flow', $range))->assertOk()->assertViewHas('cash', fn ($r) => $r['gross_revenue'] === 0.0);
-        $this->get(route('admin.dashboard', $range))->assertOk()->assertViewHas('kpis', fn ($k) => $k['revenue'] === 150000.0 && $k['gross_revenue'] === 0.0);
-        $this->actingAs($this->customer)->get(route('admin.reports.cash-flow'))->assertForbidden();
+        $this->booking('2026-09-15','CONFIRMED');
+        $this->actingAs(User::factory()->create(['role'=>'ADMIN']));
+        $range=['from'=>'2026-09-11','to'=>'2026-09-11'];
+        $this->get(route('admin.reports.index',$range))->assertOk()->assertViewHas('revenue',fn($r)=>$r['revenue']===150000.0);
+        $this->get(route('admin.dashboard',$range))->assertOk()->assertViewHas('kpis',fn($k)=>$k['revenue']===150000.0 && $k['gross_revenue']===150000.0);
+        $this->get(route('admin.reports.index',['from'=>'2026-09-15','to'=>'2026-09-15']))->assertOk()->assertViewHas('revenue',fn($r)=>$r['revenue']===0.0);
+        $csv=$this->get(route('admin.reports.export',$range))->assertOk()->streamedContent();
+        $this->assertStringContainsString('150000',$csv);
     }
 }

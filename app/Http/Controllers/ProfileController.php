@@ -35,7 +35,11 @@ class ProfileController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('profile.index', [
+        $customer = ($user->role ?: 'CUSTOMER') === 'CUSTOMER';
+        $section = $request->input('section', $request->filled('status') || $request->filled('date_from') || $request->filled('date_to') ? 'history' : 'overview');
+        if (!in_array($section, ['overview', 'history', 'fixed', 'reviews', 'support', 'account', 'password'], true)) $section = 'overview';
+
+        return view($customer ? 'profile.index' : 'profile.legacy', [
             'user' => $user,
             'bookings' => $bookings,
             'filters' => [
@@ -43,7 +47,7 @@ class ProfileController extends Controller
                 'date_from' => $request->date_from,
                 'date_to' => $request->date_to,
             ],
-        ]);
+        ] + ($customer ? app(\App\Services\CustomerDashboardService::class)->data($user, $section) : []));
     }
 
     public function update(UpdateProfileRequest $request)

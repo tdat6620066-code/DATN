@@ -1,0 +1,45 @@
+.sz-booking-progress {margin:0 0 28px;padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:16px}
+.sz-booking-progress ol {display:flex;list-style:none;margin:0;padding:0;gap:12px}
+.sz-booking-progress li {flex:1;display:flex;align-items:center;gap:9px;color:#64748b;font-size:.875rem;font-weight:600;position:relative}
+.sz-booking-progress li:not(:last-child)::after {content:'→';margin-left:auto;color:#94a3b8}
+.sz-progress-number {display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#f1f5f9;flex-shrink:0}
+.sz-booking-progress .is-complete {color:#166534}
+.sz-booking-progress .is-complete .sz-progress-number {background:#dcfce7}
+.sz-booking-progress .is-current {color:#15803d;font-weight:800}
+.sz-booking-progress .is-current .sz-progress-number {background:#15803d;color:#fff}
+.sz-checkout {max-width:1200px;margin:auto;padding:32px 20px 60px;color:#0f172a}
+.sz-checkout-heading {margin:20px 0 28px}
+.sz-checkout-heading h1 {font-size:clamp(1.6rem,3vw,2.15rem);font-weight:800;margin:14px 0 8px}
+.sz-checkout-heading p {color:#64748b}
+.sz-checkout-grid {display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+.sz-checkout-grid > * {min-width:0}
+.sz-checkout .sz-checkout-panel {background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:20px;box-shadow:0 4px 18px #0f172a05}
+.sz-checkout-panel h2 {font-size:1.1rem;font-weight:750;margin:0 0 20px}
+.sz-checkout .sz-order-summary {position:sticky;top:96px}
+.sz-order-summary dl {margin:20px 0}
+.sz-order-summary dl > div {display:flex;justify-content:space-between;gap:16px;margin:16px 0}
+.sz-order-summary dt {font-weight:400;color:#64748b}
+.sz-order-summary dd {margin:0;font-weight:650;text-align:right;white-space:nowrap}
+.sz-order-total {border-top:1px solid #e2e8f0;padding-top:20px;margin-top:20px}
+.sz-order-total span {display:block;font-size:.75rem;font-weight:700;letter-spacing:.08em;color:#64748b}
+.sz-order-total strong {display:block;font-size:2rem;color:#166534;margin:8px 0 20px;overflow-wrap:anywhere}
+.sz-checkout .sz-payment-option {display:flex;align-items:center;gap:14px;border:1px solid #15803d;border-radius:12px;background:#f0fdf4;padding:18px}
+.sz-payment-option small {display:block;color:#64748b;margin-top:4px}
+.sz-checkout .sz-booking-line {display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #e2e8f0}
+.sz-booking-line:last-child {border-bottom:0}
+.sz-booking-line p {margin:5px 0;color:#64748b;font-size:.875rem}
+.sz-booking-line > strong {white-space:nowrap}
+.sz-checkout .sz-hold {border:1px solid #fde68a;background:#fffbeb;border-radius:12px;padding:14px 18px;margin-bottom:24px;color:#92400e}
+.sz-checkout .sz-confirmation {display:flex;align-items:flex-start;gap:10px;font-size:.875rem;line-height:1.6;margin:20px 0}
+.sz-confirmation input {margin-top:6px;flex-shrink:0}
+.sz-checkout .form-control[readonly] {background:#f8fafc}
+.sz-booking-page .summary-sticky {top:96px}
+.sz-booking-page .booking-hero.status-confirmed,.sz-booking-page .booking-hero.status-completed {background:#166534}
+.sz-booking-page .booking-hero.status-cancelled {background:#b91c1c}
+.sz-booking-page .booking-hero.status-expired {background:#475569}
+.sz-booking-page .booking-summary {border-radius:16px;border-color:#e2e8f0}
+.sz-booking-page .calendar-day.selected,.sz-booking-page .slot-selected {background:#15803d!important;border-color:#166534!important}
+.sz-booking-page .time-slot-cell[role=button]:focus-visible {outline:3px solid #0284c7;outline-offset:-3px}
+.sz-booking-page .total-price {color:#166534}
+@media(max-width:991.98px) {.sz-checkout-grid {grid-template-columns:1fr}.sz-checkout .sz-order-summary,.sz-booking-page .booking-summary {position:static}.sz-checkout {padding:20px 12px 36px}}
+@media(max-width:575.98px) {.sz-booking-progress {padding:14px 8px}.sz-booking-progress ol {gap:4px}.sz-booking-progress li {flex-direction:column;gap:8px;text-align:center;font-size:.65rem}.sz-booking-progress li:not(:last-child)::after {position:absolute;right:-6px;top:7px}.sz-progress-number {width:28px;height:28px}.sz-checkout .sz-checkout-panel {padding:18px}.sz-checkout .sz-booking-line {flex-wrap:wrap}.sz-order-total strong {font-size:1.75rem}}

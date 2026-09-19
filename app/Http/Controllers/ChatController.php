@@ -75,7 +75,7 @@ class ChatController extends Controller
             return $this->result('Bạn muốn đặt sân vào ngày nào?', ['Hôm nay', 'Ngày mai', 'Cuối tuần']);
         }
 
-        if (Str::contains($text, ['gia', 'bao nhieu', 'bang gia'])) {
+        if (Str::contains($text, ['gia', 'bao nhieu', 'bang gia']) && ! Str::contains($text, ['khuyen mai', 'voucher', 'giam gia', 'uu dai'])) {
             $courts = Court::query()->where('status', 'ACTIVE')->with('prices')->limit(6)->get();
             $lines = $courts->map(function (Court $court): string {
                 $prices = $court->prices->pluck('price')->filter();
@@ -85,7 +85,10 @@ class ChatController extends Controller
         }
 
         if (Str::contains($text, ['khuyen mai', 'voucher', 'giam gia', 'uu dai'])) {
-            $promotions = Promotion::query()->where('status', 'ACTIVE')->limit(5)->pluck('title');
+            $promotions = Promotion::query()->where('status', 'ACTIVE')
+                ->where('start_at', '<=', now())
+                ->where(fn ($query) => $query->whereNull('end_at')->orWhere('end_at', '>=', now()))
+                ->limit(5)->pluck('title');
             return $this->result($promotions->isEmpty() ? 'Hiện chưa có chương trình khuyến mãi đang áp dụng.' : "Khuyến mãi hiện có:\n• ".$promotions->join("\n• "), ['Tôi muốn đặt sân', 'Giá thuê sân bao nhiêu?']);
         }
 

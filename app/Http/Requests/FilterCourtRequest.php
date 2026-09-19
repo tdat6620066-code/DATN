@@ -20,8 +20,9 @@ class FilterCourtRequest extends FormRequest
             'amenity_ids.*' => 'exists:amenities,id',
             'price_min' => 'nullable|numeric|min:0',
             'price_max' => 'nullable|numeric|min:0',
-            'booking_date' => 'nullable|date_format:Y-m-d',
-            'time_slot_id' => 'nullable|exists:time_slots,id',
+            'booking_date' => 'nullable|required_with:availability_status|date_format:Y-m-d',
+            'time_slot_id' => 'nullable|required_with:availability_status|exists:time_slots,id,status,ACTIVE',
+            'availability_status' => 'nullable|in:AVAILABLE,BOOKED,HOLD,MAINTENANCE',
             'sort_by' => 'nullable|in:price_asc,price_desc,name_asc,name_desc,most_booked',
             'page' => 'nullable|integer|min:1',
         ];
