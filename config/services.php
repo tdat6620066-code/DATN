@@ -52,4 +52,23 @@ return [
         'attempts' => env('OPENAI_ATTEMPTS', 3),
     ],
 
+    /*
+    | Groq Cloud chạy trên endpoint OpenAI-compatible /chat/completions nên
+    | SmashBot dùng chung tool calling + structured outputs với hạ tầng OpenAI.
+    | Model mặc định gpt-oss-120b hỗ trợ cả function calling lẫn json_schema strict.
+    */
+    'groq' => [
+        'enabled' => env('GROQ_ENABLED', true),
+        'api_key' => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
+        'base_url' => env('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
+        'timeout' => env('GROQ_TIMEOUT', 20),
+        'attempts' => env('GROQ_ATTEMPTS', 3),
+        'max_completion_tokens' => env('GROQ_MAX_COMPLETION_TOKENS', 700),
+        'temperature' => env('GROQ_TEMPERATURE', 0.3),
+        // gpt-oss mặc định suy luận rất dài; 'low' giúp tiết kiệm token/phút
+        // của Groq. Đặt rỗng để tắt hoàn toàn tham số này.
+        'reasoning_effort' => env('GROQ_REASONING_EFFORT', 'low'),
+    ],
+
 ];

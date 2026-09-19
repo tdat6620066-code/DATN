@@ -14,6 +14,7 @@ use App\Http\Controllers\AdminMaintenanceController;
 use App\Http\Controllers\AdminPaymentController;
 use App\Http\Controllers\AdminPricingController;
 use App\Http\Controllers\AdminVoucherController;
+use App\Http\Controllers\AiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ChatbotAnalyticsController;
@@ -228,9 +229,34 @@ Route::get('/courts/{court}/availability', [
 
 Route::middleware(['auth', 'active'])->group(function () {
 
+    /*
+    |--------------------------------------------------------------------------
+    | SmashBot AI (UC25) - chat + recommendation API
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/api/ai/chat', [ChatController::class, 'chat'])
+        ->middleware('throttle:'.(int) config('chatbot.rate_limit_per_minute', 20).',1')
+        ->name('api.ai.chat');
+
     Route::post('/api/ai/chat/stream', [ChatController::class, 'stream'])
         ->middleware('throttle:30,1')
         ->name('api.ai.chat.stream');
+
+    Route::get('/api/ai/courts', [AiController::class, 'courts'])
+        ->name('api.ai.courts');
+
+    Route::get('/api/ai/promotions/me', [AiController::class, 'promotion'])
+        ->name('api.ai.promotions.me');
+
+    Route::get('/api/ai/forecast', [AiController::class, 'forecast'])
+        ->name('api.ai.forecast');
+
+    Route::post('/api/ai/reviews/analyze', [AiController::class, 'reviews'])
+        ->name('api.ai.reviews.analyze');
+
+    Route::get('/api/ai/customers/{customer}/promotion', [AiController::class, 'customerPromotion'])
+        ->name('api.ai.promotions.customer');
 
     /*
     |--------------------------------------------------------------------------

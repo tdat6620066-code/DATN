@@ -20,8 +20,6 @@ class IncidentTicketService
             return;
         }
 
-        // A direct refund cancels the booking without creating an incident resolution.
-        // Only close refund tickets; other support requests still need their own review.
         $tickets = CourtIncident::where('source', 'CUSTOMER')
             ->where('booking_id', $request->booking_id)
             ->where('requested_solution', 'REFUND')

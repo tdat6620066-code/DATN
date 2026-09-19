@@ -224,6 +224,19 @@ class OpenAiService
         return $response->json();
     }
 
+    /**
+     * Public wrapper cho structured output, để LlmClientService route được
+     * sang OpenAI khi provider đang là openai.
+     *
+     * @param  array<string, mixed>  $schema
+     * @param  string|array<int, array<string, mixed>>  $input
+     * @return array<string, mixed>
+     */
+    public function structuredOutput(string $name, array $schema, string $instructions, string|array $input, ?int $userId = null): array
+    {
+        return $this->structured($name, $schema, $instructions, $input, $userId);
+    }
+
     private function structured(string $name, array $schema, string $instructions, string|array $input, ?int $userId = null): array
     {
         if (! $this->configured()) {
