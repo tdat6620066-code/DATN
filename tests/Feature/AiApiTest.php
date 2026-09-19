@@ -47,7 +47,7 @@ class AiApiTest extends TestCase
         $this->assertDatabaseHas('ai_interactions', ['user_id' => $customer->id, 'type' => 'CHATBOT', 'status' => 'SUCCESS']);
         $this->assertDatabaseHas('chatbot_logs', [
             'user_id' => $customer->id,
-            'question' => 'GiÃ¡ thuÃª sÃ¢n bao nhiÃªu?',
+            'question' => 'Giá thuê sân bao nhiêu?',
             'status' => 'SUCCESS',
         ]);
     }

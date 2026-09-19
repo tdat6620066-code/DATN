@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Banner, Booking, Court, News, Promotion, Review, TimeSlot, User};
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Models\Banner;
+use App\Models\Booking;
+use App\Models\Court;
+use App\Models\News;
+use App\Models\Review;
+use App\Models\TimeSlot;
+use App\Models\User;
+use App\Models\Voucher;
 
 class HomeController extends Controller
 {
@@ -105,7 +110,7 @@ class HomeController extends Controller
             'banners' => $banners,
             'featured_courts' => $featuredCourts,
             'most_booked_courts' => $mostBookedCourts,
-            'promotions' => $promotions,
+            'vouchers' => $vouchers,
             'news' => $news,
             'reviews' => $reviews,
             'statistics' => $statistics,

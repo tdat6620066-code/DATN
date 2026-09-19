@@ -29,7 +29,7 @@ class Booking extends Model
     }
 
     protected $fillable = [
-        'booking_code', 'user_id', 'subtotal', 'discount', 'total_amount',
+        'booking_code', 'user_id', 'voucher_id', 'subtotal', 'discount', 'total_amount',
         'status', 'payment_status', 'booking_type', 'start_date', 'end_date', 'note', 'hold_expires_at', 'confirmed_at', 'cancelled_at',
         'checked_in_at', 'checked_out_at', 'checked_in_by', 'checked_out_by', 'fixed_booking_id', 'recurrence_key',
         'no_show_at', 'no_show_by', 'checkout_exception_reason', 'extended_from_id'
@@ -52,6 +52,11 @@ class Booking extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function voucher()
+    {
+        return $this->belongsTo(Voucher::class);
     }
 
     public function fixedBooking()

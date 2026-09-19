@@ -97,7 +97,7 @@ class FixedBookingController extends Controller
             $code = '97';
         } elseif (($data['vnp_TmnCode'] ?? null) !== config('vnpay.tmn_code')) {
             $code = '02';
-        } elseif (! preg_match('/^FIX([1-9][0-9]*)$/', $data['vnp_TxnRef'] ?? '', $matches)
+        } elseif (! preg_match('/^FIX([1-9][0-9]*)(?:X[0-9]{14}[A-Fa-f0-9]{6})?$/', $data['vnp_TxnRef'] ?? '', $matches)
             || ! ($group = FixedBooking::with('payment')->find($matches[1])) || ! $group->payment) {
             $code = '01';
         } elseif (! ctype_digit((string) ($data['vnp_Amount'] ?? '')) || (string) $data['vnp_Amount'] !== (string) (int) round((float) $group->payment->amount * 100)) {

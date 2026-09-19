@@ -7,6 +7,7 @@
 });
 
 use App\Http\Controllers\AdminAnnouncementController;
+use App\Http\Controllers\AboutController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCourtController;
 use App\Http\Controllers\AdminCourtTypeController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\AdminMaintenanceController;
 use App\Http\Controllers\AdminPaymentController;
 use App\Http\Controllers\AdminPricingController;
 use App\Http\Controllers\AdminVoucherController;
+use App\Http\Controllers\AiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ChatbotAnalyticsController;
@@ -32,7 +34,9 @@ use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromotionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +100,11 @@ Route::get('/', [
     HomeController::class,
     'index',
 ])->name('home');
+
+Route::get('/khuyen-mai', [PromotionController::class, 'index'])->name('promotions.index');
+Route::get('/tin-tuc', [NewsController::class, 'index'])->name('news.index');
+Route::get('/tin-tuc/{news:slug}', [NewsController::class, 'show'])->name('news.show');
+Route::get('/gioi-thieu', [AboutController::class, 'index'])->name('about.index');
 
 /*
 |--------------------------------------------------------------------------
@@ -227,9 +236,34 @@ Route::get('/courts/{court}/availability', [
 
 Route::middleware(['auth', 'active'])->group(function () {
 
+    /*
+    |--------------------------------------------------------------------------
+    | SmashBot AI (UC25) - chat + recommendation API
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/api/ai/chat', [ChatController::class, 'chat'])
+        ->middleware('throttle:'.(int) config('chatbot.rate_limit_per_minute', 20).',1')
+        ->name('api.ai.chat');
+
     Route::post('/api/ai/chat/stream', [ChatController::class, 'stream'])
         ->middleware('throttle:30,1')
         ->name('api.ai.chat.stream');
+
+    Route::get('/api/ai/courts', [AiController::class, 'courts'])
+        ->name('api.ai.courts');
+
+    Route::get('/api/ai/promotions/me', [AiController::class, 'promotion'])
+        ->name('api.ai.promotions.me');
+
+    Route::get('/api/ai/forecast', [AiController::class, 'forecast'])
+        ->name('api.ai.forecast');
+
+    Route::post('/api/ai/reviews/analyze', [AiController::class, 'reviews'])
+        ->name('api.ai.reviews.analyze');
+
+    Route::get('/api/ai/customers/{customer}/promotion', [AiController::class, 'customerPromotion'])
+        ->name('api.ai.promotions.customer');
 
     /*
     |--------------------------------------------------------------------------
@@ -910,6 +944,16 @@ Route::middleware([
         BookingController::class,
         'show',
     ])->name('bookings.show');
+
+    Route::get('/booking/{booking}/vouchers', [
+        BookingController::class,
+        'vouchers',
+    ])->name('bookings.vouchers');
+
+    Route::post('/booking/{booking}/vouchers/{voucher}', [
+        BookingController::class,
+        'applyVoucher',
+    ])->name('bookings.vouchers.apply');
 
     /*
     | QR booking

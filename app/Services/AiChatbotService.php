@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 class AiChatbotService
 {
     public function __construct(
-        private readonly OpenAiService $openai,
+        private readonly LlmClientService $llm,
         private readonly AiKnowledgeService $knowledge,
         private readonly SmartChatService $smartChat,
         private readonly ChatbotService $chatbot,
@@ -104,7 +104,7 @@ class AiChatbotService
             return $fallback + ['engine' => 'database', 'pipeline_stage' => $fallback['intent'] === 'FAQ' ? 'faq' : 'mysql'];
         }
 
-        if (! $this->openai->configured()) {
+        if (! $this->llm->configured()) {
             return $fallback + ['engine' => 'knowledge-v3', 'pipeline_stage' => 'faq'];
         }
 
@@ -114,7 +114,7 @@ class AiChatbotService
                 $retrievedKnowledge = $this->rag->search($question);
             }
 
-            return $this->openai->chatbot(
+            return $this->llm->chatbot(
                 $question,
                 [
                     'retrieved_knowledge' => $retrievedKnowledge,
@@ -122,7 +122,7 @@ class AiChatbotService
                 ],
                 $this->knowledge->recentConversation($user),
                 $user->id,
-            ) + ['engine' => config('services.openai.model'), 'pipeline_stage' => 'openai'];
+            ) + ['engine' => $this->llm->provider().':'.$this->llm->model(), 'pipeline_stage' => 'llm'];
         } catch (\Throwable $e) {
             report($e);
 
@@ -130,7 +130,7 @@ class AiChatbotService
                 'engine' => 'knowledge-v3',
                 'pipeline_stage' => 'faq',
                 'fallback' => true,
-                'openai_error' => str_contains(mb_strtolower($e->getMessage()), 'quota') ? 'quota' : (str_contains($e->getMessage(), '429') || str_contains(mb_strtolower($e->getMessage()), 'rate limit') ? 'rate_limit' : 'request_failed'),
+                'llm_error' => str_contains(mb_strtolower($e->getMessage()), 'quota') ? 'quota' : (str_contains($e->getMessage(), '429') || str_contains(mb_strtolower($e->getMessage()), 'rate limit') ? 'rate_limit' : 'request_failed'),
             ];
         }
     }

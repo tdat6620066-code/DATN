@@ -2,25 +2,79 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Court;
-use App\Models\Promotion;
-use App\Models\Notification;
+use App\Services\AiChatbotService;
+use App\Services\ChatbotLoggerService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * Điểm vào của SmashBot cho giao diện chat.
+ *
+ * Mọi câu hỏi đều được xử lý bởi AiChatbotService: pipeline gồm security guard,
+ * booking copilot, multi-intent planner, agent tool calling (Groq/OpenAI đọc dữ
+ * liệu thật qua tool) và cuối cùng là engine luật khi không có API key.
+ */
 class ChatController extends Controller
 {
+    /**
+     * Các action do nút bấm trong khung chat gửi lên (không phải câu hỏi tự do).
+     */
+    private const ACTIONS = [
+        'select_slot',
+        'confirm_booking',
+        'find_other_slot',
+        'confirm_cancel',
+        'abort_cancel',
+        'preview_copilot_booking',
+        'confirm_copilot_booking',
+        'copilot_other_choices',
+    ];
+
+    public function __construct(
+        private readonly AiChatbotService $chatbot,
+        private readonly ChatbotLoggerService $logger,
+    ) {}
+
+    /**
+     * Trả lời dạng JSON cho API và cho test.
+     */
+    public function chat(Request $request): JsonResponse
+    {
+        [$message, $action, $choiceId] = $this->payload($request);
+
+        $started = hrtime(true);
+        $result = $this->chatbot->answer($message, $request->user(), $action, $choiceId);
+        $latency = (int) ((hrtime(true) - $started) / 1_000_000);
+
+        $this->logger->log($request->user(), $message, $result, $latency);
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * Trả lời dạng NDJSON để khung chat hiển thị dần từng cụm ký tự.
+     */
     public function stream(Request $request): StreamedResponse
     {
-        $data = $request->validate(['message' => ['required', 'string', 'max:500']]);
-        $result = $this->reply($data['message']);
+        [$message, $action, $choiceId] = $this->payload($request);
 
-        return response()->stream(function () use ($result): void {
-            foreach (mb_str_split($result['answer'], 12) as $text) {
+        $started = hrtime(true);
+        $result = $this->chatbot->answer($message, $request->user(), $action, $choiceId);
+        $latency = (int) ((hrtime(true) - $started) / 1_000_000);
+
+        $this->logger->log($request->user(), $message, $result, $latency);
+
+        $done = collect($result)->only([
+            'suggestions', 'cards', 'buttons', 'intent', 'awaiting',
+            'redirect_url', 'booking_url', 'booking_code', 'preview', 'plan',
+        ])->all();
+
+        return response()->stream(function () use ($result, $done): void {
+            foreach (mb_str_split((string) ($result['answer'] ?? ''), 12) as $text) {
                 echo json_encode(['type' => 'delta', 'text' => $text], JSON_UNESCAPED_UNICODE)."\n";
             }
-            echo json_encode(['type' => 'done', 'data' => ['suggestions' => $result['suggestions']]], JSON_UNESCAPED_UNICODE)."\n";
+            echo json_encode(['type' => 'done', 'data' => $done], JSON_UNESCAPED_UNICODE)."\n";
         }, 200, [
             'Content-Type' => 'application/x-ndjson; charset=UTF-8',
             'Cache-Control' => 'no-cache, no-transform',
@@ -28,7 +82,12 @@ class ChatController extends Controller
         ]);
     }
 
-    private function reply(string $message): array
+    /**
+     * Chuẩn hoá payload: câu hỏi tự do HOẶC action + choice_id của nút bấm.
+     *
+     * @return array{0: string, 1: ?string, 2: ?string}
+     */
+    private function payload(Request $request): array
     {
         $text = Str::lower(Str::ascii(trim($message)));
         $step = session('chatbot.booking_step');
@@ -100,8 +159,12 @@ class ChatController extends Controller
         return $this->result('Mình có thể hỗ trợ bạn đặt sân, xem giá thuê, tìm sân hoặc kiểm tra khuyến mãi.', ['Tôi muốn đặt sân', 'Giá thuê sân bao nhiêu?', 'Có khuyến mãi nào?']);
     }
 
-    private function result(string $answer, array $suggestions): array
-    {
-        return compact('answer', 'suggestions');
+        $message = trim((string) ($data['message'] ?? ''));
+        $action = $data['action'] ?? null;
+        $choiceId = $data['choice_id'] ?? null;
+
+        abort_if($message === '' && blank($action), 422, 'Cần nội dung câu hỏi hoặc action.');
+
+        return [$message, $action, $choiceId];
     }
 }

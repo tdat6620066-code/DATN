@@ -117,6 +117,28 @@ class BookingTest extends TestCase
         $this->assertEquals(3, $item->fresh()->stock);
     }
 
+    public function test_customer_can_select_an_active_voucher_before_payment(): void
+    {
+        $user = User::factory()->create(['role' => 'CUSTOMER']);
+        $voucher = Voucher::create([
+            'code' => 'SAVE30', 'name' => 'Giảm 30.000đ', 'discount_type' => 'FIXED', 'discount_value' => 30000,
+            'min_order_amount' => 100000, 'start_at' => now()->subMinute(), 'end_at' => now()->addDay(), 'status' => 'ACTIVE',
+        ]);
+        $this->actingAs($user)->post(route('bookings.store'), [
+            'court_id' => Court::first()->id, 'booking_date' => today()->addDay()->toDateString(), 'time_slot_ids' => [TimeSlot::first()->id],
+        ])->assertSessionHasNoErrors();
+        $booking = Booking::firstOrFail();
+
+        $this->get(route('bookings.vouchers', $booking))->assertOk()->assertSee('SAVE30');
+        $this->post(route('bookings.vouchers.apply', [$booking, $voucher]))->assertRedirect(route('bookings.show', $booking));
+
+        $this->assertSame($voucher->id, $booking->fresh()->voucher_id);
+        $this->assertEquals(30000, $booking->fresh()->discount);
+        $this->assertEquals(120000, $booking->fresh()->total_amount);
+        $this->assertEquals(120000, $booking->fresh()->payment->amount);
+        $this->assertSame(1, $voucher->fresh()->used_count);
+    }
+
     public function test_insufficient_service_stock_rolls_back_booking(): void
     {
         $item = \App\Models\ServiceItem::create(['code' => 'WATER', 'name' => 'Nước uống', 'price' => 10000, 'stock' => 1, 'is_active' => true]);
@@ -364,6 +386,24 @@ class BookingTest extends TestCase
 
         $response->assertRedirect(route('courts.show', $court));
         $response->assertSessionHas('recurring_preview.conflicts', fn (array $conflicts) => count($conflicts) >= 1);
+    }
+
+    public function test_an_active_single_booking_hold_blocks_another_customer(): void
+    {
+        $firstCustomer = User::factory()->create();
+        $secondCustomer = User::factory()->create();
+        $court = Court::firstOrFail();
+        $slot = TimeSlot::firstOrFail();
+        $date = now()->addDays(7)->toDateString();
+        $payload = ['court_id' => $court->id, 'booking_date' => $date, 'time_slot_ids' => [$slot->id]];
+
+        $this->actingAs($firstCustomer)->post(route('bookings.store'), $payload)->assertRedirect();
+
+        $this->assertSame(CourtAvailabilityService::STATUS_HOLD,
+            app(CourtAvailabilityService::class)->checkAvailability($court->id, \Carbon\Carbon::parse($date), $slot->id));
+        $this->actingAs($secondCustomer)->post(route('bookings.store'), $payload)
+            ->assertSessionHas('booking_errors');
+        $this->assertDatabaseCount('bookings', 1);
     }
 
     private function createConfirmedDetail(User $user, Court $court, TimeSlot $slot, \Carbon\Carbon $date): void

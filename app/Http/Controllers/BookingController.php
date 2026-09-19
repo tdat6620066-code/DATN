@@ -7,6 +7,7 @@ use App\Http\Requests\StoreRecurringBookingRequest;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\TimeSlot;
+use App\Models\Voucher;
 use App\Services\BookingService;
 use App\Services\CourtAvailabilityService;
 use App\Services\PaymentService;
@@ -15,6 +16,7 @@ use App\Services\VnPayService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -195,6 +197,68 @@ class BookingController extends Controller
         return view('bookings.show', ['booking' => $booking]);
     }
 
+    /** Show the admin-created promotions that can be used for this booking. */
+    public function vouchers(Booking $booking)
+    {
+        $this->authorize('view', $booking);
+        if ($this->expireHoldIfNeeded($booking) || $booking->status !== 'PENDING_PAYMENT') {
+            return redirect()->route('bookings.show', $booking)->with('error', 'Đơn này không còn có thể áp dụng ưu đãi.');
+        }
+
+        $vouchers = Voucher::query()
+            ->where('status', 'ACTIVE')
+            ->where('start_at', '<=', now())
+            ->where(fn ($query) => $query->whereNull('end_at')->orWhere('end_at', '>=', now()))
+            ->where(fn ($query) => $query->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit'))
+            ->orderByDesc('discount_value')
+            ->get()
+            ->map(function (Voucher $voucher) use ($booking) {
+                $voucher->applicable_discount = $voucher->calculateDiscount($booking->subtotal);
+                return $voucher;
+            });
+
+        return view('bookings.vouchers', compact('booking', 'vouchers'));
+    }
+
+    /** Apply one of the active vouchers before payment. */
+    public function applyVoucher(Booking $booking, Voucher $voucher)
+    {
+        $this->authorize('view', $booking);
+
+        try {
+            DB::transaction(function () use ($booking, $voucher) {
+                $booking = Booking::lockForUpdate()->findOrFail($booking->id);
+                $voucher = Voucher::lockForUpdate()->findOrFail($voucher->id);
+                if ($booking->status !== 'PENDING_PAYMENT' || $booking->isHoldExpired()) {
+                    throw new \DomainException('Đơn này không còn có thể áp dụng ưu đãi.');
+                }
+                if (! $voucher->isValid()) {
+                    throw new \DomainException('Ưu đãi không còn hiệu lực.');
+                }
+
+                $discount = $voucher->calculateDiscount($booking->subtotal);
+                if ($discount <= 0) {
+                    throw new \DomainException('Đơn chưa đạt điều kiện áp dụng ưu đãi này.');
+                }
+
+                if ($booking->voucher_id !== $voucher->id) {
+                    if ($booking->voucher_id) {
+                        Voucher::whereKey($booking->voucher_id)->where('used_count', '>', 0)->decrement('used_count');
+                    }
+                    $voucher->increment('used_count');
+                }
+
+                $total = max(0, (float) $booking->subtotal - $discount);
+                $booking->update(['voucher_id' => $voucher->id, 'discount' => $discount, 'total_amount' => $total]);
+                $booking->payment()->where('status', 'PENDING')->update(['amount' => $total]);
+            }, 3);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('bookings.show', $booking)->with('success', 'Đã áp dụng ưu đãi.');
+    }
+
     /**
      * Hiển thị mã QR booking để khách hàng check-in.
      * QR chỉ hợp lệ với booking hợp lệ và chưa hoàn thành/hủy.
@@ -288,13 +352,21 @@ class BookingController extends Controller
      */
     public function vnpayCreate(Booking $booking)
     {
-        $this->authorize('confirmPayment', $booking);
+        // The owner must see an expired booking's normal status instead of a
+        // 403 caused by the payment-specific status check.
+        $this->authorize('view', $booking);
         if ($booking->fixedBooking && $booking->fixedBooking->status !== 'LEGACY') {
             return redirect()->route('bookings.fixed.show', $booking->fixedBooking);
         }
 
+        if ($booking->status === 'EXPIRED') {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.');
+        }
+
         if ($booking->status !== 'PENDING_PAYMENT') {
-            return back()->with('error', 'Booking này không thể thanh toán.');
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Booking này không thể thanh toán.');
         }
 
         if ($this->expireHoldIfNeeded($booking)) {
@@ -349,7 +421,7 @@ class BookingController extends Controller
         }
 
         $booking->loadMissing('payment');
-        $booking->update(['status' => 'EXPIRED']);
+        $booking->update(['status' => 'EXPIRED', 'payment_status' => 'FAILED']);
         $booking->bookingDetails()->update(['status' => 'CANCELLED']);
         $booking->payment?->update(['status' => 'FAILED']);
 
