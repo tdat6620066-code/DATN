@@ -42,6 +42,9 @@
     @endif
     <p class="fw-bold mt-3">Dịch vụ còn phải thu: {{ number_format($due, 0, ',', '.') }}đ</p>
     @if($booking->status === 'CHECKED_IN' && $actor->hasPermission('bookings.checkout'))
+        @if($actor->role === 'EMPLOYEE')
+            @include('employee.partials.checkout-modal')
+        @else
         <form method="POST" action="{{ route('operations.checkout', $booking) }}">@csrf
             @if($due > 0 && $actor->hasPermission('payments.counter'))<input type="hidden" name="amount" value="{{ $due }}">@endif
             @if($booking->serviceOrders()->whereIn('status', ['PENDING', 'PAID'])->exists() && $actor->hasPermission('services.manage'))
@@ -49,6 +52,7 @@
             @endif
             <button class="btn btn-success">{{ $due > 0 && $actor->hasPermission('payments.counter') ? 'Xác nhận đã thu '.number_format($due, 0, ',', '.').'đ tiền mặt và trả sân' : 'Hoàn tất trả sân' }}</button>
         </form>
+        @endif
         @if($actor->role === 'ADMIN')
             <details class="mt-3"><summary>Trả sân ngoại lệ (quản trị viên)</summary>
                 <form class="mt-2" method="POST" action="{{ route('operations.checkout', $booking) }}">@csrf
@@ -59,7 +63,7 @@
             </details>
         @endif
     @endif
-    @if($booking->status === 'CHECKED_IN' && $end && $actor->hasPermission('bookings.checkout') && $actor->hasPermission('payments.counter'))
+    @if($actor->role === 'ADMIN' && $booking->status === 'CHECKED_IN' && $end && $actor->hasPermission('bookings.checkout') && $actor->hasPermission('payments.counter'))
         @php
             $lastDetail = $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->with('timeSlot')->get()->sortBy('timeSlot.end_time')->last();
             $nextSlot = \App\Models\TimeSlot::where('status', 'ACTIVE')->where('start_time', $lastDetail?->timeSlot->end_time)->first();
@@ -72,5 +76,5 @@
             @else<p>Chưa có khung giờ hoặc giá gia hạn phù hợp.</p>@endif
         </details>
     @endif
-    @if($actor->hasPermission('incidents.manage'))<a class="d-block mt-3" href="{{ route('employee.incidents.create', ['booking_id' => $booking->id]) }}">Báo cáo sự cố</a>@endif
+    @if($actor->hasPermission('incidents.manage'))<a class="d-block mt-3" href="{{ route($actor->isAdmin() ? 'admin.incidents.index' : 'employee.incidents.index', ['booking_id' => $booking->id]) }}">Báo cáo sự cố</a>@endif
 </section>

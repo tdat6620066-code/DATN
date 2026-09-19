@@ -14,6 +14,14 @@ class EmployeeDashboardController extends Controller
 {
     public function index(Request $request)
     {
+        if ($request->query('panel') === 'customers') {
+            abort_unless($request->user()->hasPermission('bookings.view'), 403);
+            $request->validate(['search' => 'nullable|string|max:100']);
+            $customers = \App\Models\User::where('role', 'CUSTOMER')
+                ->when($request->filled('search'), fn ($q) => $q->where(fn ($search) => $search->where('name', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')))
+                ->withCount('bookings')->orderBy('name')->paginate(15)->withQueryString();
+            return view('employee.customers', compact('customers'));
+        }
         $todayBookingsQuery = Booking::query()->whereHas(
             'bookingDetails',
             fn ($query) => $query->whereDate('booking_date', today())
@@ -24,6 +32,13 @@ class EmployeeDashboardController extends Controller
             'checked_in' => Booking::where('status', 'CHECKED_IN')->count(),
             'available_courts' => Court::where('status', 'ACTIVE')->where('availability_status', 'AVAILABLE')->count(),
         ];
+        $statistics['checked_in'] = (clone $todayBookingsQuery)->whereNotNull('checked_in_at')->distinct()->count('user_id');
+        $statistics['playing_courts'] = BookingDetail::whereDate('booking_date', today())->where('status', 'CHECKED_IN')
+            ->whereHas('booking', fn ($q) => $q->where('status', 'CHECKED_IN'))->distinct()->count('court_id');
+        $statistics['upcoming_bookings'] = Booking::where('status', 'CONFIRMED')->whereHas('bookingDetails', fn ($q) => $q
+            ->where('status', '!=', 'CANCELLED')->whereDate('booking_date', today())
+            ->whereHas('timeSlot', fn ($slot) => $slot->where('start_time', '>', now()->format('H:i:s'))))->count();
+        $statistics['open_incidents'] = \App\Models\CourtIncident::whereNotIn('status', ['RESOLVED', 'REJECTED'])->count();
 
         $todayBookings = (clone $todayBookingsQuery)
             ->with(['user', 'bookingDetails' => fn ($query) => $query
@@ -48,7 +63,7 @@ class EmployeeDashboardController extends Controller
             $mode = 'day';
         }
 
-        $request->validate(['date' => ['nullable', 'date_format:Y-m-d'], 'court_id' => ['nullable', 'integer'], 'status' => ['nullable', 'in:PENDING_PAYMENT,CONFIRMED,CHECKED_IN,COMPLETED,CANCELLED,INCIDENT,MAINTENANCE'], 'search' => ['nullable', 'string', 'max:100']]);
+        $request->validate(['date' => ['nullable', 'date_format:Y-m-d'], 'court_id' => ['nullable', 'integer'], 'status' => ['nullable', 'in:PENDING_PAYMENT,CONFIRMED,CHECKED_IN,COMPLETED,CANCELLED,NO_SHOW,INCIDENT,MAINTENANCE'], 'search' => ['nullable', 'string', 'max:100']]);
         $date = $request->filled('date') ? Carbon::parse($request->query('date')) : Carbon::today();
         $allCourts = Court::with('courtType')->where('status', 'ACTIVE')->orderBy('name')->get();
         $courts = $request->filled('court_id') ? $allCourts->where('id', $request->integer('court_id')) : $allCourts;
@@ -56,14 +71,16 @@ class EmployeeDashboardController extends Controller
         [$start, $end, $dates] = $this->scheduleRange($mode, $date);
         $bookingDetails = BookingDetail::whereIn('court_id', $courts->pluck('id'))
             ->whereDate('booking_date', '>=', $start->toDateString())->whereDate('booking_date', '<=', $end->toDateString())
-            ->whereHas('booking', fn ($q) => $q->whereIn('status', ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED']))
-            ->with(['booking.user', 'booking.services.item', 'booking.serviceOrders.payment', 'timeSlot'])->get()
+            ->whereHas('booking', fn ($q) => $q->whereIn('status', ['PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW']))
+            ->with(['booking.user', 'booking.payment', 'booking.fixedBooking.payment', 'booking.services.item', 'booking.serviceOrders.payment', 'timeSlot'])->get()
             ->filter(fn ($d) => $d->booking->status !== 'PENDING_PAYMENT' || ! $d->booking->isHoldExpired());
         $incidents = \App\Models\CourtIncident::whereNotIn('status', ['RESOLVED', 'REJECTED'])->whereIn('booking_id', $bookingDetails->pluck('booking_id'))->get();
+        $courtIncidents = \App\Models\CourtIncident::where('source', 'COURT')->whereNotIn('status', ['RESOLVED', 'REJECTED'])->whereIn('court_id', $courts->pluck('id'))->get();
         $maintenance = \App\Models\MaintenanceSchedule::whereIn('court_id', $courts->pluck('id'))->where('status', '!=', 'CANCELLED')
             ->whereRaw('DATE(COALESCE(start_date, maintenance_date)) <= ?', [$end->toDateString()])
             ->whereRaw('DATE(COALESCE(end_date, maintenance_date)) >= ?', [$start->toDateString()])->get();
         $cells = []; $stats = ['bookings' => $bookingDetails->pluck('booking_id')->unique()->count(), 'playing' => $bookingDetails->where('booking.status', 'CHECKED_IN')->pluck('booking_id')->unique()->count(), 'holds' => $bookingDetails->where('booking.status', 'PENDING_PAYMENT')->pluck('booking_id')->unique()->count(), 'incidents' => $incidents->count()];
+        $stats['incidents'] = $incidents->merge($courtIncidents)->unique('id')->count();
         foreach ($courts as $court) foreach ($dates as $day) {
             $key = $court->id.'|'.$day->toDateString();
             $details = $bookingDetails->filter(fn ($d) => $d->court_id === $court->id && $d->booking_date->toDateString() === $day->toDateString());
@@ -93,11 +110,25 @@ class EmployeeDashboardController extends Controller
                         'column' => max(0, $timeSlots->search(fn ($s) => $s->id === $first->time_slot_id)) + 1, 'span' => $segment->count()]);
                 }
             }
-            $cells[$key] = ['blocks' => $blocks, 'used' => count($occupied), 'blocked' => $blocked,
+            $available = [];
+            if ($mode !== 'month' && !$request->filled('status') && !$request->filled('search')
+                && $request->user()->hasPermission('bookings.view') && $request->user()->hasPermission('payments.counter')
+                && $day->lte(today()->addDays(config('booking.max_days', 30)))) {
+                foreach ($timeSlots as $slot) {
+                    if (isset($occupied[$slot->id]) || isset($blocked[$slot->id]) || Carbon::parse($day->toDateString().' '.$slot->start_time)->lte(now())) continue;
+                    if (app(\App\Services\CourtAvailabilityService::class)->checkAvailability($court->id, $day, $slot->id) === 'AVAILABLE'
+                        && app(\App\Services\BookingService::class)->getCurrentPrice($court->id, $slot->id, $day) > 0) {
+                        $available[] = $slot->id;
+                        if ($mode === 'week') break;
+                    }
+                }
+            }
+            $cells[$key] = ['blocks' => $blocks, 'used' => count($occupied), 'blocked' => $blocked, 'available' => $available, 'issue' => $courtIncidents->firstWhere('court_id', $court->id),
                 'free' => max(0, $timeSlots->count() - count(array_unique(array_merge(array_keys($occupied), array_keys($blocked))))),
                 'count' => $details->pluck('booking_id')->unique()->count()];
         }
-        return view('employee.schedule', compact('mode', 'date', 'dates', 'start', 'end', 'courts', 'allCourts', 'timeSlots', 'cells', 'stats'));
+        $bookingActions = $bookingDetails->pluck('booking')->unique('id')->mapWithKeys(fn ($booking) => [$booking->id => app(\App\Services\StaffBookingUiService::class)->actions($booking, $request->user())]);
+        return view('employee.schedule', compact('mode', 'date', 'dates', 'start', 'end', 'courts', 'allCourts', 'timeSlots', 'cells', 'stats', 'bookingActions'));
     }
 
     /**

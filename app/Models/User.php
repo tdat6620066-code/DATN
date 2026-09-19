@@ -29,6 +29,9 @@ class User extends Authenticatable implements CanResetPasswordContract
         'last_login_at',
         'permissions',
         'notification_preferences',
+        'permissions',
+        'access_role_id',
+        'customer_segment',
     ];
 
     /**
@@ -69,6 +72,11 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function favorites()
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function accessRole()
+    {
+        return $this->belongsTo(AccessRole::class);
     }
 
     /**
@@ -137,9 +145,11 @@ class User extends Authenticatable implements CanResetPasswordContract
             return true;
         }
 
+        if ($this->role !== 'EMPLOYEE') return false;
+
         return in_array(
             $permission,
-            $this->permissions ?? [],
+            array_merge($this->permissions ?? [], $this->accessRole?->permissions ?? []),
             true
         );
     }

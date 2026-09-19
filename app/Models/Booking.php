@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Booking extends Model
 {
+    use \Illuminate\Database\Eloquent\SoftDeletes;
+
     protected static function booted(): void
     {
         static::updating(function (Booking $booking) {

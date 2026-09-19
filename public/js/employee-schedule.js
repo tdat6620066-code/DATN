@@ -8,3 +8,10 @@ const updateScheduleHolds = () => document.querySelectorAll('[data-hold-until]')
     node.textContent = remaining ? 'Còn ' + String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0') : 'Đã hết hạn giữ chỗ · tải lại lịch';
 });
 updateScheduleHolds(); setInterval(updateScheduleHolds, 1000);
+document.querySelectorAll('[data-operation-form]').forEach(form => form.addEventListener('submit', event => {
+    if (form.dataset.busy === 'true') { event.preventDefault(); return; }
+    if (form.dataset.confirmOperation && !window.confirm(form.dataset.confirmOperation)) { event.preventDefault(); return; }
+    form.dataset.busy = 'true'; form.setAttribute('aria-busy', 'true');
+    const button = form.querySelector('button'); button.disabled = true; button.textContent = 'Đang xử lý…';
+}));
+window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });

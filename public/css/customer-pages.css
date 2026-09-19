@@ -1,0 +1,55 @@
+/* Page composition, scoped to the shared Customer layout. */
+.customer-bottom-nav { display:none; }
+body.sz-layout--customer .customer-page-heading { display:flex; justify-content:space-between; align-items:center; gap:24px; padding:34px; background:#07130d; color:white; border-radius:24px; margin-bottom:30px; }
+.customer-page-heading > div > span,.customer-kicker { font-size:11px; letter-spacing:.14em; font-weight:800; color:#a3e635; }
+.customer-page-heading h1 { margin:10px 0; font-size:clamp(26px,3vw,42px); }
+.customer-page-heading p { color:#c6d5ca; max-width:560px; margin:0; }
+body.sz-layout--customer .customer-settings-layout { display:grid; grid-template-columns:minmax(180px,.7fr) minmax(0,1.3fr); gap:30px; align-items:start; }
+.customer-settings-layout aside { padding:24px 0; }.customer-settings-layout .customer-kicker { color:#166534; }.customer-settings-layout h2 { margin:14px 0; }.customer-settings-layout p { color:#64748b; line-height:1.8; }
+body.sz-layout--customer .customer-contact-layout { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.3fr); gap:32px; align-items:start; }
+body.sz-layout--customer .customer-contact-layout > aside { position:sticky; top:110px; }
+body.sz-layout--customer .customer-contact-layout > section { min-width:0; }
+body.sz-layout--customer .customer-contact-layout > section > a { border-left:3px solid #15803d; padding:22px; }
+body.sz-layout--customer .customer-contact-layout > section > a > span { font-size:12px; color:#64748b; margin-top:8px; }
+body.sz-layout--customer .customer-conversation { max-width:920px; margin:auto; padding-block:24px; }
+body.sz-layout--customer .customer-message-stream { border-left:1px solid #cbd5e1; padding-left:24px; margin:26px 0; }
+body.sz-layout--customer .customer-message-stream .card { border:0; border-radius:0 18px 18px 18px; padding:24px; }
+body.sz-layout--customer .customer-message-stream strong { font-size:12px; color:#64748b; margin-bottom:14px; }
+body.sz-layout--customer .customer-notice-timeline { padding-left:24px; border-left:1px solid #cbd5e1; }
+.customer-notice-day { font-size:13px; margin:26px 0 18px; color:#64748b; letter-spacing:.04em; }
+body.sz-layout--customer .customer-notice-timeline .card { border-radius:0 18px 18px 18px; box-shadow:none; }
+body.sz-layout--customer .customer-notice-timeline .border-primary { background:#f0fdf4; }
+body.sz-layout--customer .customer-booking-collection { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
+body.sz-layout--customer .customer-booking-collection > * { min-width:0; margin-bottom:0; }
+body.sz-layout--customer .sz-dashboard-section:first-of-type > .sz-customer-booking:first-of-type { border:1px solid #8cac98; border-left:6px solid #15803d; padding:28px; box-shadow:0 16px 40px rgb(5 46 22 / 9%); }
+body.sz-layout--customer .sz-dashboard-stats { margin:28px 0; background:white; padding:22px; border-radius:18px; gap:0; }
+body.sz-layout--customer .sz-dashboard-stat { border:0; border-right:1px solid #e2e8f0; box-shadow:none; border-radius:0; }.sz-dashboard-stat:last-child { border-right:0; }
+body.sz-layout--customer .court-gallery { display:grid; grid-template-columns:3fr 1fr; gap:14px; margin-bottom:24px; }
+body.sz-layout--customer .court-gallery-main { height:440px; border-radius:24px; overflow:hidden; }
+body.sz-layout--customer .court-gallery-main img { width:100%; height:100%; object-fit:cover; }
+body.sz-layout--customer .court-gallery-thumbs { display:flex; flex-direction:column; overflow-y:auto; max-height:440px; margin:0; }
+body.sz-layout--customer .court-gallery-thumbs button { flex:0 0 125px; width:100%; }
+body.sz-layout--customer .court-gallery-thumbs img { width:100%; height:100%; object-fit:cover; }
+body.sz-layout--customer .court-info-section { border:0; box-shadow:none; border-bottom:1px solid #e2e8f0; border-radius:0; background:transparent; padding-block:18px; }
+body.sz-layout--customer .court-booking-card { border-top:4px solid #15803d; box-shadow:0 16px 40px rgb(15 23 42 / 10%); }
+body.sz-layout--customer .court-filter { border:0; box-shadow:none; background:#edf2ef; }
+body.sz-layout--customer .sz-checkout-grid { grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr); gap:32px; }
+body.sz-layout--customer .settings-shell { width:100%; margin:0; }
+body.sz-layout--customer .recurring-layout { gap:32px; }
+@media(max-width:1199px) { body.sz-layout--customer .customer-booking-collection { grid-template-columns:1fr; } }
+@media(max-width:991px) {
+ body.sz-layout--customer :is(.customer-settings-layout,.customer-contact-layout,.sz-checkout-grid) { grid-template-columns:1fr; }
+ body.sz-layout--customer .customer-contact-layout > aside { position:static; }
+ body.sz-layout--customer .court-gallery-main { height:320px; }
+ body.sz-layout--customer .court-gallery-thumbs { max-height:320px; }
+}
+@media(max-width:767px) {
+ body.sz-layout--customer { padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
+ .customer-bottom-nav { position:fixed; bottom:0; left:0; right:0; display:grid; grid-template-columns:repeat(5,1fr); background:rgb(255 255 255 / 97%); border-top:1px solid #e2e8f0; padding:10px 4px calc(8px + env(safe-area-inset-bottom)); z-index:890; backdrop-filter:blur(16px); }
+ .customer-bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:4px; color:#64748b; text-decoration:none; font-size:10px; min-height:44px; }.customer-bottom-nav i { font-size:20px; }.customer-bottom-nav a[aria-current] { color:#15803d; font-weight:800; }
+ body.sz-layout--customer .customer-page-heading { padding:24px; }
+ body.sz-layout--customer .court-gallery { display:block; }body.sz-layout--customer .court-gallery-main { display:block; height:250px; }body.sz-layout--customer .court-gallery-thumbs { flex-direction:row; overflow-x:auto; margin-top:12px; height:75px; }body.sz-layout--customer .court-gallery-thumbs button { flex-basis:100px; }
+ body.sz-layout--customer .ai-chat-launcher { bottom:calc(88px + env(safe-area-inset-bottom)); }
+ body.sz-layout--customer .customer-contact-layout form.d-flex { flex-wrap:wrap; }
+ body.sz-layout--customer .customer-settings-layout { gap:6px; }
+}

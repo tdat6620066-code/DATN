@@ -2,165 +2,61 @@
     $scCurrentRole = Auth::user()?->role;
     $scPrimaryRoute = $scCurrentRole === 'ADMIN'
         ? route('admin.dashboard')
-        : ($scCurrentRole === 'EMPLOYEE' ? route('employee.dashboard') : route('courts.index'));
+        : ($scCurrentRole === 'EMPLOYEE' ? route('employee.dashboard') : route('bookings.create'));
     $scPrimaryLabel = $scCurrentRole === 'ADMIN'
         ? 'Vào quản trị'
         : ($scCurrentRole === 'EMPLOYEE' ? 'Vào vận hành' : 'Đặt sân ngay');
 @endphp
-@vite(['resources/js/app.js'])
-<style>
-    .sc-nav {
-        position: sticky;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 900;
-        background: #fff;
-        border-bottom: 1px solid #d8e0da;
-        box-shadow: none;
-    }
-    .sc-container { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
-    .sc-nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 13px 0; }
-    .sc-brand { display: flex; align-items: center; gap: 10px; color: #081527; font-weight: 800; font-size: 21px; letter-spacing: -.5px; text-decoration: none; }
-    .sc-brand img { height: 44px; border-radius: 10px; }
-    .sc-nav-links { display: flex; gap: 28px; }
-    .sc-nav-links a { color: #58708b; font-size: 14px; font-weight: 600; text-decoration: none; transition: color .2s; }
-    .sc-nav-links a:hover, .sc-nav-links a.sc-active { color: #08b95b; }
-    .sc-nav-actions { display: flex; align-items: center; gap: 12px; }
-    .sc-notification-link { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid #d8e0da; border-radius: 12px; background: #f4f7f5; color: #153442; font-size: 20px; line-height: 1; text-decoration: none; }
-    .sc-notification-link:hover { color: #087c42; background: #e9fbf0; border-color: #a9d8bc; }
-    .sc-notification-link:focus-visible { outline: 2px solid #087c42; outline-offset: 3px; }
-    .sc-notification-badge { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px #fff; }
-    .sc-toast-wrap { position: fixed; top: 86px; right: 22px; z-index: 2000; display: grid; gap: 10px; width: min(380px, calc(100vw - 32px)); }
-    .sc-realtime-toast { padding: 16px; border: 1px solid #dbe7e2; border-left: 4px solid #0ea36b; border-radius: 14px; background: #fff; box-shadow: 0 18px 45px rgba(2,36,50,.2); animation: scToastIn .25s ease-out; }
-    .sc-realtime-toast strong { display: block; color: #102a34; font-size: 15px; }
-    .sc-realtime-toast p { margin: 7px 0 10px; color: #52656c; font-size: 13px; }
-    .sc-realtime-toast a { color: #0b8a5a; font-size: 13px; font-weight: 800; text-decoration: none; }
-    .sc-realtime-toast button { float: right; border: 0; background: none; color: #64748b; font-size: 18px; }
-    @keyframes scToastIn { from { opacity: 0; transform: translateX(25px); } to { opacity: 1; transform: translateX(0); } }
-    .sc-btn-pill {
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        padding: 11px 20px; border-radius: 999px; font-weight: 700; font-size: 14px;
-        border: 0; cursor: pointer; transition: all .2s; white-space: nowrap; text-decoration: none;
-    }
-    .sc-btn-primary { background: #08dc6b; color: #081527; }
-    .sc-btn-primary:hover { background: #00c960; color: #081527; transform: translateY(-1px); }
-    .sc-nav-user { color: #081527; font-size: 14px; font-weight: 600; text-decoration: none; }
-    .sc-user-menu { position: relative; }
-    .sc-user-trigger {
-        display: inline-flex; align-items: center; gap: 7px;
-        color: #081527; font-size: 14px; font-weight: 600;
-        background: none; border: 0; cursor: pointer; padding: 4px 0;
-    }
-    .sc-user-trigger:hover { color: #08b95b; }
-    .sc-user-trigger .caret { font-size: 11px; transition: transform .2s; }
-    .sc-user-menu:hover .sc-user-trigger .caret { transform: rotate(180deg); }
-    .sc-user-dropdown {
-        position: absolute; top: 100%; right: 0; min-width: 220px;
-        padding: 8px; background: #fff; border-radius: 12px;
-        box-shadow: 0 16px 40px rgba(2, 24, 35, .22);
-        opacity: 0; visibility: hidden; transform: translateY(8px);
-        transition: opacity .2s, transform .2s, visibility .2s; z-index: 60;
-    }
-    .sc-user-menu:hover .sc-user-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
-    .sc-user-dropdown a, .sc-user-dropdown button {
-        display: flex; align-items: center; gap: 10px; width: 100%;
-        padding: 10px 12px; border: 0; background: none; border-radius: 9px;
-        color: #1f2937; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; text-decoration: none;
-    }
-    .sc-user-dropdown a:hover, .sc-user-dropdown button:hover { background: #f1f5f9; color: #0b8a5a; }
-    .sc-user-dropdown i { color: #64748b; width: 16px; text-align: center; }
-    .sc-user-dropdown .dropdown-divider { height: 1px; background: #e5e7eb; margin: 6px 0; }
-    @media (max-width: 991px) { .sc-nav-links { display: none; } }
-    @media (max-width: 640px) {
-        .sc-nav-inner { flex-wrap: wrap; gap: 12px; }
-        .sc-nav-actions { margin-left: auto; gap: 10px; }
-        .sc-nav-user { display: none; }
-        .sc-btn-pill { padding: 11px 14px; font-size: 12px; }
-        .sc-brand { font-size: 19px; }
-    }
-</style>
+
+<link rel="stylesheet" href="{{ asset('css/customer-navigation.css') }}?v={{ filemtime(public_path('css/customer-navigation.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/customer-premium.css') }}?v={{ filemtime(public_path('css/customer-premium.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/customer-club.css') }}?v={{ filemtime(public_path('css/customer-club.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/customer-pages.css') }}?v={{ filemtime(public_path('css/customer-pages.css')) }}">
+<script defer src="{{ asset('js/customer-layout.js') }}?v={{ filemtime(public_path('js/customer-layout.js')) }}"></script>
 <header class="sc-nav">
     <div class="sc-container sc-nav-inner">
         <a class="sc-brand" href="{{ route('home') }}">
-            <img src="{{ asset('images/logo.png') }}" alt="SmashZone logo">
+            <span class="sc-brand-name">SMASH<span>ZONE</span></span>
+            <span class="sc-brand-motto">BOOK · PLAY · CONNECT</span>
         </a>
-        <nav class="sc-nav-links">
+        <button type="button" class="btn btn-outline-primary sz-mobile-toggle" data-bs-toggle="collapse" data-bs-target="#customerNavigation" aria-controls="customerNavigation" aria-expanded="false" aria-label="Mở menu"><i class="bi bi-list" aria-hidden="true"></i></button>
+        <nav class="sc-nav-links collapse" id="customerNavigation" aria-label="Điều hướng chính">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'sc-active' : '' }}">Trang chủ</a>
-            <a href="{{ route('courts.index') }}" class="{{ request()->routeIs('courts.*') ? 'sc-active' : '' }}">Sân cầu lông</a>
-            <a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.index') ? 'sc-active' : '' }}">Đặt lịch</a>
-            <a href="{{ route('promotions.index') }}" class="{{ request()->routeIs('promotions.*') ? 'sc-active' : '' }}">Khuyến mãi</a>
-            <a href="{{ route('news.index') }}" class="{{ request()->routeIs('news.*') ? 'sc-active' : '' }}">Tin tức</a>
-            <a href="{{ route('about.index') }}" class="{{ request()->routeIs('about.*') ? 'sc-active' : '' }}">Giới thiệu</a>
+            <a href="{{ route('courts.index') }}" class="{{ request()->routeIs('courts.*') ? 'sc-active' : '' }}">Khám phá sân</a>
+            <a href="{{ route('bookings.create') }}" class="{{ request()->routeIs('bookings.create') ? 'sc-active' : '' }}">Đặt sân</a>
+            <a href="{{ route('home') }}#offers">Khuyến mãi</a>
+            <a href="{{ route('home') }}#services">Dịch vụ</a>
+            <a href="{{ route('home') }}#news">Tin tức</a>
         </nav>
         <div class="sc-nav-actions">
+            <a class="sc-search-trigger" href="{{ route('courts.index') }}" aria-label="Tìm sân"><i class="bi bi-search" aria-hidden="true"></i></a>
             @auth
-                @php($scUnreadNotifications = Auth::user()->userNotifications()->where('is_read', false)->count())
-                <a class="sc-notification-link" href="{{ route('notifications.index') }}" aria-label="Thông báo" title="Thông báo">
-                    <i class="bi bi-bell"></i>
-                    @if($scUnreadNotifications > 0)
-                        <span class="sc-notification-badge" id="sc-notification-badge">{{ $scUnreadNotifications > 99 ? '99+' : $scUnreadNotifications }}</span>
-                    @else
-                        <span class="sc-notification-badge" id="sc-notification-badge" hidden>0</span>
-                    @endif
-                </a>
+                @include('partials.notification-dropdown')
                 <div class="sc-user-menu">
-                    <button type="button" class="sc-user-trigger">
-                        <i class="bi bi-person-circle"></i> {{ Str::limit(Auth::user()->name, 16) }}
+                    <button type="button" class="sc-user-trigger" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở menu tài khoản">
+                        <span class="sc-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span><span class="sc-account-label">Tài khoản</span>
                         <i class="bi bi-chevron-down caret"></i>
                     </button>
-                    <div class="sc-user-dropdown">
+                    <div class="sc-user-dropdown dropdown-menu dropdown-menu-end">
+                        <div class="sc-user-greeting">Xin chào,<strong>{{ auth()->user()->name }}</strong></div>
                         <a href="{{ route('profile') }}"><i class="bi bi-person"></i> Thông tin tài khoản</a>
+                        <a href="{{ route('bookings.index') }}"><i class="bi bi-calendar2-check"></i> Lịch đặt của tôi</a>
                         <a href="{{ route('notifications.index') }}"><i class="bi bi-bell"></i> Thông báo</a>
                         @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
                             <a href="{{ route('notification-settings.edit') }}"><i class="bi bi-sliders"></i> Cài đặt thông báo</a>
                         @endif
-                        <!-- @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
-                            <a href="{{ route('bookings.index') }}"><i class="bi bi-calendar2-check"></i> Đặt sân của tôi</a>
-                        @endif -->
                         <div class="dropdown-divider"></div>
-                        <form action="{{ route('logout') }}" method="POST" style="margin:0;">
+                        <form action="{{ route('logout') }}" method="POST" class="m-0">
                             @csrf
                             <button type="submit"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
                         </form>
                     </div>
                 </div>
             @else
-                <a class="sc-nav-user" href="{{ route('login') }}">Đăng nhập</a>
+                <a class="sz-notification-trigger" href="{{ route('notifications.index') }}" aria-label="Thông báo" title="Thông báo"><i class="bi bi-bell" aria-hidden="true"></i></a>
+                <a class="sc-nav-user" href="{{ route('login') }}"><i class="bi bi-person-circle" aria-hidden="true"></i> Tài khoản</a>
             @endauth
             <a class="sc-btn-pill sc-btn-primary" href="{{ $scPrimaryRoute }}">{{ $scPrimaryLabel }}</a>
         </div>
     </div>
 </header>
-@auth
-<div class="sc-toast-wrap" id="sc-toast-wrap" aria-live="polite"></div>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    if (!window.Echo) return;
-    window.Echo.private('users.{{ Auth::id() }}')
-        .listen('.customer.notification.created', notification => {
-            const badge = document.getElementById('sc-notification-badge');
-            const current = Number.parseInt(badge.textContent, 10) || 0;
-            const next = current + 1;
-            badge.textContent = next > 99 ? '99+' : String(next);
-            badge.hidden = false;
-
-            const toast = document.createElement('div');
-            toast.className = 'sc-realtime-toast';
-            const title = document.createElement('strong');
-            title.textContent = notification.title;
-            const close = document.createElement('button');
-            close.type = 'button'; close.innerHTML = '&times;'; close.onclick = () => toast.remove();
-            const content = document.createElement('p');
-            content.textContent = notification.content;
-            toast.append(close, title, content);
-            if (notification.action_url) {
-                const link = document.createElement('a');
-                link.href = notification.action_url; link.textContent = 'Xem'; toast.append(link);
-            }
-            document.getElementById('sc-toast-wrap').prepend(toast);
-            window.setTimeout(() => toast.remove(), 10000);
-        });
-});
-</script>
-@endauth

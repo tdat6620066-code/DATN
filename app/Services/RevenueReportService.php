@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Payment;
 use App\Models\Refund;
-use App\Models\Booking;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -12,40 +11,36 @@ class RevenueReportService
 {
     public function courtRevenue(CarbonInterface $from, CarbonInterface $to): array
     {
-        $bookings = Booking::query()
-            ->whereNotIn('status', ['CANCELLED', 'EXPIRED', 'PENDING_PAYMENT'])
-            ->whereHas('bookingDetails', fn ($q) => $q->whereDate('booking_date', '>=', $from->toDateString())->whereDate('booking_date', '<=', $to->toDateString()))
-            ->with(['bookingDetails.court', 'payment', 'fixedBooking.payment', 'refundRequests.refund', 'refundRequests.incidentResolution'])
-            ->get();
+        // Recognize successful receipts on paid_at, independent of court usage/status.
+        // Refunds remain separate transactions in cashFlow(), on processed_at.
+        $payments = Payment::query()->where('purpose', 'BOOKING')->where('status', 'PAID')
+            ->whereNotNull('paid_at')->whereBetween('paid_at', [$from, $to])
+            ->with(['booking.bookingDetails.court', 'fixedBooking.bookings.bookingDetails.court'])->get();
         $daily = collect();
         $courts = collect();
         $slots = 0;
-        foreach ($bookings as $booking) {
-            if ($booking->payment?->status !== 'PAID' || ! $booking->payment->paid_at) continue;
-            // Allocate across ALL details, including cancelled and out-of-period slots.
-            // The discounted total must never be redistributed to remaining sessions.
-            $details = $booking->bookingDetails->sortBy('id');
-            $weights = $details->mapWithKeys(fn ($d) => [$d->id => max(0, (int) round((float) $d->subtotal * 100))])->all();
-            $amounts = $this->allocate(max(0, (int) round((float) $booking->total_amount * 100)), $weights);
-            foreach ($booking->refundRequests as $request) {
-                if ($request->refund?->status !== 'COMPLETED' || ! $request->refund->processed_at) continue;
-                $cents = (int) round((float) $request->refund->amount * 100);
-                $target = $request->incidentResolution?->booking_detail_id;
-                $deductions = $target ? [$target => $cents] : $this->allocate($cents, $weights);
-                foreach ($deductions as $id => $deduction) $amounts[$id] = max(0, ($amounts[$id] ?? 0) - $deduction);
-            }
-            foreach ($details as $detail) {
-                $date = $detail->booking_date->toDateString();
-                if ($detail->status === 'CANCELLED' || ($detail->status !== 'COMPLETED' && $booking->status !== 'COMPLETED')
-                    || $date < $from->toDateString() || $date > $to->toDateString() || $date > today()->toDateString()) continue;
-                $amount = $amounts[$detail->id] ?? 0;
-                $daily[$date] = ($daily[$date] ?? 0) + $amount;
-                $key = $detail->court_id;
-                $row = $courts[$key] ?? ['name' => $detail->court?->name ?? 'Sân đã xóa', 'slots' => 0, 'amount' => 0];
-                $row['slots']++;
-                $row['amount'] += $amount;
-                $courts[$key] = $row;
-                $slots++;
+        foreach ($payments as $payment) {
+            $date = $payment->paid_at->toDateString();
+            $cents = max(0, (int) round((float) $payment->amount * 100));
+            $daily[$date] = ($daily[$date] ?? 0) + $cents;
+            $bookings = $payment->fixed_booking_id
+                ? ($payment->fixedBooking?->bookings ?? collect())
+                : collect($payment->booking ? [$payment->booking] : []);
+            $bookings = $bookings->sortBy('id');
+            $bookingWeights = $bookings->mapWithKeys(fn ($booking) => [$booking->id => max(0, (int) round((float) $booking->total_amount * 100))])->all();
+            $bookingAmounts = $this->allocate($cents, $bookingWeights);
+            foreach ($bookings as $booking) {
+                $details = $booking->bookingDetails->sortBy('id');
+                $weights = $details->mapWithKeys(fn ($detail) => [$detail->id => max(0, (int) round((float) $detail->subtotal * 100))])->all();
+                $amounts = $this->allocate($bookingAmounts[$booking->id] ?? 0, $weights);
+                foreach ($details as $detail) {
+                    $key = $detail->court_id;
+                    $row = $courts[$key] ?? ['name' => $detail->court?->name ?? 'Sân đã xóa', 'slots' => 0, 'amount' => 0];
+                    $row['slots']++;
+                    $row['amount'] += $amounts[$detail->id] ?? 0;
+                    $courts[$key] = $row;
+                    $slots++;
+                }
             }
         }
         return ['revenue' => $daily->sum() / 100.0, 'slots' => $slots,

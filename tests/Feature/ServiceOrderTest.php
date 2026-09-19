@@ -30,7 +30,19 @@ class ServiceOrderTest extends TestCase
         return ['request_key' => (string) str()->uuid(), 'items' => [['service_item_id' => $water->id, 'quantity' => 2], ['service_item_id' => $shuttle->id, 'quantity' => 1]]];
     }
 
-    public function test_cash_addition_never_changes_original_receipt_and_delivery_requires_payment(): void
+    public function test_retail_page_selects_only_playing_bookings_for_services(): void
+    {
+        [, $staff, $booking] = $this->fixture();
+        $this->actingAs($staff)->get(route('employee.retail.index', ['booking_id' => $booking->id]))
+            ->assertOk()->assertSee($booking->booking_code)
+            ->assertSee(route('service-orders.store', $booking), false);
+        $booking->update(['status' => 'COMPLETED']);
+        $this->get(route('employee.retail.index', ['booking_id' => $booking->id]))
+            ->assertOk()->assertDontSee(route('service-orders.store', $booking), false)
+            ->assertSee('Chưa có booking đang chơi');
+    }
+
+    public function test_at_court_services_can_be_delivered_before_payment_and_preserve_original_receipt(): void
     {
         [$customer, $staff, $booking, $original, $water, $shuttle] = $this->fixture();
         $snapshot = $original->fresh()->getAttributes();
@@ -40,6 +52,11 @@ class ServiceOrderTest extends TestCase
         $this->assertDatabaseCount('service_orders', 1);
         $this->assertDatabaseCount('payments', 2);
         $order = ServiceOrder::firstOrFail();
+        $this->assertSame($booking->id, $order->booking_id);
+        $this->assertEquals(2, $booking->services()->where('service_order_id', $order->id)->count());
+        $this->actingAs($customer)->get(route('bookings.show', $booking))->assertOk()
+            ->assertSee('Nước uống')->assertSee('50.000')->assertSee('Dịch vụ chưa thanh toán:');
+        $this->actingAs($staff);
         $this->assertSame('at_court', $order->source);
         $this->assertSame($staff->id, $order->added_by);
         $this->assertEquals(50000, $order->payment->amount);
@@ -47,7 +64,11 @@ class ServiceOrderTest extends TestCase
         $this->assertEquals($snapshot, $original->fresh()->getAttributes());
         $this->assertEquals(150000, $booking->fresh()->total_amount);
         $this->assertSame('PAID', $booking->fresh()->payment_status);
-        $this->post(route('service-orders.deliver', $order))->assertSessionHas('error');
+        $this->get(route('employee.bookings.show', $booking))->assertOk()
+            ->assertSee('Thu khi checkout')->assertSee('Xác nhận đã giao dịch vụ');
+        $this->post(route('service-orders.deliver', $order))->assertSessionHas('success');
+        $this->get(route('employee.bookings.show', $booking))->assertOk()
+            ->assertSee('Thu khi checkout')->assertSee('50.000');
         $this->post(route('employee.bookings.complete', $booking))->assertSessionHas('error');
         $this->post(route('service-orders.cash', $order), ['amount' => 150000])->assertSessionHasErrors('amount');
         $this->post(route('service-orders.cash', $order), ['amount' => 50000])->assertSessionHasNoErrors();
@@ -78,12 +99,17 @@ class ServiceOrderTest extends TestCase
 
     public function test_customer_cannot_create_separate_services_or_collect_at_court_payment(): void
     {
+        $this->freezeTime();
         [$customer, $staff, $booking, , $water, $shuttle] = $this->fixture();
         $this->actingAs($customer)->post(route('service-orders.store', $booking), $this->payload($water, $shuttle))->assertForbidden();
         $this->assertDatabaseCount('service_orders', 0);
         $this->actingAs($staff)->post(route('service-orders.store', $booking), $this->payload($water, $shuttle))->assertSessionHasNoErrors();
         $order = ServiceOrder::firstOrFail();
-        $this->actingAs($customer)->post(route('service-orders.pay', $order))->assertForbidden();
+        config(['vnpay.tmn_code' => 'TEST1234', 'vnpay.hash_secret' => 'test-secret', 'vnpay.url' => 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html']);
+        $response = $this->actingAs($customer)->post(route('service-orders.pay', $order))->assertRedirect();
+        parse_str(parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
+        $this->assertSame('SVC'.$order->id, $query['vnp_TxnRef']);
+        $this->assertSame(now()->addMinutes(config('booking.hold_timeout', 5))->format('YmdHis'), $query['vnp_ExpireDate']);
         $this->post(route('service-orders.cash', $order), ['amount' => 50000])->assertForbidden();
         $this->post(route('service-orders.deliver', $order))->assertForbidden();
         $this->actingAs($staff)->post(route('service-orders.cancel', $order))->assertSessionHasNoErrors();
@@ -147,14 +173,16 @@ class ServiceOrderTest extends TestCase
 
     public function test_expiring_unpaid_services_restores_inventory_and_late_success_requires_review(): void
     {
-        [, $staff, $booking, , $water, $shuttle] = $this->fixture();
-        $this->actingAs($staff)->post(route('service-orders.store', $booking), $this->payload($water, $shuttle));
+        [$customer, , $booking, , $water, $shuttle] = $this->fixture('CONFIRMED');
+        $this->actingAs($customer);
+        $payload = $this->payload($water, $shuttle);
+        app(ServiceOrderService::class)->create($booking, $customer, $payload['items'], $payload['request_key']);
         $order = ServiceOrder::firstOrFail();
         $this->travel(16)->minutes();
         $this->artisan('bookings:expire-holds')->assertSuccessful();
         $this->assertSame(2, $water->fresh()->stock);
         $this->get(route('bookings.vnpay.ipn', $this->callbackData($order)))->assertJsonPath('RspCode', '02');
         $this->assertDatabaseHas('payment_transaction_logs', ['payment_id' => $order->payment_id, 'action' => 'VNPAY_REQUIRES_REVIEW']);
-        $this->assertSame('CHECKED_IN', $booking->fresh()->status);
+        $this->assertSame('CONFIRMED', $booking->fresh()->status);
     }
 }

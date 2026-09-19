@@ -2,7 +2,9 @@
 
 @section('title', 'Đặt sân - SmashZone')
 
+@section('body_class', 'sz-booking-page')
 @section('content')
+<x-booking-progress :step="2"/>
 <style>
     .calendar-day-picker {
         display: flex;
@@ -11,7 +13,7 @@
         padding: 10px 0;
         margin-bottom: 20px;
     }
-    
+
     .calendar-day {
         flex-shrink: 0;
         width: 70px;
@@ -24,46 +26,46 @@
         transition: all 0.3s;
         background: white;
     }
-    
+
     .calendar-day:hover {
         border-color: #0d6efd;
         background: #f0f7ff;
     }
-    
+
     .calendar-day.selected {
         background: #00d084;
         color: white;
         border-color: #00d084;
     }
-    
+
     .calendar-day-number {
         font-size: 20px;
         font-weight: bold;
         margin-bottom: 4px;
     }
-    
+
     .calendar-day-dow {
         font-size: 11px;
         color: #666;
     }
-    
+
     .calendar-day.selected .calendar-day-dow {
         color: white;
     }
-    
+
     .availability-table {
         border-collapse: collapse;
         width: 100%;
         font-size: 13px;
     }
-    
+
     .availability-table thead {
         background: #f8f9fa;
         position: sticky;
         top: 0;
         z-index: 10;
     }
-    
+
     .availability-table th {
         padding: 12px 8px;
         text-align: center;
@@ -71,21 +73,21 @@
         font-weight: 600;
         font-size: 12px;
     }
-    
+
     .availability-table td {
         padding: 12px 8px;
         border: 1px solid #dee2e6;
         text-align: center;
         position: relative;
     }
-    
+
     .court-name {
         font-weight: 600;
         text-align: left;
         background: #f8f9fa;
         min-width: 60px;
     }
-    
+
     .time-slot-cell {
         cursor: pointer;
         position: relative;
@@ -93,44 +95,44 @@
         user-select: none;
         font-weight: 500;
     }
-    
+
     .time-slot-cell:hover {
         background: #eff6ff;
     }
-    
+
     .slot-available {
         background: #f0fdf4;
         color: #16a34a;
     }
-    
+
     .slot-available:hover {
         background: #dcfce7;
     }
-    
+
     .slot-booked {
         background: #fef2f2;
         color: #dc2626;
         text-decoration: line-through;
         cursor: not-allowed;
     }
-    
+
     .slot-hold {
         background: #fef3c7;
         color: #d97706;
     }
-    
+
     .slot-maintenance {
         background: #f3f4f6;
         color: #6b7280;
         cursor: not-allowed;
     }
-    
+
     .slot-selected {
         background: #00d084 !important;
         color: white !important;
         border: 2px solid #00b871;
     }
-    
+
     .legend {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -140,20 +142,20 @@
         background: #f8f9fa;
         border-radius: 8px;
     }
-    
+
     .legend-item {
         display: flex;
         align-items: center;
         gap: 10px;
         font-size: 13px;
     }
-    
+
     .legend-color {
         width: 20px;
         height: 20px;
         border-radius: 4px;
     }
-    
+
     .booking-summary {
         position: sticky;
         top: 100px;
@@ -162,13 +164,13 @@
         border-radius: 8px;
         border: 1px solid #e0e0e0;
     }
-    
+
     .booking-summary h6 {
         font-weight: 600;
         margin-bottom: 15px;
         font-size: 14px;
     }
-    
+
     .summary-item {
         display: flex;
         justify-content: space-between;
@@ -176,11 +178,11 @@
         border-bottom: 1px solid #f0f0f0;
         font-size: 13px;
     }
-    
+
     .summary-item:last-child {
         border-bottom: none;
     }
-    
+
     .total-price {
         font-size: 18px;
         font-weight: bold;
@@ -198,16 +200,13 @@
                 <a href="{{ route('courts.index') }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-chevron-left"></i>
                 </a>
-                <h3 class="mb-0">Chọn sân cầu lông</h3>
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto">
-                    <i class="bi bi-info-circle"></i>
-                </button>
+                <div><span class="court-eyebrow">LÊN LỊCH TRẬN ĐẤU</span><h1 class="h3 mb-0">Chọn sân cầu lông</h1></div>
             </div>
 
             <!-- Date Display & Calendar Toggle -->
             <div class="d-flex align-items-center gap-2 mb-3">
                 <span style="color: #00d084; font-size: 16px; font-weight: bold;">
-                    <i class="bi bi-calendar-event"></i> 
+                    <i class="bi bi-calendar-event"></i>
                     <span id="displayDate">{{ $bookingDate->locale('vi')->translatedFormat('l, d F Y') }}</span>
                 </span>
                 <button type="button" class="btn btn-sm btn-outline-success ms-auto" id="changeDateBtn">
@@ -218,8 +217,8 @@
             <!-- Calendar Day Picker -->
             <div class="calendar-day-picker" id="datePickerContainer">
                 @foreach($dateRange as $date)
-                <div class="calendar-day {{ $date->toDateString() === $bookingDate->toDateString() ? 'selected' : '' }}" 
-                     data-date="{{ $date->toDateString() }}" onclick="selectDate(this)">
+                <div class="calendar-day {{ $date->toDateString() === $bookingDate->toDateString() ? 'selected' : '' }}"
+                     role="button" tabindex="0" data-date="{{ $date->toDateString() }}" onclick="selectDate(this)">
                     <div class="calendar-day-number">{{ $date->day }}</div>
                     <div class="calendar-day-dow">{{ $date->format('D') }}</div>
                     <div style="font-size: 9px; color: #999;">T{{ $date->month }}</div>
@@ -236,13 +235,14 @@
             <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0084ff;">
                 <h6 style="margin-bottom: 8px; color: #0084ff; font-size: 14px;">Lịch sân cầu lông</h6>
                 <p style="margin: 0; font-size: 13px; color: #666;">
-                    Khách vui lòng lưng đặt 2 tiếng, nếu đặt lệ giờ vui lòng nhận theo hotline 0982.949.974
+                    Chọn các khung giờ liền nhau trên cùng sân, thêm dịch vụ nếu cần và kiểm tra đơn trước khi thanh toán.
                 </p>
             </div>
 
             <!-- Availability Table -->
-            <form method="POST" action="/booking" id="bookingForm">
+            <form method="POST" action="{{ route('bookings.store') }}" id="bookingForm">
                 @csrf
+                @include('partials.daily-duration-confirmation')
                 <input type="hidden" name="booking_date" id="bookingDateInput" value="{{ $bookingDate->toDateString() }}">
                 <input type="hidden" name="court_id" id="courtIdInput" value="">
                 <div id="timeSlotIdsInputs"></div>
@@ -264,28 +264,32 @@
                                 @foreach($timeSlots as $slot)
                                 @php
                                     $availability = $availabilityData[$court->id][$slot->id] ?? [];
-                                    $status = $availability['status'] ?? 'AVAILABLE';
+                                    $status = $availability['status'] ?? 'UNAVAILABLE';
                                     $price = $availability['price'] ?? 0;
                                     $priceDisplay = $price > 0 ? (int)($price / 1000) . 'k' : '-';
-                                    
+
                                     $statusClass = match($status) {
+                                        'PAST', 'UNAVAILABLE' => 'slot-maintenance',
                                         'BOOKED' => 'slot-booked',
                                         'HOLD' => 'slot-hold',
                                         'MAINTENANCE' => 'slot-maintenance',
                                         default => 'slot-available'
                                     };
-                                    
+
                                     $isSelectable = in_array($status, ['AVAILABLE']);
                                 @endphp
-                                <td class="time-slot-cell {{ $statusClass }}" 
+                                <td class="time-slot-cell {{ $statusClass }}"
                                     data-court-id="{{ $court->id }}"
                                     data-slot-id="{{ $slot->id }}"
                                     data-status="{{ $status }}"
+                                    data-starts-at="{{ $availability['starts_at'] ?? 0 }}"
+                                    aria-disabled="{{ $isSelectable ? 'false' : 'true' }}"
                                     data-price="{{ $price }}"
                                     data-duration="{{ $slot->duration ?? 60 }}"
                                     data-start="{{ substr($slot->start_time,0,5) }}" data-end="{{ substr($slot->end_time,0,5) }}"
-                                    @if($isSelectable) onclick="toggleSlot(this)" @endif>
-                                    <div>{{ $status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay }}</div>
+                                    @if($isSelectable) role="button" tabindex="0" onclick="toggleSlot(this)" @endif>
+                                    <div>{{ $status === 'PAST' ? 'Đã qua' : ($status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay) }}</div>
+                                    <small>{{ match($status) { 'AVAILABLE' => 'Còn trống', 'BOOKED' => 'Đã đặt', 'HOLD' => 'Đang giữ', default => 'Không khả dụng' } }}</small>
                                 </td>
                                 @endforeach
                             </tr>
@@ -322,24 +326,24 @@
         <div class="col-lg-3">
             <div class="booking-summary">
                 <h6><i class="bi bi-calendar-check"></i> Chi tiết đặt sân</h6>
-                
+
                 <div class="summary-item">
                     <span>Ngày:</span>
                     <strong id="summaryDate">{{ $bookingDate->format('d/m/Y') }}</strong>
                 </div>
-                
+
                 <div class="summary-item">
                     <span>Số lượng slot:</span>
                     <strong id="summarySlotCount">0</strong>
                 </div>
-                
+
                 <div class="summary-item">
                     <span>Thời lượng:</span>
                     <strong id="summaryDuration">0h</strong>
                 </div>
-                
+
                 <div class="total-price">
-                    Tổng: <span id="totalPrice">0đ</span>
+                    Tạm tính: <span id="totalPrice">0đ</span>
                 </div>
 
                 <button type="submit" form="bookingForm" class="btn btn-success w-100 mt-3" id="checkoutBtn" disabled>
@@ -351,10 +355,12 @@
                 <div class="mb-3">
                     <label for="voucherCode" class="form-label" style="font-size: 13px;">Mã khuyến mãi</label>
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" id="voucherCode" name="voucher_code" 
+                        <input type="text" class="form-control" id="voucherCode" name="voucher_code" form="bookingForm" value="{{ old('voucher_code') }}" maxlength="50"
                                placeholder="Nhập mã voucher" style="font-size: 12px;">
-                        <button class="btn btn-outline-secondary" type="button">Áp dụng</button>
+                        <button class="btn btn-outline-secondary" type="submit" form="bookingForm" id="applyVoucherBtn" disabled>Áp dụng</button>
                     </div>
+                    <p class="form-text">Áp dụng mã và tiếp tục đến checkout. Hệ thống kiểm tra giá, khuyến mãi và giữ chỗ trước khi hiển thị tổng thanh toán.</p>
+                    @error('voucher_code')<p class="text-danger small" role="alert">{{ $message }}</p>@enderror
                 </div>
             </div>
         </div>
@@ -364,22 +370,49 @@
 <script src="{{ asset('js/slot-sequence.js') }}?v=1"></script>
 <script>
 let selectedSlots = [];
+const serverTime = {{ now()->getTimestampMs() }};
+const pageLoadedAt = performance.now();
+
+function expirePastSlots() {
+    const currentTime = serverTime + performance.now() - pageLoadedAt;
+    let selectionChanged = false;
+    document.querySelectorAll('.time-slot-cell[data-starts-at]').forEach(cell => {
+        if (Number(cell.dataset.startsAt) > currentTime || cell.dataset.status === 'PAST') return;
+        cell.dataset.status = 'PAST';
+        cell.classList.remove('slot-available', 'slot-selected', 'slot-booked', 'slot-hold');
+        cell.classList.add('slot-maintenance');
+        cell.setAttribute('aria-disabled', 'true');
+        cell.removeAttribute('onclick');
+        cell.querySelector('div').textContent = 'Đã qua';
+        const key = `${cell.dataset.courtId}-${cell.dataset.slotId}`;
+        if (selectedSlots.some(slot => slot.key === key)) {
+            selectedSlots = selectedSlots.filter(slot => slot.key !== key);
+            selectionChanged = true;
+        }
+    });
+    if (selectionChanged) updateSummary();
+}
+setInterval(expirePastSlots, 1000);
+document.getElementById('bookingForm').addEventListener('submit', event => {
+    expirePastSlots();
+    if (!selectedSlots.length) event.preventDefault();
+});
 
 function selectDate(element) {
     // Update calendar UI
     document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
     element.classList.add('selected');
-    
+
     const selectedDate = element.dataset.date;
     document.getElementById('bookingDateInput').value = selectedDate;
-    
+
     // Format and update display
     const dateObj = new Date(selectedDate);
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateStr = dateObj.toLocaleDateString('vi-VN', options);
     document.getElementById('displayDate').textContent = dateStr;
     document.getElementById('summaryDate').textContent = dateObj.toLocaleDateString('vi-VN');
-    
+
     // Reload page with new date
     const courtId = document.getElementById('courtIdInput').value;
     const params = new URLSearchParams({ booking_date: selectedDate });
@@ -388,18 +421,19 @@ function selectDate(element) {
 }
 
 function toggleSlot(element) {
+    expirePastSlots();
     const courtId = element.dataset.courtId;
     const slotId = element.dataset.slotId;
     const status = element.dataset.status;
     const price = parseFloat(element.dataset.price);
     const duration = parseInt(element.dataset.duration || '60', 10);
     const key = `${courtId}-${slotId}`;
-    
+
     // Can't select booked or maintenance slots
     if (status !== 'AVAILABLE') {
         return;
     }
-    
+
     // Mỗi đơn đặt sân chỉ thuộc một sân. Khi chuyển sang sân khác,
     // bỏ lựa chọn cũ để dữ liệu gửi lên luôn nhất quán.
     if (selectedSlots.length > 0 && selectedSlots[0].courtId !== courtId) {
@@ -417,7 +451,7 @@ function toggleSlot(element) {
     }
     // Toggle selection
     const index = selectedSlots.findIndex(s => s.key === key);
-    
+
     if (index >= 0) {
         selectedSlots.splice(index, 1);
         element.classList.remove('slot-selected');
@@ -431,7 +465,7 @@ function toggleSlot(element) {
         element.classList.add('slot-selected');
         document.getElementById('courtIdInput').value = courtId;
     }
-    
+
     updateSummary();
 }
 
@@ -442,32 +476,29 @@ function updateSummary() {
     document.getElementById('timeSlotIdsInputs').innerHTML = selectedSlots
         .map(slot => `<input type="hidden" name="time_slot_ids[]" value="${slot.slotId}">`)
         .join('');
-    
+
     // Update summary
     document.getElementById('summarySlotCount').textContent = selectedSlots.length;
     const totalMinutes = selectedSlots.reduce((sum, slot) => sum + slot.duration, 0);
     document.getElementById('summaryDuration').textContent = (totalMinutes / 60).toLocaleString('vi-VN') + 'h';
-    
+
     const total = selectedSlots.reduce((sum, s) => sum + s.price, 0) + (window.bookingServiceTotal || 0);
     document.getElementById('totalPrice').textContent = total.toLocaleString('vi-VN') + 'đ';
-    
+
     // Enable checkout button if slots selected
     document.getElementById('checkoutBtn').disabled = selectedSlots.length === 0;
+    document.getElementById('applyVoucherBtn').disabled = selectedSlots.length === 0;
 }
 
 document.addEventListener('booking-services-changed', updateSummary);
 document.addEventListener('DOMContentLoaded', () => {
-    const courtId = @json($selectedCourt?->id);
-    const slotId = @json($selectedTimeSlotId);
-    if (!courtId || !slotId) return;
-
-    const cell = document.querySelector(
-        `.time-slot-cell[data-court-id="${courtId}"][data-slot-id="${slotId}"]`
-    );
-    if (cell?.dataset.status === 'AVAILABLE') {
-        toggleSlot(cell);
-        cell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    }
+    const courtId = @json(old('court_id', $selectedCourt?->id));
+    const slotIds = @json(old('time_slot_ids', $selectedTimeSlotId ? [$selectedTimeSlotId] : []));
+    if (!courtId || !Array.isArray(slotIds)) return;
+    // DOM order is chronological; restore only slots that remain available.
+    document.querySelectorAll('.time-slot-cell').forEach(cell => {
+        if (cell.dataset.courtId == courtId && slotIds.map(String).includes(cell.dataset.slotId) && cell.dataset.status === 'AVAILABLE') toggleSlot(cell);
+    });
 });
 </script>
 {{-- Legacy duplicate form kept out of the rendered page.
@@ -476,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Tạo đặt sân</h5>
             </div>
             <div class="card-body">
-                <form action="/booking" method="POST" id="bookingForm">
+                <form action="{{ route('bookings.store') }}" method="POST" id="bookingForm">
                     @csrf
 
                     <!-- Step 1: Select Court -->
@@ -616,10 +647,10 @@ async function loadTimeSlots() {
         data.time_slots.forEach(slot => {
             const isAvailable = slot.status === 'AVAILABLE';
             const isSelected = selectedSlots.has(slot.time_slot_id);
-            
+
             html += `
                 <div class="col-md-6 col-lg-12 mb-2">
-                    <button type="button" 
+                    <button type="button"
                         class="btn btn-sm w-100 time-slot-btn ${isAvailable ? 'available' : ''} ${isSelected ? 'selected' : ''}"
                         data-slot-id="${slot.time_slot_id}"
                         data-slot-name="${slot.name}"
@@ -644,7 +675,7 @@ async function loadTimeSlots() {
 
 function toggleTimeSlot(slotId, slotName, price, event) {
     event.preventDefault();
-    
+
     if (selectedSlots.has(slotId)) {
         selectedSlots.delete(slotId);
     } else {

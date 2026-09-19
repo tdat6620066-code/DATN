@@ -56,11 +56,13 @@ class QRCodeService
      */
     public function buildQRData(Booking $booking): string
     {
-        $urls = clone app('url');
-        if ($baseUrl = config('qr.base_url')) {
-            $urls->forceRootUrl($baseUrl);
-            $urls->forceScheme(parse_url($baseUrl, PHP_URL_SCHEME));
-        }
+        // A cloned generator can retain a RouteUrlGenerator bound to the
+        // original request host. Build an isolated generator for stable QR URLs.
+        $urls = new \Illuminate\Routing\UrlGenerator(app('router')->getRoutes(), request());
+        $urls->setKeyResolver(fn () => config('app.key'));
+        $baseUrl = rtrim(config('qr.base_url') ?: config('app.url'), '/');
+        $urls->forceRootUrl($baseUrl);
+        $urls->forceScheme(parse_url($baseUrl, PHP_URL_SCHEME));
         return $urls->signedRoute('bookings.qr.scan', ['booking' => $booking->id]);
     }
 

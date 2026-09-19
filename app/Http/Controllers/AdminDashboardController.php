@@ -72,6 +72,14 @@ class AdminDashboardController extends Controller
         $bookingReport = $operations->bookings($from, $to);
         $refundReport = $operations->refunds($from, $to);
 
-        return view('admin.dashboard', compact('kpis', 'chart', 'popularCourts', 'from', 'to', 'bookingReport', 'refundReport'));
+        $todayStats = [
+            'bookings' => Booking::whereHas('bookingDetails', fn ($query) => $query->whereDate('booking_date', today()))->count(),
+            'courts' => Court::where('status', 'ACTIVE')->where('operational_status', '!=', 'MAINTENANCE')->count(),
+            'playing' => Booking::where('status', 'CHECKED_IN')->distinct()->count('user_id'),
+            'incidents' => \App\Models\CourtIncident::whereNotIn('status', ['RESOLVED','CLOSED','REJECTED'])->count(),
+        ];
+        $recentBookings = Booking::with(['user','bookingDetails.court'])->latest()->limit(8)->get();
+
+        return view('admin.dashboard', compact('kpis', 'chart', 'popularCourts', 'from', 'to', 'bookingReport', 'refundReport', 'todayStats', 'recentBookings'));
     }
 }

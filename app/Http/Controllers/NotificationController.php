@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
-use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
@@ -70,7 +69,14 @@ class NotificationController extends Controller
         ]);
 
         $destination = $notification->action_url;
-        if (! $destination || ! Str::startsWith($destination, url('/'))) {
+        $origin = parse_url(url('/'));
+        $target = $destination ? parse_url($destination) : false;
+        $sameOrigin = $target && ! isset($target['user']) && ! isset($target['pass'])
+            && strtolower($target['scheme'] ?? '') === strtolower($origin['scheme'] ?? '')
+            && strtolower($target['host'] ?? '') === strtolower($origin['host'] ?? '')
+            && ($target['port'] ?? (($target['scheme'] ?? '') === 'https' ? 443 : 80))
+                === ($origin['port'] ?? (($origin['scheme'] ?? '') === 'https' ? 443 : 80));
+        if (! $sameOrigin) {
             return redirect()->route('notifications.index');
         }
         return redirect()->to($destination);

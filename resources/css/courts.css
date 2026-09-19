@@ -1,0 +1,128 @@
+.sz-courts-page { background: #f8fafc; }
+.sz-courts-page #sz-main { max-width: 1320px; }
+.sz-courts-page a { text-decoration: none; }
+.sz-courts-page section[id], .sz-courts-page aside[id] { scroll-margin-top: 125px; }
+.court-page-heading { padding: 20px 0 32px; }
+.court-page-heading nav { display: flex; flex-wrap: wrap; gap: 10px; font-size: .8125rem; color: #64748b; margin-bottom: 28px; }
+.court-eyebrow { display: block; color: #15803d; font-size: .6875rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+.court-page-heading h1 { margin: 0 0 14px; }
+.court-page-heading > p { color: #64748b; margin: 0; }
+.court-list-layout { display: grid; grid-template-columns: 268px minmax(0,1fr); gap: 28px; align-items: start; }
+.sz-courts-page .court-filter { position: sticky; top: 100px; max-height: calc(100vh - 120px); overflow-y: auto; }
+.court-filter .card-body { padding: 22px; }
+.court-filter h2 { font-size: 1rem; display: flex; gap: 10px; margin-bottom: 24px; }
+.court-filter .form-label { font-size: .8125rem; }
+.court-filter .form-text { font-size: .75rem; }
+.court-price-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.court-price-inputs input { min-width: 0; }
+.court-results-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; }
+.court-results-heading h2 { font-size: 1.125rem; margin: 0; }
+.court-results-heading > span { font-size: .8125rem; color: #64748b; }
+.court-results-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; }
+.court-list-empty { grid-column: 1 / -1; }
+.court-result { overflow: hidden; transition: box-shadow .2s, transform .2s; min-width: 0; }
+.court-result:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgb(15 23 42 / 8%); }
+.court-result-image { display: grid; place-items: center; aspect-ratio: 16 / 10; background: #dcfce7; color: #15803d; font-size: 2.5rem; overflow: hidden; }
+.court-result-image img { width: 100%; height: 100%; object-fit: cover; }
+.court-result .card-body { padding: 22px; display: flex; flex-direction: column; }
+.court-type { color: #64748b; font-size: .75rem; margin-bottom: 8px; }
+.court-result h3 { font-size: 1.125rem; margin-bottom: 10px; }
+.court-result h3 a { color: #0f172a; }
+.court-rating { font-size: .8125rem; color: #475569; }
+.court-rating i { color: #f59e0b; }
+.court-rating > span { color: #64748b; }
+.court-address { font-size: .8125rem; color: #64748b; margin: 12px 0; }
+.court-amenities { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+.court-amenities span { font-size: .6875rem; padding: 4px 8px; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 6px; color: #475569; }
+.court-result-price { margin-top: auto; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.court-result-price > div > small { display: block; font-size: .6875rem; color: #64748b; margin-bottom: 3px; }
+.court-result-price strong { font-size: 1.25rem; color: #15803d; }
+.court-result-price strong small { font-size: .75rem; font-weight: 400; color: #64748b; }
+.court-result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.court-result-actions .btn { font-size: .8125rem; padding-inline: 6px; }
+.court-detail-meta { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; color: #64748b; font-size: .875rem; }
+.court-gallery { margin-bottom: 28px; }
+.court-gallery-main { display: block; height: clamp(220px,32vw,430px); border-radius: 18px; background: #e2e8f0; overflow: hidden; }
+.court-gallery-main img { width: 100%; height: 100%; object-fit: cover; }
+.court-gallery-thumbs { display: flex; gap: 10px; overflow-x: auto; padding: 12px 2px 4px; }
+.court-gallery-thumbs button { flex: 0 0 100px; height: 72px; border: 2px solid transparent; padding: 2px; background: white; border-radius: 9px; overflow: hidden; }
+.court-gallery-thumbs button[aria-pressed=true] { border-color: #15803d; }
+.court-gallery-thumbs img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
+.court-detail-layout { display: grid; grid-template-columns: minmax(0,1fr) 370px; gap: 28px; align-items: start; }
+.court-detail-content { min-width: 0; }
+.court-section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.court-section-nav a { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 999px; background: white; color: #475569; font-size: .8125rem; }
+.court-section-nav a:hover { background: #dcfce7; color: #166534; }
+.court-info-section { margin-bottom: 24px; }
+.court-info-section .card-body { padding: 26px; }
+.court-info-section h2 { font-size: 1.1875rem; margin-bottom: 18px; }
+.court-description { white-space: pre-line; color: #475569; line-height: 1.8; }
+.court-contact-details { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8125rem; color: #64748b; }
+.court-amenity-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.court-amenity-list > div { display: flex; gap: 10px; align-items: center; font-size: .875rem; }
+.court-amenity-list i { color: #15803d; }
+.court-slot-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.court-slot-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.court-slot { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 7px; min-height: 102px; color: #475569; background: #f1f5f9; }
+.court-slot strong { font-size: .8125rem; }
+.court-slot span, .court-slot small { font-size: .75rem; }
+.sz-courts-page .court-slot:disabled { opacity: 1; }
+.court-slot.available { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+.court-slot.available:hover { border-color: #15803d; }
+.court-slot.booked { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.court-slot.held { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.court-slot.selected { background: #15803d; color: white; border-color: #166534; box-shadow: 0 0 0 2px #bbf7d0; }
+.court-policy-list { padding-left: 20px; color: #475569; font-size: .875rem; line-height: 1.8; }
+.court-policy-list li + li { margin-top: 8px; }
+.court-review { padding-block: 20px; border-bottom: 1px solid #e2e8f0; }
+.court-review > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+.court-review time { color: #64748b; font-size: .75rem; }
+.court-review p { overflow-wrap: anywhere; font-size: .875rem; }
+.court-review .court-rating { margin-block: 8px; }
+.court-review-images { display: flex; gap: 10px; flex-wrap: wrap; }
+.court-review-images img { object-fit: cover; border-radius: 8px; }
+.sz-courts-page .court-booking-card { position: sticky; top: 100px; max-height: calc(100vh - 120px); overflow-y: auto; }
+.court-booking-card .card-body { padding: 24px; }
+.court-booking-card h2 { font-size: 1.375rem; }
+.court-booking-price { margin-bottom: 22px; }
+.court-booking-price strong { color: #15803d; font-size: 1.5rem; }
+.court-booking-price span { color: #64748b; font-size: .8125rem; }
+.court-date-controls { display: flex; gap: 8px; }
+.court-date-controls input { min-width: 0; flex: 1; }
+.court-date-controls button { white-space: nowrap; font-size: .8125rem; }
+.court-selected-summary { margin-top: 18px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.court-selected-summary p, .court-selected-summary a { font-size: .8125rem; margin: 6px 0; }
+.court-selected-summary #selectionCount { display: inline-grid; place-items: center; background: #dcfce7; color: #166534; width: 22px; height: 22px; border-radius: 50%; }
+.court-booking-card .booking-extras { margin: 18px 0; }
+.court-booking-card .booking-extras__grid { grid-template-columns: 1fr; }
+.court-booking-card .booking-extras summary { padding: 12px; gap: 8px; }
+.court-booking-card .booking-extras__body { padding: 0 12px 12px; }
+.court-booking-card .booking-extras__optional { display: block; margin-left: 0; }
+.court-booking-card .form-text { font-size: .75rem; }
+.court-totals { display: grid; gap: 12px; padding-block: 18px; font-size: .8125rem; }
+.court-totals > div { display: flex; justify-content: space-between; gap: 12px; }
+.court-totals .court-total { border-top: 1px solid #e2e8f0; padding-top: 16px; font-weight: 600; }
+.court-total strong { color: #15803d; font-size: 1.25rem; }
+.court-checkout-note { text-align: center; font-size: .6875rem; color: #64748b; margin-top: 12px; }
+.court-recurring-link { display: block; text-align: center; font-size: .8125rem; }
+@media(min-width:1400px) { .court-results-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media(max-width:991.98px) {
+    .court-list-layout { grid-template-columns: 1fr; }
+    .sz-courts-page .court-filter { position: static; max-height: none; }
+    .court-filter form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 18px; }
+    .court-detail-layout { grid-template-columns: 1fr; }
+    .sz-courts-page .court-booking-card { position: static; max-height: none; }
+    .court-slot-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}
+@media(max-width:575.98px) {
+    .court-page-heading { padding: 12px 0 24px; }
+    .court-page-heading h1 { font-size: 1.75rem; }
+    .court-filter .card-body, .court-info-section .card-body, .court-booking-card .card-body { padding: 18px; }
+    .court-filter form { gap: 0 12px; }
+    .court-filter form > div:first-child, .court-filter form > fieldset { grid-column: 1 / -1; }
+    .court-results-grid { grid-template-columns: 1fr; }
+    .court-slot-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .court-gallery-main { height: 220px; }
+    .court-amenity-list { grid-template-columns: 1fr; }
+    .court-detail-meta { gap: 10px; font-size: .8125rem; }
+}

@@ -1,18 +1,10 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cài đặt thông báo - SmashZone</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
+@extends('layouts.app')
+@section('title','Cài đặt thông báo — SmashZone')
+@push('styles')<style>
         body{background:#f2f6f4;color:#102a34}.settings-shell{width:min(850px,calc(100% - 32px));margin:36px auto}.settings-card{overflow:hidden;border:1px solid #dce8e3;border-radius:18px;background:#fff;box-shadow:0 16px 45px rgba(8,38,53,.08)}.settings-head{display:flex;align-items:center;gap:12px;padding:22px 28px;border-bottom:1px solid #e8efec;font-size:20px;font-weight:850}.settings-head i{color:#0ea36b}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 28px;border-bottom:1px solid #edf2ef}.setting-copy strong{display:block;margin-bottom:4px;font-size:15px}.setting-copy span{color:#6b7d84;font-size:13px}.required-note{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;background:#e8f9f1;color:#08794f;font-size:10px;font-weight:800}.form-switch .form-check-input{width:48px;height:25px;cursor:pointer}.form-check-input:checked{border-color:#0ea36b;background-color:#0ea36b}.form-check-input:disabled{opacity:.65}.settings-foot{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 28px}.policy{max-width:520px;color:#6b7d84;font-size:12px}.save-btn{border:0;border-radius:10px;background:#0ea36b;color:#fff;padding:11px 18px;font-weight:800}.back-link{display:inline-block;margin-bottom:14px;color:#087f57;text-decoration:none;font-weight:700}@media(max-width:600px){.setting-row,.settings-foot{align-items:flex-start}.settings-foot{flex-direction:column}.save-btn{width:100%}}
-    </style>
-@include('partials.brand-theme')
-</head>
-<body>
-@include('partials.site-header')
-<main class="settings-shell">
+    </style>@endpush
+@section('content')
+<x-customer-shell active="notifications"><x-customer-page-heading title="Thông báo theo cách của bạn" description="Chọn nội dung bạn muốn nhận từ SmashZone."/><div class="settings-shell">
     <a class="back-link" href="{{ route('profile') }}">← Tài khoản</a>
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     <form method="POST" action="{{ route('notification-settings.update') }}" class="settings-card">
@@ -36,6 +28,5 @@
 
         <div class="settings-foot"><div class="policy">Booking, thanh toán và thông báo hệ thống quan trọng không thể tắt vì ảnh hưởng trực tiếp đến lịch chơi, giao dịch hoặc an toàn tài khoản.</div><button class="save-btn" type="submit">Lưu thay đổi</button></div>
     </form>
-</main>
-@include('partials.site-footer')
-</body></html>
+</div></x-customer-shell>
+@endsection

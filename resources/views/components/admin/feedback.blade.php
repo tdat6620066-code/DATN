@@ -1,0 +1,4 @@
+@if($errors->any())<div class="alert alert-danger" role="alert" tabindex="-1" data-admin-errors><strong>Vui lòng kiểm tra thông tin</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@if(session('error'))<div class="alert alert-danger" role="alert">{{ session('error') }}</div>@endif
+@if($errors->any())<script type="application/json" id="admin-validation">@json(['errors'=>$errors->messages(),'modal'=>old('_ui_form')])</script>@endif
+@if(session('success'))<div class="toast-container position-fixed bottom-0 end-0 p-3"><div class="toast show" role="status" aria-live="polite"><div class="toast-header"><i class="bi bi-check-circle text-success me-2"></i><strong class="me-auto">Thành công</strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Đóng thông báo"></button></div><div class="toast-body">{{ session('success') }}</div></div></div>@endif

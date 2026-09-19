@@ -12,7 +12,7 @@ class AdminVoucherController extends Controller
     public function index(Request $request)
     {
         $this->admin($request);
-        $vouchers = Voucher::when($request->filled('search'), fn ($q) => $q->where('code', 'like', '%'.$request->search.'%')->orWhere('name', 'like', '%'.$request->search.'%'))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(15)->withQueryString();
+        $vouchers = Voucher::when($request->filled('search'), fn ($q) => $q->where(fn ($search) => $search->where('code', 'like', '%'.$request->search.'%')->orWhere('name', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(15)->withQueryString();
 
         return view('admin.vouchers.index', compact('vouchers'));
     }

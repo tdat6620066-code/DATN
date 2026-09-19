@@ -45,15 +45,19 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate(['status' => 'nullable|in:PENDING_PAYMENT,CONFIRMED,CHECKED_IN,COMPLETED,CANCELLED,EXPIRED,NO_SHOW']);
         $bookings = Booking::where('bookings.user_id', Auth::id())
             ->where(fn ($q) => $q->whereNull('bookings.fixed_booking_id')->orWhereIn('bookings.id',
                 Booking::selectRaw('MAX(id)')->whereNotNull('fixed_booking_id')->groupBy('fixed_booking_id')))
             ->leftJoin('fixed_bookings', 'fixed_bookings.id', '=', 'bookings.fixed_booking_id')
             ->select('bookings.*')
-            ->with('bookingDetails.court', 'bookingDetails.timeSlot', 'payment', 'fixedBooking.bookings')
+            ->with('bookingDetails.court', 'bookingDetails.timeSlot', 'payment', 'fixedBooking.bookings', 'fixedBooking.payment')
+            ->when($request->filled('status'), fn ($q) => $q->where(fn ($status) => $status
+                ->where(fn ($daily) => $daily->whereNull('bookings.fixed_booking_id')->where('bookings.status', $request->status))
+                ->orWhereHas('fixedBooking.bookings', fn ($child) => $child->where('status', $request->status))))
             ->orderByRaw('COALESCE(fixed_bookings.created_at, bookings.created_at) DESC')
             ->orderByDesc('bookings.id')
-            ->paginate(15);
+            ->paginate(15)->withQueryString();
 
         return view('bookings.index', ['bookings' => $bookings]);
     }
@@ -98,9 +102,14 @@ class BookingController extends Controller
                 foreach ($timeSlots as $slot) {
                     $status = app(CourtAvailabilityService::class)
                         ->checkAvailability($court->id, $bookingDate, $slot->id);
+                    $startsAt = Carbon::parse($bookingDate->toDateString().' '.$slot->start_time);
+                    if ($startsAt->lte(now())) {
+                        $status = 'PAST';
+                    }
 
                     $availabilityData[$court->id][$slot->id] = [
                         'status' => $status,
+                        'starts_at' => $startsAt->getTimestampMs(),
                         'price' => $court->prices()
                             ->where('time_slot_id', $slot->id)
                             ->where('status', 'ACTIVE')

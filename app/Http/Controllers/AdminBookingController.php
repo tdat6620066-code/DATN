@@ -21,7 +21,7 @@ class AdminBookingController extends Controller
     public function index(Request $request)
     {
         $this->admin($request);
-        $bookings = Booking::with(['user', 'bookingDetails.court'])->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('booking_code', 'like', '%'.$request->search.'%')->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%'))))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('date'), fn ($q) => $q->whereHas('bookingDetails', fn ($d) => $d->whereDate('booking_date', $request->date)))->latest()->paginate(15)->withQueryString();
+        $bookings = Booking::with(['user', 'bookingDetails.court'])->when($request->boolean('fixed'), fn ($q) => $q->whereNotNull('fixed_booking_id'))->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('booking_code', 'like', '%'.$request->search.'%')->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%'))))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('date'), fn ($q) => $q->whereHas('bookingDetails', fn ($d) => $d->whereDate('booking_date', $request->date)))->latest()->paginate(15)->withQueryString();
 
         return view('admin.bookings.index', compact('bookings'));
     }
@@ -139,6 +139,67 @@ class AdminBookingController extends Controller
         }
 
         return back()->with('success', 'Đã hủy booking và ghi Audit Log.');
+    }
+
+    public function reschedule(Booking $booking, BookingDetail $detail, Request $request, CourtAvailabilityService $availability)
+    {
+        $this->admin($request);
+        abort_unless($detail->booking_id === $booking->id, 404);
+        $data = $request->validate([
+            'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'time_slot_id' => ['required', 'exists:time_slots,id'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+        try {
+            DB::transaction(function () use ($booking, $detail, $request, $data, $availability) {
+                // Match the court lock used by new bookings to serialize competing reservations.
+                $court = Court::lockForUpdate()->findOrFail($detail->court_id);
+                $locked = Booking::lockForUpdate()->findOrFail($booking->id);
+                $line = BookingDetail::lockForUpdate()->findOrFail($detail->id);
+                if ($line->court_id !== $court->id || ! in_array($locked->status, ['PENDING_PAYMENT', 'CONFIRMED'], true) || $locked->fixed_booking_id || $locked->isHoldExpired() && $locked->status === 'PENDING_PAYMENT' || $line->status === 'CANCELLED') {
+                    throw new \DomainException('Booking không thể đổi lịch trực tiếp. Vui lòng xử lý qua yêu cầu hỗ trợ.');
+                }
+                $slot = \App\Models\TimeSlot::where('status', 'ACTIVE')->findOrFail($data['time_slot_id']);
+                $date = \Carbon\Carbon::parse($data['booking_date']);
+                $start = $date->copy()->setTimeFromTimeString($slot->start_time);
+                if ($start <= now() || substr($slot->start_time, 0, 5) < substr($court->opening_time, 0, 5) || substr($slot->end_time, 0, 5) > substr($court->closing_time, 0, 5)) {
+                    throw new \DomainException('Khung giờ nằm ngoài giờ mở cửa hoặc đã bắt đầu.');
+                }
+                if ($line->booking_date->toDateString() === $date->toDateString() && $line->time_slot_id === $slot->id) {
+                    throw new \DomainException('Vui lòng chọn ngày hoặc khung giờ khác.');
+                }
+                if ($availability->checkAvailability($court->id, $date, $slot->id) !== CourtAvailabilityService::STATUS_AVAILABLE) {
+                    throw new \DomainException('Khung giờ mới không còn trống.');
+                }
+                $price = app(\App\Services\BookingService::class)->getCurrentPrice($court->id, $slot->id, $date);
+                if ($price === null || (int) round($price * 100) !== (int) round($line->price * 100)) {
+                    throw new \DomainException('Khung giờ mới khác giá. Vui lòng xử lý chênh lệch qua yêu cầu hỗ trợ.');
+                }
+                $old = $line->only(['booking_date', 'time_slot_id']);
+                $line->update(['booking_date' => $date, 'time_slot_id' => $slot->id]);
+                $locked->update(['start_date' => $locked->bookingDetails()->min('booking_date'), 'end_date' => $locked->bookingDetails()->max('booking_date')]);
+                $this->audit($locked, $request, 'RESCHEDULED', $old, $line->only(['booking_date', 'time_slot_id']), $data['reason']);
+                $this->notifications->rescheduled($locked, $date->format('d/m/Y').' '.$slot->name);
+            });
+        } catch (\DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+        return back()->with('success', 'Đã đổi lịch và lưu lịch sử thay đổi.');
+    }
+
+    public function destroy(Booking $booking, Request $request)
+    {
+        $this->admin($request);
+        DB::transaction(function () use ($booking, $request) {
+            $locked = Booking::lockForUpdate()->findOrFail($booking->id);
+            abort_unless(in_array($locked->status, ['CANCELLED', 'EXPIRED'], true)
+                && in_array($locked->payment_status, ['PENDING', 'FAILED'], true) && ! $locked->fixed_booking_id
+                && ! $locked->payments()->where(fn ($q) => $q->whereIn('status', ['PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'])->orWhereNotNull('paid_at'))->exists()
+                && ! $locked->refundRequests()->exists(), 422, 'Chỉ xóa khỏi danh sách đơn đã hủy/hết hạn chưa thanh toán.');
+            $this->audit($locked, $request, 'ARCHIVED', ['status' => $locked->status], [], 'Xóa khỏi danh sách quản trị');
+            $locked->delete();
+        });
+        return redirect()->route('admin.bookings.index')->with('success', 'Đã xóa khỏi danh sách và giữ lịch sử.');
     }
 
     private function audit(Booking $booking, Request $request, string $action, array $old, array $new, string $reason): void

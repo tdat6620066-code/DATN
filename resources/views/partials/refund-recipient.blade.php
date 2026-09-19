@@ -7,11 +7,15 @@
 @else<p>Nếu nhận chuyển khoản, vui lòng cung cấp tài khoản. Nhận tiền mặt không cần thông tin ngân hàng.</p>@endif
 @if(in_array($refundRequest->status,['PENDING','APPROVED','NEEDS_INFO']) && !$refundRequest->processing_started_at && !$refundRequest->refund)
 @if($refundRequest->bankAccount)
+@if($refundRequest->needsBankConfirmation())
 @if($refundRequest->needsBankConfirmation())<p class="text-warning">Vui lòng kiểm tra và xác nhận lại thông tin để Admin chuyển khoản.</p>@endif
 <form method="POST" action="{{ route('refund-recipient.confirm', $refundRequest) }}" class="mb-3">@csrf
 <input type="hidden" name="account_version" value="{{ hash('sha256', $refundRequest->bankAccount->getRawOriginal('account_number')) }}">
 <label><input type="checkbox" name="recipient_confirmed" value="1" required> Tôi xác nhận tài khoản trên là chính xác.</label>
 <button class="btn btn-outline-success">Xác nhận thông tin</button></form>
+@else
+<p class="text-success"><i class="bi bi-check-circle" aria-hidden="true"></i> Tài khoản đã được xác nhận. Bạn không cần xác nhận thêm lúc này.</p>
+@endif
 @endif
 <details><summary>{{ $refundRequest->bankAccount ? 'Chỉnh sửa tài khoản' : 'Nhập tài khoản nhận tiền' }}</summary>
 <form method="POST" action="{{ route('refund-recipient.update',$refundRequest) }}">@csrf

@@ -1,0 +1,7 @@
+@php($current = $options->first(fn ($option) => $option['court']->id === $detail->court_id))
+@if(!$current || !$current['available'])<div class="alert alert-warning">{{ $current['reason'] ?? 'Sân hiện tại không còn hoạt động.' }} Chọn sân thay thế còn trống bên dưới.</div>@endif
+<div class="row g-3">@foreach($options as $option)<div class="col-md-6"><section class="staff-card p-4 h-100"><h2 class="h5">{{ $option['court']->name }} @if($option['court']->id === $detail->court_id)<span class="staff-badge">Sân hiện tại</span>@else<span class="staff-badge">Sân thay thế</span>@endif</h2>
+@if($option['available'])<p>Còn trống · Giá giờ gia hạn: <strong>{{ number_format($option['price']) }}đ</strong></p>
+<form data-venue-submit method="POST" action="{{ route('employee.bookings.extend',$booking) }}">@csrf<input type="hidden" name="detail_id" value="{{ $detail->id }}"><input type="hidden" name="court_id" value="{{ $option['court']->id }}"><input type="hidden" name="quoted_price" value="{{ $option['price'] }}">@foreach($slots as $slot)<input type="hidden" name="time_slot_ids[]" value="{{ $slot->id }}">@endforeach<button class="staff-button staff-button-primary">Gia hạn & thanh toán</button></form>
+@else<p class="text-danger mb-0">{{ $option['reason'] }}</p>@endif</section></div>@endforeach</div>
+<p class="text-muted mt-3">Giá và sân trống được kiểm tra lại khi xác nhận. Booking và payment cũ giữ nguyên. Khoản gia hạn phải thanh toán riêng trước khi tiếp tục chơi.</p>

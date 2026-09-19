@@ -18,7 +18,8 @@ class BookingHoldTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->travelTo(now()->startOfSecond());
+        // Advancing through the hold must not change tomorrow's fixture date at midnight.
+        $this->travelTo(now()->setTime(12, 0));
         $this->customer = User::factory()->create();
         $type = CourtType::create(['name' => 'Standard', 'status' => 'ACTIVE']);
         $this->court = Court::create(['code' => 'HOLD-1', 'name' => 'Sân 1', 'court_type_id' => $type->id, 'status' => 'ACTIVE', 'operational_status' => 'AVAILABLE']);
@@ -52,9 +53,9 @@ class BookingHoldTest extends TestCase
             'court' => $this->court->id, 'court_id' => $this->court->id, 'booking_date' => $this->payload()['booking_date'],
         ]))->assertOk()->assertJsonPath('time_slots.0.status', 'HOLD');
         $url = route('courts.show', $this->court).'?booking_date='.$this->payload()['booking_date'];
-        $this->actingAs(User::factory()->create())->get($url)->assertOk()
-            ->assertSee('⏳ Đang được giữ chỗ')->assertSee('class="cell held"', false)
-            ->assertSee('disabled>⏳ Đang được giữ chỗ', false);
+        $response = $this->actingAs(User::factory()->create())->get($url)->assertOk()
+            ->assertSee('Đang giữ')->assertSee('class="court-slot cell held"', false);
+        $this->assertMatchesRegularExpression('/<button[^>]*held[^>]*disabled[^>]*>.*?Đang giữ/s', $response->getContent());
         $this->from($url)->post(route('bookings.store'), $this->payload())
             ->assertRedirect($url)->assertSessionHas('booking_errors');
         $this->assertDatabaseCount('bookings', 1);

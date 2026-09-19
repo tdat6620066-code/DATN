@@ -24,6 +24,7 @@ class BookingOperationsService
         if (! $start || ! $start->isToday()) throw new \DomainException('Đơn không có lịch chơi hôm nay.');
         if (now()->lt($start->copy()->subMinutes(config('booking.checkin_early_minutes')))) throw new \DomainException('Chỉ được nhận sân trước giờ chơi tối đa '.config('booking.checkin_early_minutes').' phút.');
         if (now()->gte($end)) throw new \DomainException('Đã hết giờ chơi của đơn này.');
+        if (($booking->extension_of_id || $booking->extended_from_id) && now()->lt($start)) throw new \DomainException('Chỉ check-in gia hạn khi đến giờ sử dụng sân.');
     }
 
     public function checkIn(Booking $booking, User $actor): Booking
@@ -34,6 +35,7 @@ class BookingOperationsService
             $this->assertCheckinReady($booking);
             $booking->update(['status' => 'CHECKED_IN', 'checked_in_at' => now(), 'checked_in_by' => $actor->id]);
             $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->update(['status' => 'CHECKED_IN']);
+            app(BookingExtensionService::class)->refreshCourtOccupancy($booking);
             $this->audit($booking, $actor, 'CHECKED_IN', 'Nhân viên xác nhận nhận sân; giờ đặt không thay đổi.');
             app(CustomerNotificationService::class)->statusChanged($booking, 'CHECKED_IN');
             return $booking;
@@ -69,6 +71,7 @@ class BookingOperationsService
 
     public function assertCheckoutReady(Booking $booking): void
     {
+        if (\App\Models\EquipmentLoan::where('booking_id', $booking->id)->whereNull('returned_at')->exists()) throw new \DomainException('Còn thiết bị mượn chưa xác nhận trả.');
         if (! in_array($booking->payment_status, ['PAID', 'PARTIALLY_REFUNDED']) || ! in_array($booking->payment?->status, ['PAID', 'PARTIALLY_REFUNDED'])) throw new \DomainException('Tiền sân còn khoản chưa xử lý.');
         if ($this->amountDue($booking) > 0) throw new \DomainException('Còn '.number_format($this->amountDue($booking), 0, ',', '.').'đ dịch vụ chưa thanh toán.');
         if ($booking->serviceOrders()->whereIn('status', ['PENDING', 'PAID'])->exists()) throw new \DomainException('Vui lòng xác nhận giao dịch vụ hoặc hủy dịch vụ chưa giao.');
@@ -104,17 +107,19 @@ class BookingOperationsService
                 if ((int) round($amount * 100) !== (int) round($this->amountDue($booking) * 100)) throw new \DomainException('Số tiền đã thay đổi. Vui lòng tải lại và kiểm tra trước khi thu.');
                 $transaction = 'CHECKOUT-'.str()->uuid();
                 foreach ($booking->serviceOrders()->where('status', '!=', 'CANCELLED')->whereHas('payment', fn ($q) => $q->where('status', 'PENDING'))->get() as $order) {
-                    if (! app(ServiceOrderService::class)->settle($order->payment, true, $transaction, 'CASH')) throw new \DomainException('Khoản dịch vụ không còn hợp lệ. Vui lòng kiểm tra lại.');
+                    if (! app(ServiceOrderService::class)->settle($order->payment, true, $transaction.'-'.$order->payment_id, 'CASH')) throw new \DomainException('Khoản dịch vụ không còn hợp lệ. Vui lòng kiểm tra lại.');
                 }
             }
             if ($delivered) {
                 $this->permission($actor, 'services.manage');
                 foreach ($booking->serviceOrders()->whereIn('status', ['PENDING', 'PAID'])->get() as $order) app(ServiceOrderService::class)->deliver($order, $actor);
             }
+            if ($this->amountDue($booking) > 0) throw new \DomainException('Vui lòng thanh toán toàn bộ dịch vụ phát sinh trước khi hoàn tất check-out.');
             if ($exception === null) $this->assertCheckoutReady($booking);
             else $booking->checkout_exception_reason = trim($exception);
             $booking->fill(['status' => 'COMPLETED', 'checked_out_at' => now(), 'checked_out_by' => $actor->id])->save();
             $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->update(['status' => 'COMPLETED']);
+            app(BookingExtensionService::class)->refreshCourtOccupancy($booking);
             $this->audit($booking, $actor, $exception ? 'CHECKOUT_EXCEPTION' : 'COMPLETED', $exception ?? 'Đã đối soát dịch vụ, thanh toán và trả đồ thuê.');
             app(CustomerNotificationService::class)->statusChanged($booking, 'COMPLETED');
             foreach ($booking->bookingDetails()->pluck('court_id')->unique() as $courtId) {
@@ -129,14 +134,10 @@ class BookingOperationsService
         $this->permission($actor, 'bookings.checkout');
         $this->permission($actor, 'payments.counter');
         return DB::transaction(function () use ($booking, $actor, $slotId, $amount) {
-            $courtIds = $booking->bookingDetails()->pluck('court_id')->unique();
-            Court::whereIn('id', $courtIds)->orderBy('id')->lockForUpdate()->get();
             $booking = Booking::lockForUpdate()->findOrFail($booking->id);
-            if ($booking->status !== 'CHECKED_IN' || $courtIds->count() !== 1) throw new \DomainException('Chỉ gia hạn đơn đang chơi trên một sân.');
-            $last = $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->with('timeSlot')->get()->sortBy('timeSlot.end_time')->last();
-            $slot = \App\Models\TimeSlot::where('status', 'ACTIVE')->findOrFail($slotId);
-            if (! $last || $slot->start_time !== $last->timeSlot->end_time) throw new \DomainException('Chọn khung giờ ngay sau giờ kết thúc.');
-            $extension = app(BookingService::class)->createBooking($booking->user_id, [['court_id' => $last->court_id, 'booking_date' => $last->booking_date->toDateString(), 'time_slot_id' => $slotId]], metadata: ['extended_from_id' => $booking->id]);
+            $last = $booking->bookingDetails()->where('status', 'CHECKED_IN')->with('timeSlot')->get()->sortBy('timeSlot.end_time')->last();
+            if (!$last) throw new \DomainException('Chỉ gia hạn đơn đang chơi.');
+            $extension = app(BookingExtensionService::class)->create($booking, $last->id, [$slotId], $last->court_id, $actor, $amount);
             if ((int) round($amount * 100) !== (int) round($extension->total_amount * 100)) throw new \DomainException('Giá gia hạn đã thay đổi. Vui lòng kiểm tra lại số tiền.');
             app(PaymentService::class)->markAsPaid($extension->payment, 'EXTEND-'.str()->uuid(), 'CASH');
             $this->audit($booking, $actor, 'EXTENDED', 'Gia hạn bằng đơn '.$extension->booking_code.'; giữ nguyên giao dịch gốc.');

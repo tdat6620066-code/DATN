@@ -1,6 +1,6 @@
 @extends(auth()->user()->role === 'ADMIN' ? 'layouts.admin' : 'layouts.employee')
 @section('page_heading', 'Sự cố sân — xử lý hàng loạt')
-@section('content')
+@section('content')<x-admin.workspace>
 @include('partials.incident-ui')
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 <div class="sz-work-panel">
@@ -30,4 +30,4 @@
 <button class="sz-action sz-action--danger">Xác nhận sự cố và xử lý {{ $bookings->count() }} booking</button>
 </form></div>
 @endisset
-@endsection
+</x-admin.workspace>@endsection

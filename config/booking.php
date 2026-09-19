@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'daily_confirmation_minutes' => 240,
     'checkin_early_minutes' => 30,
     'no_show_after_minutes' => 30,
     // Hold timeout in minutes
