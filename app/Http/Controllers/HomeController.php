@@ -6,10 +6,11 @@ use App\Models\Banner;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\News;
+use App\Models\Promotion;
 use App\Models\Review;
 use App\Models\TimeSlot;
 use App\Models\User;
-use App\Models\Voucher;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -110,7 +111,7 @@ class HomeController extends Controller
             'banners' => $banners,
             'featured_courts' => $featuredCourts,
             'most_booked_courts' => $mostBookedCourts,
-            'vouchers' => $vouchers,
+            'promotions' => $promotions,
             'news' => $news,
             'reviews' => $reviews,
             'statistics' => $statistics,
