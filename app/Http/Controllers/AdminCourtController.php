@@ -17,7 +17,7 @@ class AdminCourtController extends Controller
     public function index(Request $request)
     {
         $this->authorizeAdmin($request);
-        $courts = Court::with(['courtType', 'images'])->withCount('bookingDetails')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('code', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(15)->withQueryString();
+        $courts = Court::with(['courtType', 'images'])->withCount('bookingDetails')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('code', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->inNaturalOrder()->paginate(15)->withQueryString();
 
         return view('admin.courts.index', compact('courts'));
     }

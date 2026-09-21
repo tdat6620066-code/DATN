@@ -19,8 +19,15 @@ body.sz-layout--customer .customer-notice-timeline { padding-left:24px; border-l
 .customer-notice-day { font-size:13px; margin:26px 0 18px; color:#64748b; letter-spacing:.04em; }
 body.sz-layout--customer .customer-notice-timeline .card { border-radius:0 18px 18px 18px; box-shadow:none; }
 body.sz-layout--customer .customer-notice-timeline .border-primary { background:#f0fdf4; }
-body.sz-layout--customer .customer-booking-collection { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
+body.sz-layout--customer .customer-booking-collection { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:stretch; }
 body.sz-layout--customer .customer-booking-collection > * { min-width:0; margin-bottom:0; }
+body.sz-layout--customer .customer-booking-collection > .sz-customer-booking { display:flex; flex-direction:column; }
+body.sz-layout--customer .customer-booking-collection .sz-customer-booking > header { align-items:flex-start; }
+body.sz-layout--customer .customer-booking-collection .sz-customer-booking > footer { margin-top:0; padding-top:16px; }
+body.sz-layout--customer .customer-booking-collection .sz-customer-booking > .small { margin-top:auto !important; padding-top:18px; margin-bottom:18px; }
+body.sz-layout--customer .customer-booking-collection .sz-customer-slots strong { overflow-wrap:anywhere; }
+body.sz-layout--customer .customer-booking-collection .sz-customer-actions { justify-content:flex-end; }
+@media(max-width:575.98px) { body.sz-layout--customer .customer-booking-collection .sz-customer-actions { justify-content:flex-start; } }
 body.sz-layout--customer .sz-dashboard-section:first-of-type > .sz-customer-booking:first-of-type { border:1px solid #8cac98; border-left:6px solid #15803d; padding:28px; box-shadow:0 16px 40px rgb(5 46 22 / 9%); }
 body.sz-layout--customer .sz-dashboard-stats { margin:28px 0; background:white; padding:22px; border-radius:18px; gap:0; }
 body.sz-layout--customer .sz-dashboard-stat { border:0; border-right:1px solid #e2e8f0; box-shadow:none; border-radius:0; }.sz-dashboard-stat:last-child { border-right:0; }

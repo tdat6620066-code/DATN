@@ -38,6 +38,6 @@ class NewsController extends Controller
     {
         return $news->status === 'PUBLISHED'
             && $news->published_at !== null
-            && $news->published_at->isPast();
+            && $news->published_at->lte(now());
     }
 }

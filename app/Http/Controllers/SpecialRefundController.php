@@ -53,6 +53,7 @@ class SpecialRefundController extends Controller
                 throw ValidationException::withMessages(['amount' => 'Đơn đã có yêu cầu hoàn tiền đang xử lý hoặc đã hoàn tất.']);
             }
             $item = $locked->refundRequests()->create($data + ['requested_by' => $request->user()->id, 'status' => $approve ? 'APPROVED' : 'PENDING', 'reviewed_by' => $approve ? $request->user()->id : null, 'reviewed_at' => $approve ? now() : null, 'decision_note' => $approve ? $data['reason'] : null]);
+            app(\App\Services\RefundRecipientService::class)->restoreFromBookingTicket($item);
             app(CustomerNotificationService::class)->refundProgress($item, $approve ? 'APPROVED' : 'PENDING');
         });
 

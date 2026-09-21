@@ -25,6 +25,15 @@ class ExpireHoldsCommand extends Command
             app(\App\Services\FixedBookingPaymentService::class)->expire($group);
         }
         $expired = DB::transaction(function () use ($notifications) {
+            // Reconcile legacy children of groups whose payment already ended.
+            $staleChildren = Booking::where('status', 'PENDING_PAYMENT')
+                ->whereHas('fixedBooking', fn ($q) => $q->whereIn('status', ['PAYMENT_FAILED', 'EXPIRED']))
+                ->lockForUpdate()->get();
+            foreach ($staleChildren as $child) {
+                if ($child->payment_status === 'PAID' || $child->payment?->status === 'PAID' || $child->payment?->paid_at) continue;
+                $child->update(['status' => 'EXPIRED']);
+                $child->bookingDetails()->where('status', 'PENDING')->update(['status' => 'CANCELLED']);
+            }
             // Find bookings with expired holds
             $bookings = Booking::where(function ($query) {
                 $query->where('status', 'PENDING_PAYMENT')
@@ -38,6 +47,7 @@ class ExpireHoldsCommand extends Command
             $count = 0;
 
             foreach ($bookings as $booking) {
+                if ($booking->payment_status === 'PAID' || $booking->payment?->status === 'PAID' || $booking->payment?->paid_at) continue;
                 // Update booking status to EXPIRED
                 $booking->update(['status' => 'EXPIRED', 'payment_status' => 'FAILED']);
 

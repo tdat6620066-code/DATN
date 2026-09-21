@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Court extends Model
 {
+    public function scopeInNaturalOrder(\Illuminate\Database\Eloquent\Builder $query)
+    {
+        $courts = static::query()->get(['id', 'name'])
+            ->sort(fn ($a, $b) => strnatcasecmp($a->name, $b->name) ?: ($a->id <=> $b->id))->values();
+        if ($courts->isEmpty()) return $query->orderBy('courts.id');
+        $cases = $courts->map(fn ($court, $position) => 'WHEN '.(int) $court->id.' THEN '.$position)->implode(' ');
+        return $query->orderByRaw('CASE courts.id '.$cases.' END');
+    }
+
     protected $fillable = [
         'code', 'name', 'court_type_id', 'description', 'address',
         'map_url', 'phone', 'opening_time', 'closing_time', 'status', 'availability_status',

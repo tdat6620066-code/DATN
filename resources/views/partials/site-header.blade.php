@@ -26,7 +26,7 @@
             <a href="{{ route('bookings.create') }}" class="{{ request()->routeIs('bookings.create') ? 'sc-active' : '' }}">Đặt sân</a>
             <a href="{{ route('home') }}#offers">Khuyến mãi</a>
             <a href="{{ route('home') }}#services">Dịch vụ</a>
-            <a href="{{ route('home') }}#news">Tin tức</a>
+            <a href="{{ route('news.index') }}">Tin tức</a>
         </nav>
         <div class="sc-nav-actions">
             <a class="sc-search-trigger" href="{{ route('courts.index') }}" aria-label="Tìm sân"><i class="bi bi-search" aria-hidden="true"></i></a>

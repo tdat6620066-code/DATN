@@ -6,10 +6,11 @@ use App\Models\Banner;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\News;
+use App\Models\Promotion;
 use App\Models\Review;
 use App\Models\TimeSlot;
 use App\Models\User;
-use App\Models\Voucher;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -28,26 +29,24 @@ class HomeController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        // Get featured courts (by booking count in last 30 days)
+        // Display the homepage court selection in natural name order.
         $featuredPeriodDays = config('booking.featured_period_days', 30);
         $courtRelations = ['images', 'courtType', 'prices', 'amenities'];
         $bookingCount = fn ($query) => $query->whereHas('booking', fn ($booking) => $booking
             ->whereIn('status', ['CONFIRMED', 'COMPLETED']));
 
-        $featuredCourts = Court::where('status', 'ACTIVE')
+        $homepageCourtIds = Court::where('status', 'ACTIVE')->get(['id', 'name'])
+            ->sort(fn ($a, $b) => strnatcasecmp($a->name, $b->name) ?: ($a->id <=> $b->id))
+            ->take(6)->pluck('id');
+        $featuredCourts = Court::whereIn('id', $homepageCourtIds)
             ->with($courtRelations)
             ->withCount(['bookingDetails as booking_count' => fn ($query) => $bookingCount($query)
                 ->whereHas('booking', fn ($booking) => $booking->where('created_at', '>=', now()->subDays($featuredPeriodDays)))])
             ->withCount(['reviews as approved_reviews_count' => fn ($query) => $query->where('status', 'APPROVED')])
             ->withAvg(['reviews as approved_rating' => fn ($query) => $query->where('status', 'APPROVED')], 'rating')
-            // Ưu tiên sân được admin đánh dấu nổi bật. Khi số lượt đặt bằng
-            // nhau, sân mới tạo phải xuất hiện trước thay vì bị giới hạn khỏi
-            // danh sách 6 sân đầu tiên theo thứ tự ID cũ.
-            ->orderByDesc('is_featured')
-            ->orderByDesc('booking_count')
-            ->orderByDesc('courts.created_at')
-            ->limit(6)
-            ->get();
+            ->get()
+            ->sort(fn ($a, $b) => strnatcasecmp($a->name, $b->name) ?: ($a->id <=> $b->id))
+            ->values();
 
         // Get most booked courts
         $mostBookedCourts = Court::where('status', 'ACTIVE')
@@ -110,7 +109,7 @@ class HomeController extends Controller
             'banners' => $banners,
             'featured_courts' => $featuredCourts,
             'most_booked_courts' => $mostBookedCourts,
-            'vouchers' => $vouchers,
+            'promotions' => $promotions,
             'news' => $news,
             'reviews' => $reviews,
             'statistics' => $statistics,

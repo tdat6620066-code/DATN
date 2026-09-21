@@ -33,6 +33,7 @@ class RefundPayoutController extends Controller
 
     public function show(RefundRequest $refundRequest)
     {
+        app(RefundRecipientService::class)->restoreFromBookingTicket($refundRequest);
         $refundRequest->load('booking.user', 'booking.payment', 'refund');
 
         return response()->view('refund-payouts.show', ['item' => $refundRequest])->header('Cache-Control', 'private, no-store');

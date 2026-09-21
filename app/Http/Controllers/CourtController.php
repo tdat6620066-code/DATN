@@ -105,10 +105,18 @@ class CourtController extends Controller
                 );
                 break;
             case 'name_asc':
-                $query->orderBy('name', 'asc');
-                break;
             case 'name_desc':
-                $query->orderBy('name', 'desc');
+                // Natural name order (1, 2, ... 10), applied before pagination.
+                // Sort only lightweight identifiers/names, not all court relations.
+                $names = Court::where('status', 'ACTIVE')->get(['id', 'name'])
+                    ->sort(function ($left, $right) use ($sortBy) {
+                        $comparison = strnatcasecmp($left->name, $right->name) ?: ($left->id <=> $right->id);
+                        return $sortBy === 'name_desc' ? -$comparison : $comparison;
+                    })->values();
+                if ($names->isNotEmpty()) {
+                    $cases = $names->map(fn ($court, $position) => 'WHEN '.(int) $court->id.' THEN '.$position)->implode(' ');
+                    $query->orderByRaw('CASE courts.id '.$cases.' END');
+                }
                 break;
             case 'most_booked':
                 $query->leftJoinSub(

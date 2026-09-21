@@ -69,6 +69,7 @@ class BookingController extends Controller
     {
         $courts = Court::where('status', 'ACTIVE')
             ->with('courtType', 'images', 'prices')
+            ->inNaturalOrder()
             ->get();
 
         $timeSlots = TimeSlot::where('status', 'ACTIVE')
@@ -161,6 +162,9 @@ class BookingController extends Controller
                 ->route('bookings.show', $booking)
                 ->with('success', 'Đặt sân thành công. Vui lòng hoàn tất thanh toán.');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            report($e);
+            return back()->with('error', 'Chưa thể tạo booking do lỗi hệ thống. Vui lòng thử lại sau hoặc liên hệ nhân viên hỗ trợ.')->withInput();
         } catch (\Exception $e) {
             $errors = json_decode($e->getMessage(), true);
 

@@ -10,6 +10,17 @@ class NewsPageTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_article_is_readable_at_publication_time_but_not_before(): void
+    {
+        $this->freezeTime();
+        $article = News::create(['title'=>'Publish now', 'content'=>'Visible article', 'status'=>'PUBLISHED', 'published_at'=>now()]);
+        $this->get(route('news.show', $article))->assertOk()->assertSee('Visible article');
+        $article->update(['published_at'=>now()->addMinute()]);
+        $this->get(route('news.show', $article))->assertNotFound();
+        $article->update(['status'=>'DRAFT', 'published_at'=>now()->subDay()]);
+        $this->get(route('news.show', $article))->assertNotFound();
+    }
+
     public function test_public_news_page_shows_published_articles_and_opens_the_detail(): void
     {
         $published = News::create([

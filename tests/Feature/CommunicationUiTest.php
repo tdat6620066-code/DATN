@@ -10,6 +10,17 @@ class CommunicationUiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_home_renders_promotions_and_services_together(): void
+    {
+        \App\Models\Promotion::create(['title' => 'Weekend offer', 'description' => 'Play together', 'status' => 'ACTIVE', 'start_at' => now()->subDay(), 'end_at' => now()->addDay()]);
+        \App\Models\ServiceItem::create(['code' => 'HOME-WATER', 'name' => 'Nước uống', 'price' => 15000, 'is_active' => true]);
+        foreach ([null, User::factory()->create(['role' => 'CUSTOMER'])] as $user) {
+            if ($user) $this->actingAs($user);
+            $this->get(route('home'))->assertOk()->assertSee('Weekend offer')->assertSee('Nước uống')
+                ->assertSee('15.000')->assertSee('bi-cup-straw')->assertDontSee('@foreach')->assertDontSee('@php');
+        }
+    }
+
     public function test_notification_open_rejects_lookalike_origins_and_accepts_internal_links(): void
     {
         $user = User::factory()->create();
