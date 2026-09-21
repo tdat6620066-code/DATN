@@ -13,8 +13,13 @@
     <a class="article__back" href="{{ route('news.index') }}"><i class="bi bi-arrow-left"></i> Tất cả tin tức</a>
     <time class="article__date" datetime="{{ $news->published_at->toDateString() }}">{{ $news->published_at->format('d/m/Y') }}</time>
     <h1>{{ $news->title }}</h1>
-    @if($news->thumbnail)<img class="article__image" src="{{ $news->thumbnail }}" alt="{{ $news->title }}">@else<div class="article__fallback"><i class="bi bi-newspaper"></i></div>@endif
-    <div class="article__body">{!! nl2br(e($news->content)) !!}</div>
+    @php
+        $articleImage = $news->thumbnail ? (Str::startsWith($news->thumbnail, ['https://','http://','/']) ? $news->thumbnail : asset('storage/'.$news->thumbnail)) : null;
+        $readingMinutes = max(1, (int) ceil(count(preg_split('/\s+/u', trim(strip_tags($news->content)), -1, PREG_SPLIT_NO_EMPTY)) / 200));
+    @endphp
+    <div class="article__meta"><span><i class="bi bi-journal-text" aria-hidden="true"></i> SmashZone Journal</span><span><i class="bi bi-clock" aria-hidden="true"></i> {{ $readingMinutes }} phút đọc</span></div>
+    @if($articleImage)<img class="article__image" src="{{ $articleImage }}" alt="{{ $news->title }}">@else<div class="article__editorial" aria-hidden="true"><span>SMASHZONE / JOURNAL</span><strong>Chuyện trên sân.<br>Cảm hứng ngoài sân.</strong><i class="bi bi-arrow-up-right"></i></div>@endif
+    <div class="article__reading"><div class="article__body">{!! nl2br(e($news->content)) !!}</div><footer class="article__end"><span>Bạn đã đọc hết bài viết</span><a href="{{ route('news.index') }}">Khám phá bài viết khác <span aria-hidden="true">↗</span></a></footer></div>
 </article>
 @if($relatedNews->isNotEmpty())
 <section class="article__related"><h2>Bài viết liên quan</h2><div class="article__grid">@foreach($relatedNews as $item)<x-news-card :news="$item" />@endforeach</div></section>

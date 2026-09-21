@@ -48,6 +48,37 @@ class CourtUiTest extends TestCase
         return [$courts, $slots];
     }
 
+    public function test_court_names_follow_numeric_order_across_pages(): void
+    {
+        [$courts] = $this->setupCourts(13);
+        foreach ($courts as $index => $court) {
+            $court->update(['name' => 'Sân số '.($index + 1).' - Tiêu chuẩn']);
+        }
+        $this->get(route('home'))->assertOk()
+            ->assertViewHas('featured_courts', fn ($items) => $items->pluck('id')->all() === $courts->take(6)->pluck('id')->all())
+            ->assertSeeInOrder(['Sân số 1 - Tiêu chuẩn', 'Sân số 2 - Tiêu chuẩn', 'Sân số 3 - Tiêu chuẩn']);
+        $this->get(route('courts.index'))->assertOk()
+            ->assertViewHas('courts', fn ($page) => $page->pluck('id')->all() === $courts->take(12)->pluck('id')->all());
+        $this->get(route('courts.index', ['page' => 2]))->assertOk()
+            ->assertViewHas('courts', fn ($page) => $page->pluck('id')->all() === [$courts->last()->id]);
+        $this->get(route('courts.index', ['sort_by' => 'name_desc']))->assertOk()
+            ->assertViewHas('courts', fn ($page) => $page->pluck('id')->all() === $courts->reverse()->take(12)->pluck('id')->all());
+    }
+
+    public function test_booking_and_admin_courts_use_natural_order(): void
+    {
+        [$courts] = $this->setupCourts(16);
+        foreach ($courts as $index => $court) $court->update(['name' => 'Sân số '.($index + 1)]);
+        $this->actingAs(User::factory()->create(['role' => 'CUSTOMER']))
+            ->get(route('bookings.create'))->assertOk()
+            ->assertViewHas('courts', fn ($items) => $items->pluck('id')->all() === $courts->pluck('id')->all());
+        $this->actingAs(User::factory()->create(['role' => 'ADMIN']))
+            ->get(route('admin.courts.index'))->assertOk()
+            ->assertViewHas('courts', fn ($items) => $items->pluck('id')->all() === $courts->take(15)->pluck('id')->all());
+        $this->get(route('admin.courts.index', ['page' => 2]))->assertOk()
+            ->assertViewHas('courts', fn ($items) => $items->pluck('id')->all() === [$courts->last()->id]);
+    }
+
     private function reserve(Court $court, TimeSlot $slot, string $status): void
     {
         $booking = Booking::create(['booking_code' => 'UI-'.str()->random(10), 'user_id' => User::factory()->create()->id, 'status' => $status, 'payment_status' => 'PENDING', 'total_amount' => 120000, 'hold_expires_at' => now()->addMinutes(5)]);

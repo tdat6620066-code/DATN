@@ -78,9 +78,9 @@ class ChatController extends Controller
     private function payload(Request $request): array
     {
         $data = $request->validate([
-            'message' => ['nullable', 'string', 'max:'.(int) config('chatbot.max_message_length', 500)],
-            'action' => ['nullable', 'string', 'in:'.implode(',', self::ACTIONS)],
-            'choice_id' => ['nullable', 'string', 'max:100'],
+            'message' => ['nullable', 'string', 'max:500'],
+            'action' => ['nullable', 'string', \Illuminate\Validation\Rule::in(self::ACTIONS)],
+            'choice_id' => ['nullable', 'string', 'max:255'],
         ]);
 
         $message = trim((string) ($data['message'] ?? ''));
