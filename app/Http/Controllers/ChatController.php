@@ -8,18 +8,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/**
- * Điểm vào của SmashBot cho giao diện chat.
- *
- * Mọi câu hỏi đều được xử lý bởi AiChatbotService: pipeline gồm security guard,
- * booking copilot, multi-intent planner, agent tool calling (Groq/OpenAI đọc dữ
- * liệu thật qua tool) và cuối cùng là engine luật khi không có API key.
- */
+/** Entry point for the SmashBot chat interface. */
 class ChatController extends Controller
 {
-    /**
-     * Các action do nút bấm trong khung chat gửi lên (không phải câu hỏi tự do).
-     */
+    /** Actions emitted by chat buttons, rather than free-form messages. */
     private const ACTIONS = [
         'select_slot',
         'confirm_booking',
@@ -36,9 +28,7 @@ class ChatController extends Controller
         private readonly ChatbotLoggerService $logger,
     ) {}
 
-    /**
-     * Trả lời dạng JSON cho API và cho test.
-     */
+    /** Return a complete JSON response for the chat API. */
     public function chat(Request $request): JsonResponse
     {
         [$message, $action, $choiceId] = $this->payload($request);
@@ -52,9 +42,7 @@ class ChatController extends Controller
         return response()->json(['data' => $result]);
     }
 
-    /**
-     * Trả lời dạng NDJSON để khung chat hiển thị dần từng cụm ký tự.
-     */
+    /** Stream the response as NDJSON for the chat widget. */
     public function stream(Request $request): StreamedResponse
     {
         [$message, $action, $choiceId] = $this->payload($request);
@@ -83,7 +71,7 @@ class ChatController extends Controller
     }
 
     /**
-     * Chuẩn hoá payload: câu hỏi tự do HOẶC action + choice_id của nút bấm.
+     * Normalize a free-form message or a button action payload.
      *
      * @return array{0: string, 1: ?string, 2: ?string}
      */
@@ -99,7 +87,7 @@ class ChatController extends Controller
         $action = $data['action'] ?? null;
         $choiceId = $data['choice_id'] ?? null;
 
-        abort_if($message === '' && blank($action), 422, 'Cần nội dung câu hỏi hoặc action.');
+        abort_if($message === '' && blank($action), 422, 'A message or an action is required.');
 
         return [$message, $action, $choiceId];
     }
