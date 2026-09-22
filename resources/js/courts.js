@@ -36,7 +36,7 @@ document.querySelectorAll('[data-gallery-image]').forEach(button => {
 const bookingForm = document.querySelector('[data-court-booking]');
 if (bookingForm) {
     const selected = new Map();
-    const cells = [...document.querySelectorAll('.court-slot.available')];
+    const cells = [...document.querySelectorAll('.court-slot')];
     const slotsField = document.getElementById('selectedSlots');
     const message = document.getElementById('slot-message');
     const submit = document.getElementById('court-submit');
@@ -64,6 +64,7 @@ if (bookingForm) {
         if (applyVoucher) applyVoucher.disabled = !ordered.length || dateInput.value !== bookingForm.elements.booking_date.value;
     };
     cells.forEach(cell => cell.addEventListener('click', () => {
+        if (cell.disabled || !cell.classList.contains('available')) return;
         const proposed = [...selected.values()].filter(item => item !== cell);
         if (!selected.has(cell.dataset.slot)) proposed.push(cell);
         if (!window.smashZoneConsecutiveSlots(proposed.map(item => ({ start: item.dataset.start, end: item.dataset.end })))) {
@@ -95,4 +96,35 @@ if (bookingForm) {
         initialCells.forEach(cell => cell.click());
     }
     update();
+    let refreshing = false;
+    const refreshSchedule = async () => {
+        if (refreshing || document.hidden || bookingForm.getAttribute('aria-busy') === 'true') return;
+        refreshing = true;
+        try {
+            const response = await fetch(window.location.href, { cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) return;
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            let changed = false;
+            cells.forEach(cell => {
+                const fresh = page.querySelector(`.court-slot[data-court="${cell.dataset.court}"][data-slot="${cell.dataset.slot}"]`);
+                if (!fresh) return;
+                if (fresh.disabled && selected.get(cell.dataset.slot) === cell) {
+                    selected.delete(cell.dataset.slot); changed = true;
+                }
+                cell.disabled = fresh.disabled;
+                cell.dataset.price = fresh.dataset.price;
+                cell.className = fresh.className;
+                cell.innerHTML = fresh.innerHTML;
+                const active = selected.get(cell.dataset.slot) === cell;
+                cell.classList.toggle('selected', active);
+                cell.setAttribute('aria-pressed', String(active));
+                if (active) cell.querySelector('[data-slot-label]').textContent = 'Đã chọn';
+            });
+            if (changed) tell('Lịch sân vừa thay đổi. Vui lòng kiểm tra lại các khung giờ đã chọn.');
+            update();
+        } catch { /* Retain current data until the next successful refresh. */ }
+        finally { refreshing = false; }
+    };
+    setInterval(refreshSchedule, 5000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSchedule(); });
 }

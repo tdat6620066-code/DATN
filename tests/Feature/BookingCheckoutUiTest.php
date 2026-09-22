@@ -36,7 +36,8 @@ class BookingCheckoutUiTest extends TestCase
             ->assertOk()->assertSee('Kiểm tra &amp; thanh toán', false)
             ->assertSee('Chọn sân')->assertSee('Chọn lịch')->assertSee('Dịch vụ')->assertSee('Hoàn tất')
             ->assertSee('150.000đ')->assertSee('20.000đ')->assertSee('170.000đ')->assertSee('30.000đ')->assertSee('140.000đ')
-            ->assertSee('Nước uống')->assertSee('60 phút')->assertSee('data-confirm-booking', false)
+            ->assertSee('Nước uống')->assertSee('60 phút')->assertDontSee('data-confirm-booking', false)
+            ->assertDontSee('để bật nút thanh toán.')
             ->assertSee('name="_token"', false)->assertSee(route('bookings.update-note', $this->booking), false);
         $this->assertSame('140000.00', $this->booking->fresh()->total_amount);
     }
@@ -70,5 +71,17 @@ class BookingCheckoutUiTest extends TestCase
         $this->actingAs($this->customer)->get($url)->assertRedirect($url);
         $this->get($url)->assertOk()->assertSee('Đã hết hạn')->assertDontSee('data-payment-submit', false);
         $this->assertSame('EXPIRED', $this->booking->fresh()->status);
+    }
+
+    public function test_other_customer_sees_released_slot_before_owner_refreshes(): void
+    {
+        $detail = $this->booking->bookingDetails()->first();
+        $availability = app(\App\Services\CourtAvailabilityService::class);
+        $this->assertSame('HOLD', $availability->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+        $this->travelTo($this->booking->hold_expires_at);
+        $this->actingAs(User::factory()->create(['role' => 'CUSTOMER']));
+        $this->assertSame('AVAILABLE', $availability->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+        $this->get(route('bookings.create', ['booking_date' => $detail->booking_date->toDateString()]))
+            ->assertOk()->assertDontSee('data-status="HOLD"', false);
     }
 }
