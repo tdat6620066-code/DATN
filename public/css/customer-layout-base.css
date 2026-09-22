@@ -186,6 +186,36 @@
             color: #fbbf24;
         }
 
+        .sz-duration-confirmation {
+            display: flex; gap: 20px; padding: 24px;
+            margin: 0 0 24px; border: 1px solid #fde68a;
+            border-left: 4px solid #d97706; border-radius: 20px;
+            background: #fffcf5; color: #334155;
+            box-shadow: 0 4px 20px rgb(15 23 42 / 3%);
+        }
+        .sz-duration-confirmation__icon {
+            flex: 0 0 48px; height: 48px; display: grid; place-items: center;
+            border-radius: 14px; background: #fef3c7; color: #92400e; font-size: 24px;
+        }
+        .sz-duration-confirmation__body { flex: 1; min-width: 0; }
+        .sz-duration-confirmation__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #92400e; }
+        .sz-duration-confirmation h2 { font-size: clamp(18px, 2vw, 23px); color: #0f172a; margin: 6px 0 10px; }
+        .sz-duration-confirmation p { line-height: 1.65; margin-bottom: 16px; }
+        .sz-duration-confirmation__choice {
+            display: flex; align-items: flex-start; gap: 12px; padding: 15px 18px;
+            border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;
+            color: #0f172a; font-weight: 600; cursor: pointer;
+        }
+        .sz-duration-confirmation__choice:has(input:checked) { border-color: #15803d; background: #f0fdf4; }
+        .sz-duration-confirmation__choice:focus-within { outline: 2px solid #15803d; outline-offset: 3px; }
+        .sz-duration-confirmation__choice .form-check-input { flex-shrink: 0; width: 20px; height: 20px; margin: 2px 0 0; }
+        .sz-duration-confirmation .sz-duration-confirmation__help { font-size: 13px; color: #64748b; margin: 10px 0 0; }
+        @media (max-width: 575.98px) {
+            .sz-duration-confirmation { padding: 18px; gap: 12px; flex-direction: column; }
+            .sz-duration-confirmation__icon { flex-basis: auto; width: 40px; height: 40px; }
+            .sz-duration-confirmation__choice { padding: 12px; }
+        }
+
         .review-card {
             background-color: #f9fafb;
             border-radius: 8px;

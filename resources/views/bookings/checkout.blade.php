@@ -58,7 +58,6 @@
                     <textarea id="checkout-note" name="note" rows="3" maxlength="1000" class="form-control @error('note') is-invalid @enderror" aria-describedby="note-help @error('note') note-error @enderror">{{ old('note', $booking->note) }}</textarea>
                     <div class="form-text" id="note-help">Tối đa 1.000 ký tự.</div>
                     @error('note')<div id="note-error" class="invalid-feedback">{{ $message }}</div>@enderror
-                    <label class="sz-confirmation" id="confirm-booking"><input type="checkbox" class="form-check-input" required data-confirm-booking><span>Tôi đã kiểm tra sân, ngày, giờ, dịch vụ và tổng tiền của đơn đặt sân.</span></label>
                 </form>
             </section>
         </div>
@@ -72,7 +71,6 @@
                 <div><dt>Giảm giá</dt><dd class="text-success">−{{ number_format($discount, 0, ',', '.') }}đ</dd></div>
             </dl>
             <div class="sz-order-total"><span>TỔNG THANH TOÁN</span><strong data-server-total>{{ number_format($total, 0, ',', '.') }}đ</strong></div>
-            <p class="small"><a href="#confirm-booking">Xác nhận thông tin</a> để bật nút thanh toán.</p>
             <button class="btn btn-primary w-100 py-3" type="submit" form="checkout-note-form" data-payment-submit><span class="spinner-border spinner-border-sm me-2" aria-hidden="true" hidden></span><span data-submit-label>Xác nhận &amp; Thanh toán</span></button>
             <p class="small text-muted mt-3 mb-0"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Đơn chỉ được xác nhận sau khi hệ thống nhận kết quả thanh toán thành công.</p>
             <a class="btn btn-link w-100 mt-2" href="{{ route('bookings.show', $booking) }}">Kiểm tra lại trạng thái</a>

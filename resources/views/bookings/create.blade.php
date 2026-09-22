@@ -193,6 +193,18 @@
 </style>
 
 <div class="container-fluid">
+    <section class="card border-success mb-4" aria-labelledby="recurring-booking-heading">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h2 class="h5 mb-2" id="recurring-booking-heading"><i class="bi bi-calendar2-repeat text-success me-2" aria-hidden="true"></i>Đặt lịch cố định</h2>
+                <p class="text-muted mb-0">Giữ nhịp chơi cho nhóm: chọn sân, khung giờ và lịch lặp lại theo tuần hoặc tháng.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-success" href="{{ route('bookings.create-recurring', ['booking_type' => 'weekly']) }}">Đặt theo tuần <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+                <a class="btn btn-outline-success" href="{{ route('bookings.create-recurring', ['booking_type' => 'monthly']) }}">Đặt theo tháng</a>
+            </div>
+        </div>
+    </section>
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -242,7 +254,6 @@
             <!-- Availability Table -->
             <form method="POST" action="{{ route('bookings.store') }}" id="bookingForm">
                 @csrf
-                @include('partials.daily-duration-confirmation')
                 <input type="hidden" name="booking_date" id="bookingDateInput" value="{{ $bookingDate->toDateString() }}">
                 <input type="hidden" name="court_id" id="courtIdInput" value="">
                 <div id="timeSlotIdsInputs"></div>
@@ -288,8 +299,8 @@
                                     data-duration="{{ $slot->duration ?? 60 }}"
                                     data-start="{{ substr($slot->start_time,0,5) }}" data-end="{{ substr($slot->end_time,0,5) }}"
                                     @if($isSelectable) role="button" tabindex="0" onclick="toggleSlot(this)" @endif>
-                                    <div>{{ $status === 'PAST' ? 'Đã qua' : ($status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay) }}</div>
-                                    <small>{{ match($status) { 'AVAILABLE' => 'Còn trống', 'BOOKED' => 'Đã đặt', 'HOLD' => 'Đang giữ', default => 'Không khả dụng' } }}</small>
+                                    <div @if($status === 'PAST') hidden @endif>{{ $status === 'PAST' ? '' : ($status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay) }}</div>
+                                    <small @if($status === 'HOLD') hidden @endif>{{ match($status) { 'AVAILABLE' => 'Còn trống', 'BOOKED' => 'Đã đặt', 'HOLD' => '', default => 'Không khả dụng' } }}</small>
                                 </td>
                                 @endforeach
                             </tr>
@@ -383,7 +394,10 @@ function expirePastSlots() {
         cell.classList.add('slot-maintenance');
         cell.setAttribute('aria-disabled', 'true');
         cell.removeAttribute('onclick');
-        cell.querySelector('div').textContent = 'Đã qua';
+        cell.querySelector('div').textContent = '';
+        cell.querySelector('div').hidden = true;
+        cell.querySelector('small').textContent = 'Không khả dụng';
+        cell.querySelector('small').hidden = false;
         const key = `${cell.dataset.courtId}-${cell.dataset.slotId}`;
         if (selectedSlots.some(slot => slot.key === key)) {
             selectedSlots = selectedSlots.filter(slot => slot.key !== key);
@@ -393,6 +407,35 @@ function expirePastSlots() {
     if (selectionChanged) updateSummary();
 }
 setInterval(expirePastSlots, 1000);
+let refreshingSchedule = false;
+async function refreshSchedule() {
+    if (refreshingSchedule || document.hidden || document.getElementById('bookingForm').getAttribute('aria-busy') === 'true') return;
+    refreshingSchedule = true;
+    try {
+        const response = await fetch(window.location.href, {cache: 'no-store', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+        if (!response.ok) return;
+        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+        page.querySelectorAll('.time-slot-cell[data-court-id]').forEach(fresh => {
+            const cell = document.querySelector(`.time-slot-cell[data-court-id="${fresh.dataset.courtId}"][data-slot-id="${fresh.dataset.slotId}"]`);
+            if (!cell) return;
+            const key = `${cell.dataset.courtId}-${cell.dataset.slotId}`;
+            if (fresh.dataset.status !== 'AVAILABLE') selectedSlots = selectedSlots.filter(slot => slot.key !== key);
+            const selected = selectedSlots.find(slot => slot.key === key);
+            if (selected) selected.price = Number(fresh.dataset.price);
+            cell.className = fresh.className;
+            cell.classList.toggle('slot-selected', !!selected);
+            ['data-status', 'data-price', 'data-starts-at', 'aria-disabled', 'role', 'tabindex', 'onclick'].forEach(name => {
+                fresh.hasAttribute(name) ? cell.setAttribute(name, fresh.getAttribute(name)) : cell.removeAttribute(name);
+            });
+            cell.innerHTML = fresh.innerHTML;
+        });
+        updateSummary();
+        expirePastSlots();
+    } catch { /* Keep the current selection and retry after a temporary network failure. */ }
+    finally { refreshingSchedule = false; }
+}
+setInterval(refreshSchedule, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSchedule(); });
 document.getElementById('bookingForm').addEventListener('submit', event => {
     expirePastSlots();
     if (!selectedSlots.length) event.preventDefault();

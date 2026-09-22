@@ -28,7 +28,27 @@ class DailyBookingDurationTest extends TestCase
         $this->from(route('bookings.create'))->post(route('bookings.store'), $data)
             ->assertSessionHasErrors('daily_duration_confirmed');
         $this->assertDatabaseCount('bookings', 0);
-        $this->get(route('bookings.create'))->assertOk()->assertSee('Tôi đã cân nhắc thời lượng');
+        $this->get(route('bookings.create'))->assertOk()
+            ->assertSee('Tôi đã cân nhắc thời lượng')
+            ->assertSee('Xác nhận thời lượng chơi của bạn')
+            ->assertSee('form="bookingForm" aria-describedby="daily-duration-description daily-duration-help"', false)
+            ->assertSeeInOrder(['id="daily-duration-confirmed"', '<main'], false)
+            ->assertDontSee('<strong>Lỗi:</strong>', false);
+    }
+
+    public function test_real_validation_errors_remain_visible_alongside_confirmation(): void
+    {
+        $this->fixture();
+        $errors = new \Illuminate\Support\ViewErrorBag;
+        $errors->put('default', new \Illuminate\Support\MessageBag([
+            'daily_duration_confirmed' => 'Cần xác nhận thời lượng chơi.',
+            'court_id' => 'Vui lòng chọn sân hợp lệ.',
+        ]));
+
+        $this->withSession(['errors' => $errors])->get(route('bookings.create'))
+            ->assertOk()->assertSee('Xác nhận thời lượng chơi của bạn')
+            ->assertSee('<strong>Lỗi:</strong>', false)
+            ->assertSee('Vui lòng chọn sân hợp lệ.');
     }
 
     public function test_recurring_booking_requires_confirmation_for_long_days(): void
