@@ -18,9 +18,26 @@ class ChatbotChatTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_chat_endpoint_requires_authentication(): void
+    public function test_chat_endpoint_is_available_to_guests_and_keeps_history_in_session(): void
     {
-        $this->postJson(route('api.ai.chat'), ['message' => 'Giá sân?'])->assertUnauthorized();
+        $this->fakeLlm([
+            $this->messageTurn('Mình có thể trả lời câu hỏi này.'),
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'message' => 'Kể cho mình một sự thật thú vị về cầu lông.',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.intent', 'TOOL_AGENT')
+            ->assertJsonPath('data.answer', 'Mình có thể trả lời câu hỏi này.');
+        $this->assertDatabaseHas('chatbot_logs', [
+            'user_id' => null,
+            'question' => 'Kể cho mình một sự thật thú vị về cầu lông.',
+            'status' => 'SUCCESS',
+        ]);
+        $this->assertDatabaseHas('ai_interactions', ['user_id' => null, 'type' => 'CHATBOT']);
+        $this->assertSame('Kể cho mình một sự thật thú vị về cầu lông.', session('chatbot.guest_history.0.content'));
     }
 
     public function test_chat_endpoint_requires_message_or_action(): void

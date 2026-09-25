@@ -17,10 +17,10 @@ class AiApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_ai_endpoints_require_authentication(): void
+    public function test_private_ai_endpoints_require_authentication(): void
     {
         $this->getJson(route('api.ai.courts'))->assertUnauthorized();
-        $this->postJson(route('api.ai.chat'), ['message' => 'Giá sân?'])->assertUnauthorized();
+        $this->getJson(route('api.ai.forecast'))->assertUnauthorized();
     }
 
     public function test_new_customer_receives_personalized_promotion(): void

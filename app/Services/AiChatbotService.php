@@ -20,9 +20,10 @@ class AiChatbotService
         private readonly MultiIntentPlannerService $planner,
         private readonly ToolCallingAgentService $toolAgent,
         private readonly BookingCopilotService $bookingCopilot,
+        private readonly PublicBookingGuideService $publicBookingGuide,
     ) {}
 
-    public function answer(string $question, User $user, ?string $action = null, ?string $choiceId = null): array
+    public function answer(string $question, ?User $user, ?string $action = null, ?string $choiceId = null): array
     {
         if (filled($question)) {
             $security = $this->promptGuard->inspect($question);
@@ -31,25 +32,41 @@ class AiChatbotService
             }
         }
 
+        if (! $user && $action === 'public_select_booking_slot' && $choiceId) {
+            return $this->publicBookingGuide->selectSlot($choiceId);
+        }
+
+        // Guest chat is public, but account-only actions remain protected.
+        if (! $user && in_array($action, [
+            'select_slot', 'confirm_booking', 'find_other_slot', 'confirm_cancel', 'abort_cancel',
+            'preview_copilot_booking', 'confirm_copilot_booking', 'copilot_other_choices',
+        ], true)) {
+            return $this->actionResult('Bạn cần đăng nhập để xem hoặc thay đổi thông tin thuộc tài khoản. Mình vẫn có thể tiếp tục tư vấn sân và hướng dẫn đặt lịch.', false);
+        }
+
         $normalizedQuestion = Str::lower(Str::ascii($question));
-        if ($action === 'preview_copilot_booking' && $choiceId) {
+        if ($user && $action === 'preview_copilot_booking' && $choiceId) {
             return $this->bookingCopilot->showPreview($choiceId, $user);
         }
-        if ($action === 'confirm_copilot_booking' && $choiceId) {
+        if ($user && $action === 'confirm_copilot_booking' && $choiceId) {
             return $this->bookingCopilot->confirm($choiceId, $user);
         }
-        if ($action === 'copilot_other_choices') {
+        if ($user && $action === 'copilot_other_choices') {
             return $this->bookingCopilot->showAlternatives($user);
         }
-        if (filled($question) && $this->bookingCopilot->shouldHandle($question)) {
+        if ($user && filled($question) && $this->bookingCopilot->shouldHandle($question)) {
             return $this->bookingCopilot->prepare($question, $user);
         }
 
-        if (filled($question) && $this->planner->shouldHandle($question)) {
+        if (! $user && filled($question) && $this->publicBookingGuide->shouldHandle($question)) {
+            return $this->publicBookingGuide->handle($question);
+        }
+
+        if ($user && filled($question) && $this->planner->shouldHandle($question)) {
             return $this->planner->handle($question, $user);
         }
 
-        if (filled($question) && Str::contains($normalizedQuestion, [
+        if ($user && filled($question) && Str::contains($normalizedQuestion, [
             'goi y san', 'san phu hop voi toi', 'top 5 san', 'de xuat san', 'recommend san',
         ])) {
             return $this->recommendCourts($user);
@@ -88,7 +105,7 @@ class AiChatbotService
             return $this->actionResult('Đã giữ nguyên booking, không có thay đổi nào được thực hiện.', true);
         }
 
-        if ($databaseAnswer = $this->chatbot->answer($question, $user)) {
+        if ($user && ($databaseAnswer = $this->chatbot->answer($question, $user))) {
             return $databaseAnswer + ['engine' => 'database'];
         }
 
@@ -121,7 +138,7 @@ class AiChatbotService
                     'customer_context' => $this->knowledge->personalContext($user),
                 ],
                 $this->knowledge->recentConversation($user),
-                $user->id,
+                $user?->id,
             ) + ['engine' => $this->llm->provider().':'.$this->llm->model(), 'pipeline_stage' => 'llm'];
         } catch (\Throwable $e) {
             report($e);

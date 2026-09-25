@@ -21,6 +21,7 @@ class ChatController extends Controller
         'preview_copilot_booking',
         'confirm_copilot_booking',
         'copilot_other_choices',
+        'public_select_booking_slot',
     ];
 
     public function __construct(
@@ -38,6 +39,7 @@ class ChatController extends Controller
         $latency = (int) ((hrtime(true) - $started) / 1_000_000);
 
         $this->logger->log($request->user(), $message, $result, $latency);
+        $this->rememberGuestConversation($request->user(), $message, $result);
 
         return response()->json(['data' => $result]);
     }
@@ -52,6 +54,7 @@ class ChatController extends Controller
         $latency = (int) ((hrtime(true) - $started) / 1_000_000);
 
         $this->logger->log($request->user(), $message, $result, $latency);
+        $this->rememberGuestConversation($request->user(), $message, $result);
 
         $done = collect($result)->only([
             'suggestions', 'cards', 'buttons', 'intent', 'awaiting',
@@ -68,6 +71,23 @@ class ChatController extends Controller
             'Cache-Control' => 'no-cache, no-transform',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * Khách chưa đăng nhập vẫn có hội thoại nối tiếp trong chính session của họ,
+     * nhưng không gắn vào một tài khoản hay lưu nội dung ngoài vòng đời session.
+     */
+    private function rememberGuestConversation(mixed $user, string $message, array $result): void
+    {
+        if ($user || blank($message) || blank($result['answer'] ?? null)) {
+            return;
+        }
+
+        $history = session('chatbot.guest_history', []);
+        $history = is_array($history) ? $history : [];
+        $history[] = ['role' => 'user', 'content' => mb_substr($message, 0, 1000)];
+        $history[] = ['role' => 'assistant', 'content' => mb_substr((string) $result['answer'], 0, 2000)];
+        session(['chatbot.guest_history' => array_slice($history, -12)]);
     }
 
     /**

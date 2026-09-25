@@ -13,8 +13,9 @@ use Illuminate\Support\Str;
  * (đọc dữ liệu thật qua API/DB), trả kết quả lại cho model, rồi lặp tới khi
  * model tổng hợp được câu trả lời cuối cùng.
  *
- * Bảo mật: tool luôn chạy trong phạm vi user đang đăng nhập; model không bao giờ
- * truyền được user_id. Kết quả tool là dữ liệu, không phải chỉ dẫn.
+ * Bảo mật: tool tài khoản chỉ được gửi cho phiên đã đăng nhập và luôn chạy với
+ * user hiện tại; model không bao giờ truyền được user_id. Khách chưa đăng nhập
+ * chỉ nhận tool tra cứu công khai.
  */
 class ToolCallingAgentService
 {
@@ -88,10 +89,15 @@ class ToolCallingAgentService
         ))->values()->all();
     }
 
-    public function answer(string $message, User $user): array
+    public function answer(string $message, ?User $user): array
     {
         $definitions = $this->toolsFor($message, $this->tools->definitions());
-        $instructions = $this->prompts->toolAgentSystem($definitions);
+        if (! $user) {
+            $definitions = array_values(array_filter($definitions, fn (array $tool) => ! in_array(
+                $tool['name'] ?? null, ['get_my_notifications', 'get_my_booking'], true,
+            )));
+        }
+        $instructions = $this->prompts->toolAgentSystem($definitions, ! $user);
 
         $input = array_merge(
             $this->knowledge->recentConversation($user, (int) config('chatbot.history_turns', 6)),
@@ -103,7 +109,7 @@ class ToolCallingAgentService
         $maxRounds = max(1, (int) config('chatbot.max_tool_rounds', 4));
 
         for ($round = 1; $round <= $maxRounds; $round++) {
-            $response = $this->llm->toolTurn($input, $definitions, $user->id, $instructions);
+            $response = $this->llm->toolTurn($input, $definitions, $user?->id, $instructions);
             $output = is_array($response['output'] ?? null) ? $response['output'] : [];
             $calls = collect($output)->where('type', 'function_call')->values();
             $text = $this->outputText($output);
@@ -140,7 +146,7 @@ class ToolCallingAgentService
      * @param  array{cards: array<int, mixed>, buttons: array<int, mixed>}  $artifacts
      * @return array<int, array<string, mixed>>
      */
-    private function runTool(array $call, int $round, array $input, array &$trace, array &$artifacts, User $user): array
+    private function runTool(array $call, int $round, array $input, array &$trace, array &$artifacts, ?User $user): array
     {
         $name = (string) ($call['name'] ?? '');
         $arguments = json_decode((string) ($call['arguments'] ?? '{}'), true);
@@ -178,7 +184,7 @@ class ToolCallingAgentService
             'understood' => true,
             'answer' => $answer,
             'intent' => 'TOOL_AGENT',
-            'suggestions' => ['Tìm sân trống ngày mai', 'Xem booking của tôi'],
+            'suggestions' => ['Tìm sân trống ngày mai', 'Hướng dẫn đặt sân'],
             'cards' => $artifacts['cards'],
             'buttons' => $artifacts['buttons'],
             'tool_trace' => $trace,

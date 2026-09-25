@@ -44,9 +44,13 @@ class CommunicationUiTest extends TestCase
         $this->assertStringNotContainsString('Future offer', $answer);
     }
 
-    public function test_guest_home_has_no_private_notifications_or_authenticated_chat(): void
+    public function test_guest_home_has_public_chat_without_private_notification_data(): void
     {
-        $this->get(route('home'))->assertOk()->assertDontSee('data-notifications',false)->assertDontSee('id="ai-chat-panel"',false)->assertSee(route('login'),false);
+        $this->get(route('home'))->assertOk()
+            ->assertSee('id="ai-chat-panel"', false)
+            ->assertSee('Bạn có thể hỏi mình bất cứ câu gì')
+            ->assertSee(route('login'), false)
+            ->assertSee('data-notifications=""', false);
     }
 
     public function test_dropdown_scopes_notifications_and_preserves_read_forms_for_all_roles(): void

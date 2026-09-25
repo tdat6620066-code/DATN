@@ -88,8 +88,12 @@ class AiKnowledgeService
         ];
     }
 
-    public function recentConversation(User $user, int $limit = 6): array
+    public function recentConversation(?User $user, int $limit = 6): array
     {
+        if (! $user) {
+            return collect(session('chatbot.guest_history', []))->slice(-$limit)->values()->all();
+        }
+
         return ChatbotLog::query()->where('user_id', $user->id)->where('status', 'SUCCESS')
             ->latest()->limit($limit)->get()->reverse()->flatMap(function (ChatbotLog $interaction) {
                 $answer = $interaction->answer;
@@ -101,8 +105,16 @@ class AiKnowledgeService
             })->values()->all();
     }
 
-    public function personalContext(User $user): array
+    public function personalContext(?User $user): array
     {
+        if (! $user) {
+            return [
+                'customer' => null,
+                'access' => 'public_guest',
+                'recent_bookings' => [],
+            ];
+        }
+
         return [
             'customer' => ['id' => $user->id, 'name' => $user->name],
             'recent_bookings' => $user->bookings()->with(['bookingDetails.court:id,name', 'bookingDetails.timeSlot:id,name'])

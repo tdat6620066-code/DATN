@@ -54,4 +54,32 @@ class ToolCallingAgentServiceTest extends TestCase
         $this->assertSame('Sân cầu lông dài 13,4m.', $result['answer']);
         $this->assertSame([], $result['tool_trace']);
     }
+
+    public function test_guest_agent_never_receives_account_only_tools(): void
+    {
+        $llm = $this->createMock(LlmClientService::class);
+        $registry = $this->createMock(SmashZoneToolRegistry::class);
+        $knowledge = $this->createMock(AiKnowledgeService::class);
+
+        $registry->method('definitions')->willReturn([
+            ['type' => 'function', 'name' => 'get_promotions'],
+            ['type' => 'function', 'name' => 'get_my_booking'],
+            ['type' => 'function', 'name' => 'get_my_notifications'],
+        ]);
+        $registry->expects($this->never())->method('execute');
+        $knowledge->method('recentConversation')->with(null)->willReturn([]);
+        $llm->expects($this->once())->method('toolTurn')->with(
+            $this->anything(),
+            $this->callback(fn (array $tools) => collect($tools)->pluck('name')->all() === ['get_promotions']),
+            null,
+            $this->stringContains('CHƯA ĐĂNG NHẬP'),
+        )->willReturn([
+            'output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'Câu trả lời công khai.']]]],
+        ]);
+
+        $agent = new ToolCallingAgentService($llm, $registry, new SmashBotPromptService, $knowledge);
+        $result = $agent->answer('Một câu hỏi chung', null);
+
+        $this->assertSame('Câu trả lời công khai.', $result['answer']);
+    }
 }

@@ -49,7 +49,7 @@ class SmashBotPromptService
         return implode("\n", array_filter([
             '# 1. VAI TRÒ',
             'Bạn là SmashBot — trợ lý AI của SmashZone, hệ thống đặt sân cầu lông trực tuyến.',
-            'Người trò chuyện là khách hàng đã đăng nhập; bạn chỉ được truy cập dữ liệu của chính tài khoản này.',
+            'Người trò chuyện có thể là khách chưa đăng nhập hoặc khách hàng; không tự suy diễn danh tính, chỉ đọc dữ liệu tài khoản khi tool cho phép.',
             'Thời điểm hiện tại: '.$now->format('d/m/Y H:i').' (múi giờ '.config('app.timezone').'), hôm nay là '.$now->toDateString().'.',
 
             '',
@@ -117,17 +117,27 @@ class SmashBotPromptService
      *
      * @param  array<int, array<string, mixed>>  $tools
      */
-    public function toolAgentSystem(array $tools = []): string
+    public function toolAgentSystem(array $tools = [], bool $isGuest = false): string
     {
         $now = now();
         $names = collect($tools)
             ->map(fn ($tool) => (string) data_get($tool, 'name', data_get($tool, 'function.name', '')))
             ->filter()->implode(', ');
+        $identityRules = $isGuest
+            ? [
+                'Khách đang trò chuyện CHƯA ĐĂNG NHẬP. Không được gọi hoặc giả vờ có dữ liệu booking, thông báo, thanh toán hoặc tài khoản cá nhân.',
+                'Khi khách muốn đặt sân, hướng dẫn rõ từng bước: ngày, khung giờ, tiêu chí sân/ngân sách; chỉ chuyển sang bước tiếp khi đủ thông tin. Nói rõ cần đăng nhập để tạo booking và thanh toán.',
+            ]
+            : [
+                'Khách đang trò chuyện đã đăng nhập. Chỉ được dùng tool tài khoản để đọc dữ liệu của chính tài khoản hiện tại.',
+                'Khi khách muốn đặt sân, hướng dẫn rõ từng bước và chỉ xác nhận khi khách đồng ý.',
+            ];
 
         return implode("\n", [
             '# 1. VAI TRÒ',
             'Bạn là SmashBot — trợ lý AI tự hành (agent) của SmashZone, hệ thống đặt sân cầu lông trực tuyến.',
             'Thời điểm hiện tại: '.$now->format('d/m/Y H:i').' (múi giờ '.config('app.timezone').'), hôm nay là '.$now->toDateString().'.',
+            ...$identityRules,
 
             '',
             '# 2. NHIỆM VỤ',
@@ -152,7 +162,9 @@ class SmashBotPromptService
             '',
             '# 5. NGUỒN SỰ THẬT',
             'Không tự bịa sân, giá, khung giờ trống, khuyến mãi, booking hoặc trạng thái thanh toán.',
-            'Mọi tool chỉ chạy trong phạm vi tài khoản đang đăng nhập; không lấy dữ liệu người dùng khác.',
+            $isGuest
+                ? 'Khách chưa đăng nhập chỉ được dùng tool công khai; tuyệt đối không suy diễn có booking, thông báo hay dữ liệu tài khoản.'
+                : 'Tool tài khoản chỉ đọc dữ liệu của chính người dùng hiện tại; không lấy dữ liệu người dùng khác.',
             'prepare_booking chỉ CHUẨN BỊ lựa chọn và luôn phải hỏi khách xác nhận; tuyệt đối không nói booking đã được tạo.',
             'Khi trả lời về lịch trống, nhắc khách mở trang Đặt sân để xác nhận thời gian thực trước khi thanh toán.',
 

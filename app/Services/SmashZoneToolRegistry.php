@@ -69,14 +69,14 @@ class SmashZoneToolRegistry
     public function securityContract(): array
     {
         return [
-            'identity_source' => 'authenticated_user',
+            'identity_source' => 'authenticated_user_or_public_guest',
             'model_can_supply_user_id' => false,
             'write_tools' => [],
             'confirmation_only_tools' => ['prepare_booking'],
         ];
     }
 
-    public function execute(string $name, array $arguments, User $user): array
+    public function execute(string $name, array $arguments, ?User $user): array
     {
         return match ($name) {
             'search_courts' => $this->searchCourts($arguments),
@@ -253,8 +253,11 @@ class SmashZoneToolRegistry
         ];
     }
 
-    private function getMyNotifications(array $arguments, User $user): array
+    private function getMyNotifications(array $arguments, ?User $user): array
     {
+        if (! $user) {
+            return ['ok' => false, 'error' => 'Bạn cần đăng nhập để xem thông báo cá nhân.'];
+        }
         $data = $this->validate($arguments, [
             'limit' => ['required', 'integer', 'between:1,10'],
             'unread_only' => ['required', 'boolean'],
@@ -276,8 +279,11 @@ class SmashZoneToolRegistry
         ])->all()];
     }
 
-    private function getMyBooking(array $arguments, User $user): array
+    private function getMyBooking(array $arguments, ?User $user): array
     {
+        if (! $user) {
+            return ['ok' => false, 'error' => 'Bạn cần đăng nhập để xem booking của mình.'];
+        }
         $data = $this->validate($arguments, ['booking_code' => ['nullable', 'string', 'max:50'], 'limit' => ['required', 'integer', 'between:1,5']]);
         $bookings = Booking::query()->where('user_id', $user->id)
             ->when(filled($data['booking_code'] ?? null), fn ($query) => $query->where('booking_code', strtoupper($data['booking_code'])))

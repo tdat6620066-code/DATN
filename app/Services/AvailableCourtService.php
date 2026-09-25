@@ -121,6 +121,7 @@ class AvailableCourtService
                 'action' => 'select_slot',
                 'label' => $slot->court_name.': '.substr($slot->start_time, 0, 5).' - '.substr($slot->end_time, 0, 5),
                 'court_id' => $slot->court_id,
+                'time_slot_id' => $slot->time_slot_id,
                 'date' => $date,
                 'start_time' => substr($slot->start_time, 0, 5),
                 'end_time' => substr($slot->end_time, 0, 5),

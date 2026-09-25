@@ -227,6 +227,24 @@ Route::get('/courts/{court}/availability', [
 
 /*
 |--------------------------------------------------------------------------
+| PUBLIC CHAT API - KHÁCH CHƯA ĐĂNG NHẬP
+|--------------------------------------------------------------------------
+|
+| Chat được công khai; mọi tool tài khoản và thao tác đặt/hủy booking vẫn
+| được kiểm tra lại trong service theo user hiện tại.
+|
+*/
+
+Route::post('/api/ai/chat', [ChatController::class, 'chat'])
+    ->middleware('throttle:'.(int) config('chatbot.rate_limit_per_minute', 20).',1')
+    ->name('api.ai.chat');
+
+Route::post('/api/ai/chat/stream', [ChatController::class, 'stream'])
+    ->middleware('throttle:30,1')
+    ->name('api.ai.chat.stream');
+
+/*
+|--------------------------------------------------------------------------
 | AUTHENTICATED - KHÁCH HÀNG
 |--------------------------------------------------------------------------
 |
@@ -238,17 +256,9 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | SmashBot AI (UC25) - chat + recommendation API
+    | SmashBot recommendation và các API AI cần tài khoản
     |--------------------------------------------------------------------------
     */
-
-    Route::post('/api/ai/chat', [ChatController::class, 'chat'])
-        ->middleware('throttle:'.(int) config('chatbot.rate_limit_per_minute', 20).',1')
-        ->name('api.ai.chat');
-
-    Route::post('/api/ai/chat/stream', [ChatController::class, 'stream'])
-        ->middleware('throttle:30,1')
-        ->name('api.ai.chat.stream');
 
     Route::get('/api/ai/courts', [AiController::class, 'courts'])
         ->name('api.ai.courts');

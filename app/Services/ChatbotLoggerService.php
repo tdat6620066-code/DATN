@@ -26,15 +26,16 @@ class ChatbotLoggerService
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
      */
-    public function log(User $user, string $question, array $result, int $latencyMs): array
+    public function log(?User $user, string $question, array $result, int $latencyMs): array
     {
         $status = ($result['understood'] ?? true) ? 'SUCCESS' : 'UNANSWERED';
+        $isGuest = $user === null;
         $engine = isset($result['engine']) ? Str::limit((string) $result['engine'], 80, '') : null;
         $intent = isset($result['intent']) ? Str::limit((string) $result['intent'], 80, '') : null;
 
         try {
             $log = ChatbotLog::create([
-                'user_id' => $user->id,
+                'user_id' => $user?->id,
                 'session_id_hash' => $this->sessionHash(),
                 'question' => $question,
                 'answer' => $result['answer'] ?? null,
@@ -42,7 +43,7 @@ class ChatbotLoggerService
                 'intent' => $intent,
                 'status' => $status,
                 'latency_ms' => $latencyMs,
-                'metadata' => $this->metadata($result),
+                'metadata' => $this->metadata($result, $isGuest),
             ]);
 
             if ($status === 'UNANSWERED' && filled($question)) {
@@ -52,7 +53,7 @@ class ChatbotLoggerService
             $confidence = data_get($result, 'classification.confidence');
 
             AiInteraction::create([
-                'user_id' => $user->id,
+                'user_id' => $user?->id,
                 'type' => 'CHATBOT',
                 'input' => $question,
                 'context' => [
@@ -90,7 +91,7 @@ class ChatbotLoggerService
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
      */
-    private function metadata(array $result): array
+    private function metadata(array $result, bool $isGuest = false): array
     {
         $tools = collect($result['tool_trace'] ?? [])
             ->map(fn ($item) => data_get($item, 'tool'))
@@ -109,6 +110,7 @@ class ChatbotLoggerService
             'tools' => $tools === [] ? null : $tools,
             'card_count' => count((array) ($result['cards'] ?? [])),
             'button_count' => count((array) ($result['buttons'] ?? [])),
+            'is_guest' => $isGuest ?: null,
         ], fn ($value) => $value !== null);
     }
 
