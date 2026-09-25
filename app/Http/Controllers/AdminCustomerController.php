@@ -11,7 +11,7 @@ class AdminCustomerController extends Controller
     public function index(Request $request)
     {
         $this->admin($request);
-        $customers = User::where('role', 'CUSTOMER')->withCount('bookings')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('segment'), fn ($q) => $q->where('customer_segment', $request->segment))->latest()->paginate(15)->withQueryString();
+        $customers = User::where('role', 'CUSTOMER')->withCount('bookings')->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('segment'), fn ($q) => $q->where('customer_segment', $request->segment))->latest()->orderByDesc('id')->paginate(15)->withQueryString();
 
         return view('admin.customers.index', compact('customers'));
     }
@@ -20,7 +20,7 @@ class AdminCustomerController extends Controller
     {
         $this->customer($customer, $request);
         $customer->loadCount('bookings');
-        $bookings = $customer->bookings()->with(['bookingDetails.court', 'payment'])->latest()->paginate(10);
+        $bookings = $customer->bookings()->with(['bookingDetails.court', 'payment'])->latest()->orderByDesc('id')->paginate(10);
 
         return view('admin.customers.show', compact('customer', 'bookings'));
     }

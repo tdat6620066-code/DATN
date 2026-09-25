@@ -49,11 +49,20 @@ class IncidentTicketService
 
     public function approve(CourtIncident $ticket, User $admin, float $amount): void
     {
-        if ($ticket->requested_solution === 'CONTACT_ME') {
+        if ($ticket->requested_solution === 'CONTACT_ME' && $ticket->proposed_solution !== 'REFUND') {
             return;
         }
         $booking = $ticket->booking;
         $payment = Payment::forBooking($booking)->lockForUpdate()->first();
+        $wholeBookingRefund = ($ticket->proposed_solution ?? 'REFUND') === 'REFUND';
+        if ($wholeBookingRefund) {
+            app(BookingRefundPolicy::class)->assertEligible($booking);
+            $amount = app(BookingRefundPolicy::class)->remaining($booking, $payment);
+            if ($booking->refundRequests()->whereIn('status', ['PENDING', 'NEEDS_INFO', 'APPROVED'])->whereDoesntHave('refund')->exists()) {
+                throw ValidationException::withMessages(['amount' => 'Booking đã có yêu cầu hoàn đang xử lý.']);
+            }
+            $ticket->update(['proposed_amount' => $amount]);
+        }
         $detail = $ticket->detail()->lockForUpdate()->firstOrFail();
         $snapshot = $ticket->booking_snapshot;
         if ($snapshot && ($snapshot['court_id'] !== $detail->court_id || $snapshot['date'] !== $detail->booking_date->toDateString() || $snapshot['time_slot_id'] !== $detail->time_slot_id)) {
@@ -65,21 +74,24 @@ class IncidentTicketService
         $reserved = $booking->refundRequests()->whereIn('status', ['PENDING', 'NEEDS_INFO', 'APPROVED'])->sum('amount');
         $base = max((float) $booking->subtotal, (float) $booking->bookingDetails()->sum('subtotal'), 1);
         $maximum = min((float) $booking->total_amount - $reserved, (float) $detail->subtotal, (float) $booking->total_amount * (float) $detail->subtotal / $base);
+        if ($wholeBookingRefund) $maximum = $amount;
         if ($amount <= 0 || round($amount * 100) > round($maximum * 100)) {
             throw ValidationException::withMessages(['amount' => 'Số tiền phải lớn hơn 0, không vượt giá trị lượt sân và số tiền còn được hoàn.']);
         }
         $slot = $detail->timeSlot;
         $resolution = IncidentResolution::create(['court_incident_id' => $ticket->id, 'booking_id' => $booking->id, 'booking_detail_id' => $detail->id, 'refund_amount' => $amount, 'original_slot' => ['court_id' => $detail->court_id, 'court' => $detail->court->name, 'date' => $detail->booking_date->toDateString(), 'time_slot_id' => $detail->time_slot_id, 'start_time' => $slot->start_time, 'end_time' => $slot->end_time, 'subtotal' => $detail->subtotal, 'unused_ratio' => min(1, $amount / max(0.01, min((float) $detail->subtotal, (float) $booking->total_amount * (float) $detail->subtotal / $base)))]]);
         $detail->update(['status' => 'CANCELLED']);
+        if ($wholeBookingRefund) $booking->bookingDetails()->update(['status' => 'CANCELLED']);
         if (! $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->exists()) {
             $booking->update(['status' => 'CANCELLED', 'cancelled_at' => now(), 'hold_expires_at' => null]);
         }
 
-        if ($ticket->requested_solution === 'REFUND' && ($ticket->proposed_solution ?? 'REFUND') === 'REFUND' && $ticket->refund_recipient) {
+        if (($ticket->proposed_solution ?? 'REFUND') === 'REFUND' && $ticket->refund_recipient) {
+            app(BookingRefundPolicy::class)->assertEligible($booking);
             $request = $resolution->refundRequests()->create([
                 'booking_id' => $booking->id, 'requested_by' => $ticket->reported_by,
                 'amount' => $amount, 'reason_code' => $ticket->type, 'reason' => $ticket->description,
-                'status' => 'APPROVED', 'cancel_booking' => false,
+                'status' => 'APPROVED', 'cancel_booking' => $wholeBookingRefund,
                 'reviewed_by' => $admin->id, 'reviewed_at' => now(), 'decision_note' => $ticket->review_note,
             ]);
             app(RefundRecipientService::class)->save($request, $ticket->refund_recipient, $ticket->refund_recipient['confirmed_at']);

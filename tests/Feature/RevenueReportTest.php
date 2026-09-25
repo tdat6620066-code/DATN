@@ -50,6 +50,44 @@ class RevenueReportTest extends TestCase
         $this->assertSame('2026-09-01', $full->fresh()->paid_at->toDateString());
     }
 
+    public function test_cash_flow_displays_receipt_and_refund_methods_separately(): void
+    {
+        $payment = $this->payment(200000);
+        $payment->update(['payment_method' => 'VNPAY']);
+        $this->refund($payment, 50000)->update(['refund_method' => 'CASH']);
+        $report = app(RevenueReportService::class)->report();
+        $this->assertSame(200000.0, $report['receipt_methods_daily']['2026-09-01']['VNPAY']);
+        $this->assertSame(50000.0, $report['refund_methods_daily']['2026-09-02']['CASH']);
+        $this->actingAs(User::factory()->create(['role' => 'ADMIN']))
+            ->get(route('admin.reports.cash-flow', ['from' => '2026-09-01', 'to' => '2026-09-02']))
+            ->assertOk()->assertSee('Phương thức thu')->assertSee('Phương thức hoàn')
+            ->assertSee('VNPay')->assertSee('Tiền mặt');
+    }
+
+    public function test_cash_sources_reconcile_without_counting_pending_payments(): void
+    {
+        $this->payment(150000)->update(['purpose' => 'BOOKING', 'payment_method' => 'VNPAY']);
+        $this->payment(30000)->update(['purpose' => 'SERVICE', 'payment_method' => 'CASH']);
+        $this->payment(90000, 'PENDING')->update(['purpose' => 'SERVICE']);
+        $report = app(RevenueReportService::class)->report();
+        $this->assertSame(150000.0, $report['sources']['booking']['amount']);
+        $this->assertSame(30000.0, $report['sources']['service']['amount']);
+        $this->assertEquals($report['gross_revenue'], $report['sources']->sum('amount'));
+        $this->assertEquals($report['gross_revenue'], $report['methods']->sum('amount'));
+        $this->assertSame(1, $report['sources']['service']['count']);
+    }
+
+    public function test_payment_pages_show_remaining_money_after_completed_refunds(): void
+    {
+        $payment = $this->payment(192000);
+        $this->refund($payment, 96000);
+        $this->refund($payment, 10000, 'PROCESSING');
+        $this->actingAs(User::factory()->create(['role' => 'ADMIN']));
+        foreach ([route('admin.payments.index'), route('admin.payments.show', $payment)] as $url) {
+            $this->get($url)->assertOk()->assertSee('Đã hoàn: 96.000đ')->assertSee('Còn lại: 96.000đ');
+        }
+    }
+
     public function test_only_completed_refunds_reduce_revenue_even_with_multiple_refunds(): void
     {
         $payment = $this->payment(300000);

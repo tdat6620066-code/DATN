@@ -8,8 +8,6 @@
 <div><a class="small text-decoration-none" href="{{ auth()->user()->role === 'CUSTOMER' ? route('bookings.show', $ticket->booking) : route('incident-tickets.index') }}">← {{ auth()->user()->role === 'CUSTOMER' ? 'Chi tiết booking' : 'Yêu cầu hỗ trợ' }}</a><h1>Chi tiết yêu cầu</h1><div class="sz-ticket-code">{{ $ticket->incident_code }}</div></div>
 <span class="sz-ticket-status">{{ \App\Models\CourtIncident::TICKET_STATUSES[$ticket->status] }}</span>
 </header>
-@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
-@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 <div class="sz-ticket-grid"><div>
 <section class="sz-work-panel mb-3">
 <h2 class="h6 mb-4">Thông tin đơn & sự cố</h2>
@@ -52,14 +50,25 @@
 <form method="POST" action="{{ route('incident-tickets.supplement',$ticket) }}" enctype="multipart/form-data" class="sz-work-panel">@csrf<label>Bổ sung thông tin</label><textarea name="note" class="form-control mb-2" maxlength="4000" required>{{ old('note') }}</textarea>@include('partials.media-upload', ['label' => 'Thêm ảnh/video minh chứng', 'hint' => 'Tối đa 5 tệp/lần, 20MB/tệp; tổng 10 tệp cho một yêu cầu.'])<button class="sz-action sz-action--primary mt-3">Gửi bổ sung</button></form>
 @endif
 @else
-@if(!in_array($ticket->status,['REJECTED','RESOLVED']))
+@php($pendingResolution = $ticket->status === 'APPROVED' && $ticket->resolutions()->where('status', '!=', 'RESOLVED')->exists())
+@if($pendingResolution)
+<section class="sz-work-panel mb-3">
+<h2 class="h6">Đã chấp thuận · Chưa hoàn tất hoàn tiền</h2>
+@if($ticket->resolutions->contains(fn($resolution) => $resolution->refundRequests->isNotEmpty()))
+<p class="mb-0">Mở khoản hoàn bên dưới để tiếp tục chi trả. Yêu cầu sẽ tự đóng sau khi xác nhận hoàn tiền thành công.</p>
+@else
+<p class="mb-0">Khách cần mở chi tiết booking, chọn “Hoàn toàn booking” và gửi thông tin nhận tiền. Sau đó quản trị viên duyệt và thực hiện chi trả. Chấp thuận hỗ trợ chưa có nghĩa là đã hoàn tiền.</p>
+@endif
+</section>
+@endif
+@if(!in_array($ticket->status,['REJECTED','RESOLVED']) && !$pendingResolution)
 <form method="POST" action="{{ route('incident-tickets.review',$ticket) }}" class="sz-work-panel mb-3">@csrf
 <h2 class="h6 mb-3">{{ auth()->user()->role === 'ADMIN' ? 'Xem xét yêu cầu' : 'Báo cáo Admin' }}</h2>
 <label>Kết quả xác minh</label><textarea name="note" class="form-control mb-3" rows="2" maxlength="4000" required>{{ old('note') }}</textarea>
 @if(auth()->user()->role === 'ADMIN')<label>Nhân sự phụ trách</label><select name="assigned_to" class="form-select mb-3"><option value="">Giữ người đang phụ trách</option>@foreach($staff as $person)<option value="{{ $person->id }}">{{ $person->name }}</option>@endforeach</select>@endif
 <div class="row g-2 mb-3">
-<div class="col-md-7"><label for="review-solution" class="small mb-1">Đề xuất xử lý</label><select id="review-solution" name="proposed_solution" class="form-select">@foreach(\App\Models\CourtIncident::SOLUTIONS as $code=>$label)<option value="{{ $code }}" @selected(old('proposed_solution', $ticket->proposed_solution ?? $ticket->requested_solution) === $code)>{{ $label }}</option>@endforeach</select></div>
-<div class="col-md-5"><label for="review-amount" class="small mb-1">Số tiền đề xuất (đ)</label><input id="review-amount" name="amount" type="number" min="0.01" step="0.01" value="{{ old('amount',$ticket->proposed_amount) }}" class="form-control"></div>
+<div class="col-md-7"><label for="review-solution" class="small mb-1">Đề xuất xử lý</label><select id="review-solution" name="proposed_solution" class="form-select">@foreach(\App\Models\CourtIncident::AVAILABLE_SOLUTIONS as $code=>$label)<option value="{{ $code }}" @selected(old('proposed_solution', $ticket->proposed_solution ?? $ticket->requested_solution) === $code)>{{ $label }}</option>@endforeach</select></div>
+<div class="col-md-5"><label for="review-amount" class="small mb-1">Số tiền hoàn toàn booking (đ)</label><input id="review-amount" name="amount" type="number" min="0.01" step="0.01" value="{{ app(\App\Services\BookingRefundPolicy::class)->remaining($ticket->booking) }}" class="form-control" readonly><small class="text-muted">Hoàn booking được tự tính từ khoản đã thanh toán, trừ khoản đã hoàn. Booking đã check-in không được hoàn.</small></div>
 </div>
 <p class="small text-muted">{{ auth()->user()->role === 'ADMIN' ? 'Kiểm tra minh chứng trước khi quyết định hỗ trợ.' : 'Admin sẽ xem xét báo cáo trước khi duyệt.' }}</p>
 <div class="sz-action-bar">

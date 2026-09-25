@@ -40,6 +40,7 @@
 
     @php($lastNoticeDay = null)
     <div class="customer-notice-timeline">
+    <div id="live-notification-page">
     @forelse ($notifications as $notification)
         @php($noticeDay = $notification->created_at->toDateString())
         @if($noticeDay !== $lastNoticeDay)
@@ -121,6 +122,7 @@
     @endforelse
 
     {{ $notifications->links() }}
+    </div>
 
 
 </div></x-customer-shell>

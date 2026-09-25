@@ -19,7 +19,6 @@
     @if(session('booking_errors'))
         <div class="alert alert-danger"><strong>Một số lịch không còn khả dụng:</strong><ul class="mb-0 mt-2">@foreach(session('booking_errors') as $error)<li>{{ \Carbon\Carbon::parse($error['booking_date'])->format('d/m/Y') }} · {{ $error['message'] }}</li>@endforeach</ul></div>
     @endif
-    @if($errors->any())<div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>@endif
     <div class="recurring-layout"><section>
         <div class="recurring-card"><div class="card-head"><i class="bi bi-repeat"></i><h2>Thiết lập lịch đặt sân</h2></div><div class="card-body"><span class="booking-tag"><i class="bi bi-arrow-repeat"></i>{{ $bookingType === 'monthly' ? 'Đặt theo tháng' : 'Đặt theo tuần' }}</span>
         <form id="bookingForm" action="{{ route('bookings.recurring.preview') }}" method="POST">@csrf<input type="hidden" name="booking_type" value="{{ $bookingType }}">

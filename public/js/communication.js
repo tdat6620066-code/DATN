@@ -1,5 +1,52 @@
 document.addEventListener('DOMContentLoaded', () => {
     const notices = document.querySelector('header [data-notifications]');
+    if (notices) {
+        let busy = false, version = null, stopped = false;
+        const refreshNotices = async () => {
+            if (busy || stopped) return;
+            busy = true;
+            try {
+                const response = await fetch(notices.dataset.liveUrl, {cache:'no-store', headers:{Accept:'application/json'}, signal:AbortSignal.timeout(8000)});
+                if ([401,403].includes(response.status) || response.redirected) { stopped = true; return; }
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data.version === version) return;
+                const next = new DOMParser().parseFromString(data.html, 'text/html').querySelector('[data-notifications]');
+                if (!next) return;
+                const badge = notices.querySelector('[data-unread-count]');
+                const nextBadge = next.querySelector('[data-unread-count]');
+                badge.textContent = nextBadge.textContent;
+                badge.hidden = nextBadge.hidden;
+                badge.dataset.unreadCount = nextBadge.dataset.unreadCount;
+                notices.querySelector('.sz-notification-trigger').setAttribute('aria-label', next.querySelector('.sz-notification-trigger').getAttribute('aria-label'));
+                const list = notices.querySelector('[data-notification-list]');
+                const top = list.scrollTop;
+                list.replaceChildren(...next.querySelector('[data-notification-list]').childNodes);
+                list.scrollTop = top;
+                notices.querySelector('[data-read-all]').disabled = next.querySelector('[data-read-all]').disabled;
+                const pageList = document.getElementById('live-notification-page');
+                if (pageList && version !== null) {
+                    const pageResponse = await fetch(location.href, {cache:'no-store', signal:AbortSignal.timeout(8000)});
+                    if (!pageResponse.ok || pageResponse.redirected) return;
+                    const updated = new DOMParser().parseFromString(await pageResponse.text(), 'text/html').getElementById('live-notification-page');
+                    if (updated) {
+                        const y = window.scrollY;
+                        pageList.replaceChildren(...updated.childNodes);
+                        window.scrollTo({top:y, behavior:'instant'});
+                    }
+                }
+                version = data.version;
+            } catch (_) { /* Keep the current notifications and retry. */ }
+            finally { busy = false; }
+        };
+        // Push when broadcasting is available; fallback also covers non-broadcast writes.
+        window.Echo?.private(`users.${notices.dataset.user}`).listen('.customer.notification.created', refreshNotices);
+        setInterval(refreshNotices, 2000);
+        window.addEventListener('focus', refreshNotices);
+        window.addEventListener('online', refreshNotices);
+        notices.addEventListener('show.bs.dropdown', refreshNotices);
+        refreshNotices();
+    }
     notices?.addEventListener('show.bs.dropdown',()=>{
         const bottom=notices.closest('header')?.getBoundingClientRect().bottom||70;
         notices.style.setProperty('--notification-top',`${Math.min(bottom+8,Math.max(80,innerHeight-260))}px`);
@@ -8,27 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(form.getAttribute('aria-busy')==='true'){event.preventDefault();return;}
         form.setAttribute('aria-busy','true');form.querySelector('button').disabled=true;
     }));
-    if (notices && window.Echo) {
-        window.Echo.private(`users.${notices.dataset.user}`).listen('.customer.notification.created', notification => {
-            const badge = notices.querySelector('[data-unread-count]');
-            const count = Number(badge.dataset.unreadCount || 0) + 1;
-            badge.dataset.unreadCount = String(count); badge.textContent = count > 99 ? '99+' : String(count); badge.hidden = false;
-            notices.querySelector('.sz-notification-trigger').setAttribute('aria-label', `Thông báo, ${count} chưa đọc`);
-            notices.querySelector('[data-read-all]').disabled = false;
-            notices.querySelector('[data-notification-empty]')?.remove();
-            const item = document.createElement('article'); item.className = 'sz-notification-item is-unread';
-            const content = document.createElement('div'); const link = document.createElement('a');
-            link.className = 'sz-notification-title'; link.href = notices.dataset.allUrl; link.textContent = notification.title || 'Thông báo mới';
-            const text = document.createElement('p'); text.textContent = notification.content || '';
-            const time = document.createElement('time'); time.dateTime = new Date().toISOString(); time.textContent = 'Vừa xong · Chưa đọc';
-            content.append(link,text,time); item.append(content); notices.querySelector('[data-notification-list]').prepend(item);
-            const items = notices.querySelector('[data-notification-list]'); while (items.children.length > 6) items.lastElementChild.remove();
-            document.querySelector('.sz-communication-toast')?.remove();
-            const toast = document.createElement('div'); toast.className = 'sz-communication-toast'; toast.setAttribute('role','status');
-            const close = document.createElement('button'); close.type='button'; close.className='btn-close float-end ms-2'; close.setAttribute('aria-label','Đóng thông báo'); close.addEventListener('click',()=>toast.remove());
-            toast.append(close,link.cloneNode(true),text.cloneNode(true)); document.body.append(toast); setTimeout(()=>toast.remove(),10000);
-        });
-    }
     const panel = document.getElementById('ai-chat-panel');
     if (!panel) return;
     const launcher = document.getElementById('ai-chat-launcher');

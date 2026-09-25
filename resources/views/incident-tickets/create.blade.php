@@ -14,7 +14,7 @@
 <label>Loại sự cố</label><select name="type" class="form-select mb-3" required>@foreach(\App\Models\CourtIncident::TYPES as $code=>$label)<option value="{{ $code }}" @selected(old('type') === $code)>{{ $label }}</option>@endforeach</select>
 <label>Mô tả sự cố</label><textarea name="description" class="form-control mb-3" rows="4" minlength="10" maxlength="4000" required>{{ old('description') }}</textarea>
 @include('partials.media-upload', ['label' => 'Ảnh/video minh chứng (tùy chọn)'])
-<label>Mong muốn xử lý</label><select name="requested_solution" class="form-select mb-3" required>@foreach(\App\Models\CourtIncident::SOLUTIONS as $code=>$label)<option value="{{ $code }}" @selected(old('requested_solution') === $code)>{{ $label }}</option>@endforeach</select>
+<label>Mong muốn xử lý</label><select name="requested_solution" class="form-select mb-3" required>@foreach(\App\Models\CourtIncident::AVAILABLE_SOLUTIONS as $code=>$label)<option value="{{ $code }}" @selected(old('requested_solution') === $code)>{{ $label }}</option>@endforeach</select>
 <fieldset id="incident-refund-bank" class="border rounded p-3 mb-3">
 <legend class="h6">Thông tin nhận hoàn tiền</legend>
 @include('partials.refund-bank-fields')

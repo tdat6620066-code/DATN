@@ -26,7 +26,7 @@ class RefundPayoutController extends Controller
 
     public function index()
     {
-        $items = RefundRequest::with('booking.user')->where('status', 'APPROVED')->whereDoesntHave('refund')->latest()->paginate(20);
+        $items = RefundRequest::with('booking.user')->where('status', 'APPROVED')->whereDoesntHave('refund')->latest()->orderByDesc('id')->paginate(20);
 
         return view('refund-payouts.index', compact('items'));
     }

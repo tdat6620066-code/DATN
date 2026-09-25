@@ -39,7 +39,7 @@ class AdminAccessController extends Controller
     {
         $users = User::with('accessRole')->when($request->filled('search'), fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')))
             ->when($request->filled('role'), fn ($q) => $q->where('role', $request->role))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(15)->withQueryString();
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->orderByDesc('id')->paginate(15)->withQueryString();
         return view('admin.access.users', compact('users'));
     }
 

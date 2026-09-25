@@ -22,10 +22,7 @@
 
     <!-- Messages -->
     <div class="container">
-        @if ($errors->has('daily_duration_confirmed'))
         @include('partials.daily-duration-confirmation')
-        @endif
-
         @if (collect($errors->getMessages())->except('daily_duration_confirmed')->isNotEmpty())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Lỗi:</strong>

@@ -345,6 +345,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
+    Route::get('/notifications/live', [NotificationController::class, 'live'])->name('notifications.live');
     Route::get('/notifications', [
         NotificationController::class,
         'index',

@@ -34,7 +34,7 @@ class AdminContentController extends Controller
         $statusField = $kind === 'services' ? 'is_active' : ($kind === 'faqs' ? 'active' : 'status');
         if ($request->filled('status')) $query->where($statusField, $request->input('status'));
         if ($kind === 'services' && $request->boolean('low_stock')) $query->whereNotNull('stock')->where('stock', '<=', 5);
-        $items = $query->latest()->paginate(15)->withQueryString();
+        $items = $query->latest()->orderByDesc('id')->paginate(15)->withQueryString();
         return view('admin.content.index', compact('kind', 'title', 'label', 'items', 'statusField') + ['statuses' => $this->statuses($kind)]);
     }
 

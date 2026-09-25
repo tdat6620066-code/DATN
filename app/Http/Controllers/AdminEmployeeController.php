@@ -17,7 +17,7 @@ class AdminEmployeeController extends Controller
     public function index(Request $request)
     {
         $this->admin($request);
-        $employees = User::whereIn('role', ['EMPLOYEE', 'ADMIN'])->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')))->latest()->paginate(15)->withQueryString();
+        $employees = User::whereIn('role', ['EMPLOYEE', 'ADMIN'])->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')))->latest()->orderByDesc('id')->paginate(15)->withQueryString();
 
         return view('admin.employees.index', ['employees' => $employees, 'permissionOptions' => self::DASHBOARD_PERMISSION + self::PERMISSIONS]);
     }

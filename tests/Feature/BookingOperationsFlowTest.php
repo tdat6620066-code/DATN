@@ -29,8 +29,9 @@ class BookingOperationsFlowTest extends TestCase
     {
         [$staff, $booking] = $this->fixture();
         $snapshot = $booking->bookingDetails()->first()->only(['booking_date', 'time_slot_id']);
+        $this->travelTo(today()->setTime(17, 59, 59));
         $this->post(route('operations.check-in', $booking))->assertSessionHas('error');
-        $this->travelTo(today()->setTime(18, 30));
+        $this->travelTo(today()->setTime(18, 0));
         $this->post(route('operations.check-in', $booking))->assertSessionHas('success');
         $this->assertSame($staff->id, $booking->fresh()->checked_in_by);
         $this->post(route('operations.check-in', $booking))->assertSessionHas('error');

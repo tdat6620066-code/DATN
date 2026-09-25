@@ -46,6 +46,24 @@ class IncidentTicketTest extends TestCase
         return ['booking_detail_id' => $booking->bookingDetails()->first()->id, 'type' => 'WEATHER', 'description' => 'Sân bị ngập do mưa lớn, không thể sử dụng.', 'requested_solution' => 'REFUND', 'bank_name' => 'Test Bank', 'bank_account_number' => '001234567890', 'bank_account_holder' => 'TEST CUSTOMER', 'recipient_confirmed' => 1];
     }
 
+    public function test_refund_approval_uses_all_slots_and_cancels_entire_booking(): void
+    {
+        [$customer, , $admin, $booking] = $this->fixture();
+        $detail = $booking->bookingDetails()->first();
+        $slot = TimeSlot::create(['name' => 'Later', 'start_time' => '20:00', 'end_time' => '21:00', 'duration' => 60, 'status' => 'ACTIVE']);
+        $booking->bookingDetails()->create(['court_id' => $detail->court_id, 'time_slot_id' => $slot->id, 'booking_date' => $detail->booking_date, 'price' => 150000, 'subtotal' => 150000, 'status' => 'CONFIRMED']);
+        $booking->update(['subtotal' => 300000, 'total_amount' => 270000]);
+        $booking->payment->update(['amount' => 270000]);
+        $this->actingAs($customer)->post(route('incident-tickets.store', $booking), $this->payload($booking))->assertSessionHasNoErrors();
+        $ticket = CourtIncident::firstOrFail();
+        $this->actingAs($admin)->post(route('incident-tickets.review', $ticket), ['action' => 'APPROVED', 'note' => 'Whole booking'])->assertSessionHasNoErrors();
+        $refund = RefundRequest::firstOrFail();
+        $this->assertSame('270000.00', $refund->amount);
+        $this->assertTrue((bool) $refund->cancel_booking);
+        $this->assertSame(2, $booking->bookingDetails()->where('status', 'CANCELLED')->count());
+        $this->assertSame('CANCELLED', $booking->fresh()->status);
+    }
+
     public function test_customer_creates_ticket_without_refund_and_one_open_ticket_per_booking(): void
     {
         [$customer,$staff,$admin,$booking] = $this->fixture();
@@ -134,12 +152,12 @@ class IncidentTicketTest extends TestCase
         $this->post(route('incident-tickets.review', $ticket), ['action' => 'RESOLVED', 'note' => 'Thử đóng trước hoàn tiền'])->assertSessionHasErrors();
         $this->actingAs($staff)->post(route('special-refunds.review', $refund), ['decision' => 'APPROVED', 'decision_note' => 'Thử duyệt'])->assertForbidden();
         $this->actingAs($admin);
-        $this->assertSame('100000.00', $refund->fresh()->amount);
+        $this->assertSame('150000.00', $refund->fresh()->amount);
         $this->post(route('special-refunds.processing', $refund), ['refund_method' => 'CASH'])->assertSessionHasNoErrors();
-        $this->post(route('special-refunds.complete', $refund), ['amount' => 100000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'TICKET-REFUND'])->assertSessionHasNoErrors();
+        $this->post(route('special-refunds.complete', $refund), ['amount' => 150000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'TICKET-REFUND'])->assertSessionHasNoErrors();
         $this->assertSame('RESOLVED', $ticket->fresh()->status);
         $this->assertNull($ticket->fresh()->active_booking_id);
-        $this->assertSame('PARTIALLY_REFUNDED', $booking->fresh()->payment->refund_status);
+        $this->assertSame('REFUNDED', $booking->fresh()->payment->refund_status);
     }
 
     public function test_private_evidence_and_cross_customer_authorization(): void
@@ -178,9 +196,9 @@ class IncidentTicketTest extends TestCase
         $refund = RefundRequest::firstOrFail();
         $this->assertSame('REVIEWING', $ticket->fresh()->status);
         $this->post(route('special-refunds.processing', $refund), ['refund_method' => 'CASH'])->assertSessionHasNoErrors();
-        $this->post(route('special-refunds.complete', $refund), ['amount' => 150000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'DIRECT-REFUND'])->assertSessionHasErrors('amount');
+        $this->post(route('special-refunds.complete', $refund), ['amount' => 100000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'DIRECT-REFUND'])->assertSessionHasErrors('amount');
         $this->assertSame('REVIEWING', $ticket->fresh()->status);
-        $this->post(route('special-refunds.complete', $refund), ['amount' => 100000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'DIRECT-REFUND'])->assertSessionHasNoErrors();
+        $this->post(route('special-refunds.complete', $refund), ['amount' => 150000, 'receipt_image' => $this->receiptImage(), 'refund_code' => 'DIRECT-REFUND'])->assertSessionHasNoErrors();
         $this->assertSame('RESOLVED', $ticket->fresh()->status);
         $this->assertNull($ticket->fresh()->active_booking_id);
         $this->assertTrue($ticket->fresh()->resolved_at->equalTo($refund->fresh()->refund->processed_at));

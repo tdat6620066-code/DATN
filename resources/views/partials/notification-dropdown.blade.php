@@ -3,7 +3,7 @@
     $navNotifications = auth()->user()->userNotifications()->latest()->orderByDesc('id')->limit(6)->get();
     $navUnread = auth()->user()->userNotifications()->where('is_read', false)->count();
 @endphp
-<div class="dropdown sz-notifications" data-notifications data-user="{{ auth()->id() }}" data-all-url="{{ route('notifications.index') }}">
+<div class="dropdown sz-notifications" data-live-url="{{ route('notifications.live') }}" data-notifications data-user="{{ auth()->id() }}" data-all-url="{{ route('notifications.index') }}">
 <button class="sz-notification-trigger" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Thông báo, {{ $navUnread }} chưa đọc"><i class="bi bi-bell" aria-hidden="true"></i><span class="sz-notification-count" data-unread-count="{{ $navUnread }}" @if(!$navUnread) hidden @endif>{{ $navUnread>99?'99+':$navUnread }}</span></button>
 <div class="dropdown-menu dropdown-menu-end sz-notification-menu">
 <div class="d-flex justify-content-between align-items-center gap-2 p-3 border-bottom"><strong>Thông báo</strong><a href="{{ route('notifications.index') }}">Xem tất cả</a></div>

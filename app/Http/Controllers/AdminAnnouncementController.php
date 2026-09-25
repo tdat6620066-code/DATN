@@ -23,7 +23,7 @@ class AdminAnnouncementController extends Controller
             ])
             ->when($request->filled('search'), fn ($query) => $query->where('title', 'like', '%'.$request->search.'%'))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
-            ->latest()->paginate(20)->withQueryString();
+            ->latest()->orderByDesc('id')->paginate(20)->withQueryString();
 
         $customers = User::where('role', 'CUSTOMER')->orderBy('name')->get(['id', 'name', 'email']);
         $courts = Court::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'address']);
