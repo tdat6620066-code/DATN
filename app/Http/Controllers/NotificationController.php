@@ -6,6 +6,16 @@ use App\Models\Notification;
 
 class NotificationController extends Controller
 {
+    public function live()
+    {
+        $query = auth()->user()->userNotifications();
+        $latest = (clone $query)->latest()->orderByDesc('id')->limit(6)->get();
+        $unread = (clone $query)->where('is_read', false)->count();
+        return response()->json([
+            'version' => hash('sha256', $latest->toJson().':'.$unread),
+            'html' => view('partials.notification-dropdown')->render(),
+        ])->header('Cache-Control', 'private, no-store');
+    }
     /*
     |--------------------------------------------------------------------------
     | UC09

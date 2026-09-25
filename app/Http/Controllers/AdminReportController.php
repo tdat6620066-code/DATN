@@ -26,6 +26,17 @@ class AdminReportController extends Controller
             $rows[] = ['Sân hiện tại: '.$court->status, $court->total];
         }
         foreach ($revenue['courts'] as $court) $rows[] = ['Doanh thu sân: '.$court['name'], $court['amount']];
+        $labels = ['CASH' => 'Tiền mặt', 'VNPAY' => 'VNPay', 'BANK_TRANSFER' => 'Chuyển khoản ngân hàng', 'MOMO' => 'MoMo', 'UNKNOWN' => 'Chưa xác định'];
+        $rows[] = [];
+        $rows[] = ['Loại giao dịch', 'Ngày / sân', 'Phương thức', 'Số tiền'];
+        foreach (['receipt_methods_daily' => 'Thu tiền', 'refund_methods_daily' => 'Hoàn tiền'] as $key => $type) {
+            foreach ($cash[$key]->sortKeysDesc() as $date => $methods) {
+                foreach ($methods as $method => $amount) $rows[] = [$type, $date, $labels[strtoupper($method)] ?? $method, $amount];
+            }
+        }
+        foreach ($revenue['courts'] as $court) {
+            foreach ($court['methods'] as $method => $amount) $rows[] = ['Thu từ sân', $court['name'], $labels[strtoupper($method)] ?? $method, $amount];
+        }
         return response()->streamDownload(function () use ($rows) {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");

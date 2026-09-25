@@ -196,11 +196,11 @@
     <section class="card border-success mb-4" aria-labelledby="recurring-booking-heading">
         <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div>
-                <h2 class="h5 mb-2" id="recurring-booking-heading"><i class="bi bi-calendar2-repeat text-success me-2" aria-hidden="true"></i>Đặt lịch cố định</h2>
-                <p class="text-muted mb-0">Giữ nhịp chơi cho nhóm: chọn sân, khung giờ và lịch lặp lại theo tuần hoặc tháng.</p>
+                <h2 class="h5 mb-2" id="recurring-booking-heading"><i class="bi bi-calendar-week text-success me-2" aria-hidden="true"></i>Đặt lịch cố định</h2>
+                <p class="text-muted mb-0">Chọn sân, khung giờ và lịch chơi lặp lại theo tuần hoặc tháng.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-success" href="{{ route('bookings.create-recurring', ['booking_type' => 'weekly']) }}">Đặt theo tuần <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+                <a class="btn btn-success" href="{{ route('bookings.create-recurring', ['booking_type' => 'weekly']) }}">Đặt theo tuần</a>
                 <a class="btn btn-outline-success" href="{{ route('bookings.create-recurring', ['booking_type' => 'monthly']) }}">Đặt theo tháng</a>
             </div>
         </div>
@@ -409,10 +409,10 @@ function expirePastSlots() {
 setInterval(expirePastSlots, 1000);
 let refreshingSchedule = false;
 async function refreshSchedule() {
-    if (refreshingSchedule || document.hidden || document.getElementById('bookingForm').getAttribute('aria-busy') === 'true') return;
+    if (refreshingSchedule || document.getElementById('bookingForm').getAttribute('aria-busy') === 'true') return;
     refreshingSchedule = true;
     try {
-        const response = await fetch(window.location.href, {cache: 'no-store', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+        const response = await fetch(location.href, {cache: 'no-store', signal: AbortSignal.timeout(10000)});
         if (!response.ok) return;
         const page = new DOMParser().parseFromString(await response.text(), 'text/html');
         page.querySelectorAll('.time-slot-cell[data-court-id]').forEach(fresh => {
@@ -431,10 +431,13 @@ async function refreshSchedule() {
         });
         updateSummary();
         expirePastSlots();
-    } catch { /* Keep the current selection and retry after a temporary network failure. */ }
+    } catch { /* Preserve selections while offline and retry. */ }
     finally { refreshingSchedule = false; }
 }
 setInterval(refreshSchedule, 5000);
+window.addEventListener('online', refreshSchedule);
+window.addEventListener('focus', refreshSchedule);
+refreshSchedule();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSchedule(); });
 document.getElementById('bookingForm').addEventListener('submit', event => {
     expirePastSlots();

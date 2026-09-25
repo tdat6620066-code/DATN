@@ -19,7 +19,7 @@ class EmployeeRetailController extends Controller
             'activeBookings' => $activeBookings,
             'selectedBooking' => $selectedBooking,
             'items' => ServiceItem::where('is_active', true)->orderBy('name')->get(),
-            'sales' => CounterSale::where('employee_id', $request->user()->id)->latest()->paginate(15),
+            'sales' => CounterSale::where('employee_id', $request->user()->id)->latest()->orderByDesc('id')->paginate(15),
         ]);
     }
 

@@ -8,13 +8,14 @@ if (checkout) {
     const serverNow = Number(countdown?.dataset.serverNow);
     let expired = false;
     let busy = false;
+    const sync = () => { button.disabled = expired || busy; };
     let refreshing = false;
     let finished = false;
     const refreshStatus = async () => {
-        if (refreshing || finished || busy || document.hidden) return;
+        if (refreshing || finished || busy) return;
         refreshing = true;
         try {
-            const response = await fetch(window.location.href, { cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const response = await fetch(location.href, {cache: 'no-store', signal: AbortSignal.timeout(10000)});
             if (!response.ok) return;
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
             const main = page.getElementById('sz-main');
@@ -22,10 +23,9 @@ if (checkout) {
                 finished = true;
                 document.getElementById('sz-main').replaceChildren(...main.childNodes);
             }
-        } catch { /* Retry on the next status check if the connection is interrupted. */ }
+        } catch { /* Retry when the connection recovers. */ }
         finally { refreshing = false; }
     };
-    const sync = () => { button.disabled = expired || busy; };
     const tick = () => {
         if (!countdown || finished) return;
         const remaining = Math.max(0, Math.ceil((Number(countdown.dataset.holdDeadline) - serverNow - (performance.now() - started)) / 1000));
@@ -33,7 +33,7 @@ if (checkout) {
         expired = remaining === 0;
         if (expired) {
             status.hidden = false;
-            status.textContent = 'Đã hết thời gian giữ chỗ. Đang cập nhật trạng thái đơn đặt sân…';
+            status.textContent = 'Đã hết thời gian giữ chỗ. Đang cập nhật trạng thái thanh toán…';
             refreshStatus();
         }
         sync();
@@ -52,6 +52,9 @@ if (checkout) {
     tick(); sync();
     if (countdown) setInterval(tick, 1000);
     setInterval(refreshStatus, 5000);
+    window.addEventListener('online', refreshStatus);
+    window.addEventListener('focus', () => { tick(); refreshStatus(); });
+    refreshStatus();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); refreshStatus(); } });
 }
 

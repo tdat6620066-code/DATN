@@ -18,7 +18,7 @@ class AdminKnowledgeBaseController extends Controller
                 ->orWhere('answer', 'like', '%'.$request->search.'%')))
             ->when($request->filled('category'), fn ($query) => $query->where('category', $request->category))
             ->when($request->filled('sync_status'), fn ($query) => $query->where('sync_status', $request->sync_status))
-            ->orderByDesc('priority')->latest()->paginate(15)->withQueryString();
+            ->orderByDesc('priority')->latest()->orderByDesc('id')->paginate(15)->withQueryString();
 
         return view('admin.knowledge-base.index', [
             'items' => $items,

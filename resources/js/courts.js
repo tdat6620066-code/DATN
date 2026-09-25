@@ -98,18 +98,18 @@ if (bookingForm) {
     update();
     let refreshing = false;
     const refreshSchedule = async () => {
-        if (refreshing || document.hidden || bookingForm.getAttribute('aria-busy') === 'true') return;
+        if (refreshing || bookingForm.getAttribute('aria-busy') === 'true') return;
         refreshing = true;
         try {
-            const response = await fetch(window.location.href, { cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const response = await fetch(location.href, {cache: 'no-store', signal: AbortSignal.timeout(10000)});
             if (!response.ok) return;
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-            let changed = false;
             cells.forEach(cell => {
                 const fresh = page.querySelector(`.court-slot[data-court="${cell.dataset.court}"][data-slot="${cell.dataset.slot}"]`);
                 if (!fresh) return;
                 if (fresh.disabled && selected.get(cell.dataset.slot) === cell) {
-                    selected.delete(cell.dataset.slot); changed = true;
+                    selected.delete(cell.dataset.slot);
+                    tell('Lịch sân vừa thay đổi. Vui lòng kiểm tra lại khung giờ đã chọn.');
                 }
                 cell.disabled = fresh.disabled;
                 cell.dataset.price = fresh.dataset.price;
@@ -120,11 +120,13 @@ if (bookingForm) {
                 cell.setAttribute('aria-pressed', String(active));
                 if (active) cell.querySelector('[data-slot-label]').textContent = 'Đã chọn';
             });
-            if (changed) tell('Lịch sân vừa thay đổi. Vui lòng kiểm tra lại các khung giờ đã chọn.');
             update();
-        } catch { /* Retain current data until the next successful refresh. */ }
+        } catch { /* Retry after temporary network failures. */ }
         finally { refreshing = false; }
     };
     setInterval(refreshSchedule, 5000);
+    window.addEventListener('online', refreshSchedule);
+    window.addEventListener('focus', refreshSchedule);
+    refreshSchedule();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSchedule(); });
 }

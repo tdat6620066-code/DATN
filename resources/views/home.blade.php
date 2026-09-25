@@ -98,7 +98,7 @@
         };
     @endphp
     <article class="sz-service-tile">
-        <div class="sz-service-visual"><span class="sz-service-kind">{{ $service->category === 'RENTAL' ? 'Đồ thuê tại sân' : 'Sản phẩm tại sân' }}</span><i class="bi bi-{{ $serviceIcon }}" aria-hidden="true"></i><span class="sz-service-index" aria-hidden="true">{{ str_pad($loop->iteration,2,'0',STR_PAD_LEFT) }}</span></div>
+        <div class="sz-service-visual"><span class="sz-service-kind">{{ $service->category === 'RENTAL' ? 'Đồ thuê tại sân' : 'Sản phẩm tại sân' }}</span>@if($serviceImage = config('service_images.'.$service->code))<img class="sz-service-photo" src="{{ asset('images/'.rawurlencode($serviceImage)) }}" alt="{{ $service->name }}" loading="lazy" decoding="async">@else<i class="bi bi-{{ $serviceIcon }}" aria-hidden="true"></i>@endif<span class="sz-service-index" aria-hidden="true">{{ str_pad($loop->iteration,2,'0',STR_PAD_LEFT) }}</span></div>
         <div class="sz-service-info"><h3>{{ $service->name }}</h3><div class="sz-service-cost"><span>Giá dịch vụ</span><strong>{{ number_format($service->price,0,',','.') }}<small>đ</small></strong></div><a href="{{ $primaryRoute }}">{{ $canBook ? 'Chọn khi đặt sân' : $primaryLabel }}<span aria-hidden="true">↗</span></a></div>
     </article>@endforeach</div>
     @else<x-empty-state icon="bi-grid" title="Dịch vụ đang được cập nhật" description="Liên hệ nhân viên để biết dịch vụ tại sân."/>@endif
@@ -126,6 +126,23 @@
     @endforeach</div>@else<x-empty-state icon="bi-newspaper" title="Tin tức đang được cập nhật" description="Hẹn gặp bạn trong những câu chuyện sắp tới từ SmashZone."/>@endif
 </div></section>
 
-<section class="sz-final-section"><div class="sz-home-container"><div class="sz-final-cta"><div><span class="sz-eyebrow">READY TO SMASH?</span><h2>SẴN SÀNG<br>RA SÂN?</h2><p>Chọn sân phù hợp, rủ đồng đội và sẵn sàng chơi hết mình.</p></div><a class="btn btn-light" href="{{ $primaryRoute }}">{{ $primaryLabel }} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></div></div></section>
+<section class="sz-location-section" id="location" aria-labelledby="location-title"><div class="sz-home-container sz-location-grid">
+    <div class="sz-location-copy"><span class="sz-eyebrow">HẸN GẶP BẠN TẠI SÂN</span><h2 id="location-title">Đường đến<br>SmashZone.</h2>
+        @if($venueAddress)
+            <p><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ $venueAddress }}</p>
+            <a class="btn btn-light" href="https://www.google.com/maps/dir/?api=1&amp;destination={{ rawurlencode($venueMapQuery) }}" target="_blank" rel="noopener noreferrer">Chỉ đường đến sân <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        @else
+            <p>Địa chỉ sân đang được cập nhật.</p>
+        @endif
+    </div>
+    <div class="sz-location-map">
+        @if($venueAddress)
+            <iframe title="Bản đồ địa chỉ sân SmashZone" src="https://maps.google.com/maps?q={{ rawurlencode($venueMapQuery) }}&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+            <small>Bản đồ không tải được? Bạn có thể mở nút chỉ đường bên cạnh.</small>
+        @else
+            <div class="sz-location-empty"><i class="bi bi-map" aria-hidden="true"></i><strong>Bản đồ sân</strong><span>Bản đồ sẽ xuất hiện khi địa chỉ sân được cập nhật.</span></div>
+        @endif
+    </div>
+</div></section>
 
 @endsection

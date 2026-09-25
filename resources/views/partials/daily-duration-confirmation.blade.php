@@ -1,15 +1,25 @@
 @error('daily_duration_confirmed')
-    <section class="sz-duration-confirmation" aria-labelledby="daily-duration-title" id="daily-duration-warning">
-      <div class="sz-duration-confirmation__icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
-      <div class="sz-duration-confirmation__body">
-        <span class="sz-duration-confirmation__eyebrow">CHƠI HẾT MÌNH · NGHỈ ĐÚNG LÚC</span>
-        <h2 id="daily-duration-title">Xác nhận thời lượng chơi của bạn</h2>
-        <p id="daily-duration-description">{{ $message }}</p>
-        <label class="sz-duration-confirmation__choice" for="daily-duration-confirmed">
-            <input class="form-check-input" type="checkbox" name="daily_duration_confirmed" value="1" id="daily-duration-confirmed" form="bookingForm" aria-describedby="daily-duration-description daily-duration-help">
-            <span>Tôi đã cân nhắc thời lượng, thời gian nghỉ và muốn tiếp tục đặt sân.</span>
-        </label>
-        <p class="sz-duration-confirmation__help" id="daily-duration-help">Tích xác nhận rồi tiếp tục đặt sân bên dưới. Bạn cũng có thể giảm số khung giờ; booking chưa được tạo ở bước này.</p>
-      </div>
-    </section>
+    <button type="button" class="btn btn-outline-success mb-3" data-bs-toggle="modal" data-bs-target="#daily-duration-modal">Xác nhận thời lượng chơi</button>
+    <input type="hidden" name="daily_duration_confirmed" value="1" id="daily-duration-confirmed" form="bookingForm" disabled>
+    <div class="modal fade" id="daily-duration-modal" tabindex="-1" aria-labelledby="daily-duration-title" aria-describedby="daily-duration-description">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 px-4 pt-4">
+                    <h2 class="modal-title fs-5" id="daily-duration-title"><i class="bi bi-clock-history text-warning me-2" aria-hidden="true"></i>Xác nhận thời lượng chơi</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <p id="daily-duration-description">{{ $message }}</p>
+                    <div class="bg-light rounded-3 p-3 text-muted small">Hãy dành thời gian nghỉ và cân nhắc thể trạng của bạn. Booking chưa được tạo; bạn có thể quay lại để giảm số khung giờ.</div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Quay lại chọn giờ</button>
+                    <button type="button" class="btn btn-success" id="daily-duration-continue">Xác nhận tiếp tục</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @push('scripts')
+        <script defer src="{{ asset('js/daily-duration-confirmation.js') }}?v={{ filemtime(public_path('js/daily-duration-confirmation.js')) }}"></script>
+    @endpush
 @enderror

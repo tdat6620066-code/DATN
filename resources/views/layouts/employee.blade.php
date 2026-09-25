@@ -11,6 +11,7 @@
     @stack('styles')
 @include('partials.brand-theme')
 <link rel="stylesheet" href="{{ asset('css/staff-dashboard.css') }}?v={{ filemtime(public_path('css/staff-dashboard.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/workspace-ui.css') }}?v={{ filemtime(public_path('css/workspace-ui.css')) }}">
 </head>
 <body class="sz-layout sz-layout--employee"><a class="sz-skip-link" href="#sz-main">Đến nội dung chính</a>
 <div class="staff-shell">
@@ -26,7 +27,7 @@
     <div class="staff-content">
         <header class="staff-topbar">
             <div class="d-flex align-items-center gap-3"><button class="staff-menu-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#staffSidebar" aria-controls="staffSidebar" aria-label="Mở menu"><i class="bi bi-list"></i></button><div class="staff-topbar-title"><strong>@yield('page_heading', 'Khu vực nhân viên')</strong><span>SmashZone Operations</span></div></div>
-            <div class="staff-topbar-actions"><a href="{{ route('home') }}" title="Xem trang khách hàng"><i class="bi bi-box-arrow-up-right"></i></a>@include('partials.notification-dropdown')</div>
+            <div class="staff-topbar-actions"><a class="staff-home-link btn btn-outline-success btn-sm text-nowrap" href="{{ route('employee.dashboard') }}"><i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Dashboard</a>@include('partials.notification-dropdown')</div>
         </header>
         <main class="staff-main" id="sz-main" tabindex="-1">
             @if($errors->any())<div class="alert alert-danger staff-alert">{{ $errors->first() }}</div>@endif

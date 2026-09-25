@@ -13,7 +13,7 @@ class EmployeeEquipmentController extends Controller
     {
         return view('employee.equipment', [
             'equipment' => Equipment::orderBy('name')->get(),
-            'loans' => EquipmentLoan::with('equipment', 'booking.user')->latest()->paginate(20),
+            'loans' => EquipmentLoan::with('equipment', 'booking.user')->latest()->orderByDesc('id')->paginate(20),
         ]);
     }
 

@@ -8,11 +8,15 @@
 <section class="card p-4"><x-admin.page-heading>Tiền thu và hoàn tiền trong kỳ</x-admin.page-heading>
 <div class="row g-3 my-3">@foreach(['gross_revenue'=>'Tiền đã thu', 'refund_amount'=>'Đã hoàn tiền', 'net_revenue'=>'Tiền thu ròng'] as $key=>$label)<div class="col-md-4"><span>{{ $label }}</span><strong class="d-block fs-3">{{ number_format($cash[$key]) }}đ</strong></div>@endforeach</div>
 <p>Tiền thu theo ngày thanh toán thành công; tiền hoàn theo ngày chi trả hoàn tất. Thanh toán lịch cố định được tính một lần cho cả lịch. Yêu cầu hoàn đang chờ duyệt hoặc đang xử lý chưa làm giảm dòng tiền. Tiền thu ròng có thể âm khi hoàn khoản thu từ kỳ trước.</p>
-<table class="table"><thead><tr><th>Ngày giao dịch</th><th>Tiền đã thu</th><th>Đã hoàn tiền</th><th>Tiền thu ròng</th></tr></thead><tbody>
-@forelse($cash['gross_daily']->keys()->merge($cash['refund_daily']->keys())->unique()->sort() as $date)
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Ngày giao dịch</th><th>Tiền đã thu</th><th>Phương thức thu</th><th>Đã hoàn tiền</th><th>Phương thức hoàn</th><th>Tiền thu ròng</th></tr></thead><tbody>
+@forelse($cash['gross_daily']->keys()->merge($cash['refund_daily']->keys())->unique()->sortDesc() as $date)
 @php($received = $cash['gross_daily'][$date] ?? 0)
 @php($returned = $cash['refund_daily'][$date] ?? 0)
-<tr><td>{{ $date }}</td><td>{{ number_format($received) }}đ</td><td>{{ number_format($returned) }}đ</td><td>{{ number_format($received - $returned) }}đ</td></tr>
-@empty<tr><td colspan="4"><x-admin.empty message="Chưa có giao dịch trong kỳ." /></td></tr>@endforelse
-</tbody></table></section>
+<tr><td class="text-nowrap">{{ $date }}</td><td class="text-nowrap">{{ number_format($received) }}đ</td>
+<td>@include('admin.reports.method-breakdown', ['methods' => $cash['receipt_methods_daily'][$date] ?? collect()])</td>
+<td class="text-nowrap">{{ number_format($returned) }}đ</td>
+<td>@include('admin.reports.method-breakdown', ['methods' => $cash['refund_methods_daily'][$date] ?? collect()])</td>
+<td class="text-nowrap">{{ number_format($received - $returned) }}đ</td></tr>
+@empty<tr><td colspan="6"><x-admin.empty message="Chưa có giao dịch trong kỳ." /></td></tr>@endforelse
+</tbody></table></div></section>
 </x-admin.workspace>@endsection

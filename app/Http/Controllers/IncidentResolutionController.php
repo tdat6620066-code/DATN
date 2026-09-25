@@ -25,7 +25,7 @@ class IncidentResolutionController extends Controller
     {
         abort_unless($resolution->booking->user_id === $request->user()->id, 403);
         $data = $request->validate([
-            'choice' => ['required', Rule::in(['REFUND', 'RESCHEDULE', 'CHANGE_COURT'])],
+            'choice' => ['required', Rule::in(['REFUND'])],
             'court_id' => ['required_unless:choice,REFUND', 'nullable', 'exists:courts,id'],
             'date' => ['required_unless:choice,REFUND', 'nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'time_slot_id' => ['required_unless:choice,REFUND', 'nullable', 'exists:time_slots,id'],
@@ -37,6 +37,9 @@ class IncidentResolutionController extends Controller
             $booking = Booking::lockForUpdate()->findOrFail($resolution->booking_id);
             $payment = Payment::forBooking($booking)->lockForUpdate()->firstOrFail();
             $item = IncidentResolution::lockForUpdate()->findOrFail($resolution->id);
+            if ($booking->refundRequests()->where('cancel_booking', true)->whereIn('status', ['PENDING', 'NEEDS_INFO', 'APPROVED'])->exists()) {
+                $this->invalid('Booking đã có yêu cầu hoàn toàn bộ; không thể tạo yêu cầu khác hoặc đổi lịch.');
+            }
             if ($item->status !== 'AWAITING_CHOICE' || ! in_array($payment->status, ['PAID', 'PARTIALLY_REFUNDED'], true)) {
                 $this->invalid('Lựa chọn đã được xử lý hoặc thanh toán cần đối soát.');
             }
@@ -45,6 +48,13 @@ class IncidentResolutionController extends Controller
                 $this->invalid('Lượt sân không còn chờ xử lý sự cố.');
             }
             $refund = (float) $item->refund_amount;
+            if ($data['choice'] === 'REFUND') {
+                app(\App\Services\BookingRefundPolicy::class)->assertEligible($booking);
+                $refund = app(\App\Services\BookingRefundPolicy::class)->remaining($booking, $payment);
+                if ($refund <= 0) $this->invalid('Booking không còn số tiền được hoàn.');
+                $booking->bookingDetails()->update(['status' => 'CANCELLED']);
+                $booking->update(['status' => 'CANCELLED', 'cancelled_at' => now(), 'hold_expires_at' => null]);
+            }
             if ($data['choice'] !== 'REFUND') {
                 $slot = TimeSlot::lockForUpdate()->findOrFail($data['time_slot_id']);
                 $original = $item->original_slot;
@@ -76,6 +86,7 @@ class IncidentResolutionController extends Controller
                 $booking->update(['status' => 'CONFIRMED', 'cancelled_at' => null, 'start_date' => $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->min('booking_date'), 'end_date' => $booking->bookingDetails()->where('status', '!=', 'CANCELLED')->max('booking_date')]);
             }
             if ($refund > 0) {
+                app(\App\Services\BookingRefundPolicy::class)->assertEligible($booking);
                 $reserved = $booking->refundRequests()->whereIn('status', ['PENDING', 'NEEDS_INFO', 'APPROVED'])->sum('amount');
                 if (round(($reserved + $refund) * 100) > round((float) $booking->total_amount * 100)) {
                     $this->invalid('Tổng tiền hoàn vượt thanh toán; vui lòng liên hệ nhân viên.');
@@ -83,6 +94,8 @@ class IncidentResolutionController extends Controller
                 $refundRequest = $item->refundRequests()->create(['booking_id' => $booking->id, 'requested_by' => $request->user()->id, 'amount' => $refund, 'reason_code' => $item->incident->type, 'reason' => $item->incident->description, 'supporting_information' => $data['choice'] === 'REFUND' ? 'Khách chọn hoàn phần dịch vụ không được cung cấp.' : 'Hoàn chênh lệch sau đổi lịch/sân; SmashZone chịu chênh lệch tăng.', 'status' => 'PENDING', 'cancel_booking' => false]);
             }
             if ($recipient && isset($refundRequest)) {
+                $refundRequest->update(['cancel_booking' => true]);
+                $item->refund_amount = $refund;
                 app(RefundRecipientService::class)->save($refundRequest, $recipient);
             }
             $item->update(['choice' => $data['choice'], 'status' => $refund > 0 ? 'REFUND_PENDING' : 'RESOLVED', 'resolved_at' => $refund > 0 ? null : now()]);

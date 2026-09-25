@@ -36,7 +36,8 @@ class OperationsReportService
         $transactions = Refund::with(['payment', 'refundRequest.incidentResolution', 'refundRequest.booking.bookingDetails.court'])
             ->where('status', 'COMPLETED')->whereBetween('processed_at', [$from, $to])->get();
         $sum = fn ($rows) => $rows->sum(fn ($r) => (int) round((float) $r->amount * 100)) / 100.0;
-        $group = fn ($rows) => ['count' => $rows->count(), 'amount' => $sum($rows)];
+        $group = fn ($rows) => ['count' => $rows->count(), 'amount' => $sum($rows),
+            'methods' => $rows->groupBy(fn ($r) => $r->refund_method ?: 'UNKNOWN')->map($sum)];
         $paymentIds = $transactions->pluck('payment_id')->unique();
         $cumulative = Refund::whereIn('payment_id', $paymentIds)->where('status', 'COMPLETED')->where('processed_at', '<=', $to)->get()->groupBy('payment_id')->map($sum);
         $full = $transactions->unique('payment_id')->filter(fn ($r) => round(($cumulative[$r->payment_id] ?? 0) * 100) >= round((float) $r->payment->amount * 100))->count();

@@ -19,13 +19,14 @@ class AdminPaymentController extends Controller
     {
         $this->admin($request);
         $payments = Payment::with(['booking.user', 'fixedBooking.user'])
+            ->withSum(['refunds as completed_refund_amount' => fn ($q) => $q->where('status', 'COMPLETED')], 'amount')
             ->when($request->filled('search'), fn ($q) => $q->where(fn ($search) => $search
                 ->where('transaction_id', 'like', '%'.$request->search.'%')
                 ->orWhereHas('booking', fn ($b) => $b->where('booking_code', 'like', '%'.$request->search.'%'))
                 ->orWhereHas('fixedBooking', fn ($f) => $f->where('code', 'like', '%'.$request->search.'%'))))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('refund_status'), fn ($q) => $q->where('refund_status', $request->refund_status))
-            ->latest()->paginate(15)->withQueryString();
+            ->latest()->orderByDesc('id')->paginate(15)->withQueryString();
 
         return view('admin.payments.index', compact('payments'));
     }
@@ -34,6 +35,7 @@ class AdminPaymentController extends Controller
     {
         $this->admin($request);
         $payment->load(['booking.user', 'fixedBooking.user', 'booking.bookingDetails.court', 'transactionLogs.actor']);
+        $payment->loadSum(['refunds as completed_refund_amount' => fn ($q) => $q->where('status', 'COMPLETED')], 'amount');
 
         return view('admin.payments.show', compact('payment'));
     }

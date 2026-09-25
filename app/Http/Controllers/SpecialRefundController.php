@@ -20,7 +20,7 @@ class SpecialRefundController extends Controller
 {
     public function index()
     {
-        $items = RefundRequest::with(['booking.user', 'booking.payment', 'requester'])->whereIn('status', ['PENDING', 'APPROVED'])->whereDoesntHave('refund')->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")->latest()->paginate(20);
+        $items = RefundRequest::with(['booking.user', 'booking.payment', 'requester'])->whereIn('status', ['PENDING', 'APPROVED'])->whereDoesntHave('refund')->latest()->orderByDesc('id')->paginate(20);
 
         return view('admin.incidents.refunds', compact('items'));
     }
@@ -31,21 +31,21 @@ class SpecialRefundController extends Controller
             'reason_code' => ['required', Rule::in(array_keys(RefundRequest::REASONS))],
             'reason' => ['required', 'string', 'max:2000'],
             'supporting_information' => ['required', 'string', 'max:4000'],
-            'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0'],
+            'amount' => ['nullable', 'numeric', 'decimal:0,2', 'gt:0'],
             'refund_type' => ['sometimes', Rule::in(['FULL', 'PARTIAL'])],
             'approve_now' => ['sometimes', 'boolean'],
         ]);
         DB::transaction(function () use ($booking, $request, $data) {
             $locked = Booking::lockForUpdate()->findOrFail($booking->id);
             $payment = Payment::forBooking($locked)->lockForUpdate()->first();
+            if (isset($data['amount']) && (float) $data['amount'] > app(\App\Services\BookingRefundPolicy::class)->remaining($locked, $payment)) {
+                throw ValidationException::withMessages(['amount' => 'Số tiền vượt khoản còn được hoàn của booking.']);
+            }
+            $data['amount'] = app(\App\Services\BookingRefundPolicy::class)->remaining($locked, $payment);
             if ($locked->incidentResolutions()->exists()) {
                 throw ValidationException::withMessages(['amount' => 'Booking có sự cố: xử lý theo lựa chọn của khách bên dưới.']);
             }
             $this->checkAmount($locked, $payment, $data['amount']);
-            $full = round((float) $data['amount'] * 100) === round((float) $locked->total_amount * 100);
-            if (isset($data['refund_type']) && (($data['refund_type'] === 'FULL') !== $full)) {
-                throw ValidationException::withMessages(['amount' => 'Hoàn toàn bộ phải bằng số tiền đã thanh toán; hoàn một phần phải nhỏ hơn.']);
-            }
             $approve = ! empty($data['approve_now']);
             abort_if($approve && $request->user()->role !== 'ADMIN', 403);
             unset($data['refund_type'], $data['approve_now']);
@@ -75,11 +75,13 @@ class SpecialRefundController extends Controller
                 throw ValidationException::withMessages(['decision' => 'Yêu cầu không còn chờ duyệt hoặc không phải hoàn tiền đặc biệt.']);
             }
             if ($data['decision'] === 'APPROVED') {
-                if (isset($data['amount'])) {
-                    if ((float) $data['amount'] > (float) $item->amount) {
-                        throw ValidationException::withMessages(['amount' => 'Không vượt số tiền đã được xác minh/đề nghị.']);
-                    }
-                    $item->amount = $data['amount'];
+                $priceAdjustment = $item->incident_resolution_id && in_array($item->incidentResolution?->choice, ['CHANGE_COURT', 'RESCHEDULE'], true);
+                if (!$priceAdjustment) {
+                    $item->amount = app(\App\Services\BookingRefundPolicy::class)->remaining($booking, $payment);
+                    $item->cancel_booking = true;
+                }
+                if ($booking->refundRequests()->whereKeyNot($item->id)->whereIn('status', ['PENDING', 'NEEDS_INFO', 'APPROVED'])->whereDoesntHave('refund')->exists()) {
+                    throw ValidationException::withMessages(['amount' => 'Booking có yêu cầu hoàn khác đang xử lý. Hãy giữ một yêu cầu hoàn toàn booking và từ chối yêu cầu trùng.']);
                 }
                 $this->checkAmount($booking, $payment, $item->amount, (bool) $item->incident_resolution_id);
             }
@@ -133,6 +135,10 @@ class SpecialRefundController extends Controller
                 if ($item->cancel_booking) {
                     $booking->update(['status' => 'CANCELLED', 'cancelled_at' => now(), 'hold_expires_at' => null]);
                     $booking->bookingDetails()->where('status', '!=', 'COMPLETED')->update(['status' => 'CANCELLED']);
+                    foreach ($booking->incidentResolutions()->get() as $resolution) {
+                        $resolution->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
+                        app(IncidentTicketService::class)->closeIfResolved($resolution);
+                    }
                 }
                 if ($item->incident_resolution_id) {
                     IncidentResolution::whereKey($item->incident_resolution_id)->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
@@ -182,6 +188,7 @@ class SpecialRefundController extends Controller
 
     private function checkAmount(Booking $booking, ?Payment $payment, mixed $amount, bool $incident = false): void
     {
+        app(\App\Services\BookingRefundPolicy::class)->assertEligible($booking);
         $remaining = $payment ? round((float) $payment->amount * 100) - round((float) $payment->refunds()->whereIn('status', ['PROCESSING', 'COMPLETED'])->sum('amount') * 100) : 0;
         $remaining = min($remaining, round((float) $booking->total_amount * 100) - round((float) $booking->refunds()->whereIn('refunds.status', ['PROCESSING', 'COMPLETED'])->sum('refunds.amount') * 100));
         if (! $payment || ! in_array($payment->status, ['PAID', 'PARTIALLY_REFUNDED'], true) || ! in_array($booking->payment_status, ['PAID', 'PARTIALLY_REFUNDED'], true) || (! $incident && in_array($booking->status, ['CANCELLED', 'EXPIRED'], true)) || round((float) $amount * 100) <= 0 || round((float) $amount * 100) > $remaining) {

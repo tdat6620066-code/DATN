@@ -18,7 +18,7 @@
     <div class="sz-court-content">
         <div class="sz-court-type"><span>{{ $court->courtType?->name ?: 'Sân cầu lông' }}</span><span class="sz-court-rating"><i class="bi bi-star-fill" aria-hidden="true"></i> {{ $rating ?: 'Chưa có đánh giá' }} @if($rating)<small>({{ $court->approved_reviews_count }})</small>@endif</span></div>
         <h3><a href="{{ route('courts.show', $court) }}">{{ $court->name }}</a></h3>
-        <p class="sz-court-address"><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ $court->address ?: 'Địa chỉ đang cập nhật' }}</p>
+        <p class="sz-court-address"><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ $court->address ?: ($venueAddress ?: 'Địa chỉ đang cập nhật') }}</p>
         <div class="sz-court-amenities">@forelse($court->amenities->take(3) as $amenity)<span>{{ $amenity->name }}</span>@empty<span>Tiện ích đang cập nhật</span>@endforelse</div>
         <div class="sz-court-price">@if($minimumPrice !== null)<small>Từ</small> <strong>{{ number_format($minimumPrice, 0, ',', '.') }}đ</strong><small>/giờ</small>@else<small>Giá sân đang cập nhật</small>@endif</div>
         <div class="sz-court-actions"><a class="btn btn-outline-primary" href="{{ route('courts.show', $court) }}">Xem chi tiết</a><a class="btn btn-primary" href="{{ $canBook ? route('bookings.create', ['court_id' => $court->id]) : $primaryRoute }}">{{ $canBook ? 'Đặt ngay' : $primaryLabel }}</a></div>

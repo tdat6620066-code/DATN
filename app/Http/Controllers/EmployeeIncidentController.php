@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 
 class EmployeeIncidentController extends Controller
 {
-    public function index(Request $request) { abort_unless($request->user()->hasPermission('incidents.manage'), 403); $incidents = CourtIncident::where('source','COURT')->with(['court','reporter'])->latest()->paginate(20); $courts = Court::orderBy('name')->get(); return view('employee.incidents.index', compact('incidents','courts')); }
+    public function index(Request $request) { abort_unless($request->user()->hasPermission('incidents.manage'), 403); $incidents = CourtIncident::where('source','COURT')->with(['court','reporter'])->latest()->orderByDesc('id')->paginate(20); $courts = Court::orderBy('name')->get(); return view('employee.incidents.index', compact('incidents','courts')); }
     public function store(Request $request) {
         abort_unless($request->user()->hasPermission('incidents.manage'), 403);
         $data = $request->validate(['court_id'=>'required|exists:courts,id','type'=>'required|string|max:100','severity'=>['required',Rule::in(['LOW','MEDIUM','HIGH','CRITICAL'])],'description'=>'required|string|max:3000','images.*'=>'image|max:4096']);

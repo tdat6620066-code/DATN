@@ -20,7 +20,7 @@ class IncidentTicketController extends Controller
     public function index(Request $request)
     {
         $this->staff($request);
-        $tickets = CourtIncident::where('source', 'CUSTOMER')->with(['booking', 'court', 'reporter', 'assignee'])->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->paginate(20)->withQueryString();
+        $tickets = CourtIncident::where('source', 'CUSTOMER')->with(['booking', 'court', 'reporter', 'assignee'])->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->latest()->orderByDesc('id')->paginate(20)->withQueryString();
 
         return view('incident-tickets.index', compact('tickets'));
     }
@@ -41,7 +41,7 @@ class IncidentTicketController extends Controller
         $validator = validator($request->all(), [
             'booking_detail_id' => ['required', 'integer'], 'type' => ['required', Rule::in(array_keys(CourtIncident::TYPES))],
             'description' => ['required', 'string', 'min:10', 'max:4000'],
-            'requested_solution' => ['required', Rule::in(array_keys(CourtIncident::SOLUTIONS))],
+            'requested_solution' => ['required', Rule::in(array_keys(CourtIncident::AVAILABLE_SOLUTIONS))],
         ] + $this->fileRules() + ($request->input('requested_solution') === 'REFUND' ? \App\Services\RefundRecipientService::rules() : []));
         // Sensitive recipient values must never be flashed by a later validation exception.
         foreach ($bankFields as $field) $request->request->remove($field);
@@ -120,7 +120,7 @@ class IncidentTicketController extends Controller
     {
         $this->staff($request);
         abort_unless($ticket->source === 'CUSTOMER', 404);
-        $data = $request->validate(['action' => ['required', Rule::in(['REVIEWING', 'NEED_MORE_INFO', 'PROPOSE', 'APPROVED', 'REJECTED', 'RESOLVED'])], 'note' => ['required', 'string', 'max:4000'], 'assigned_to' => ['nullable', 'integer', 'exists:users,id'], 'proposed_solution' => ['nullable', Rule::in(array_keys(CourtIncident::SOLUTIONS))], 'amount' => ['nullable', 'numeric', 'decimal:0,2', 'gt:0']]);
+        $data = $request->validate(['action' => ['required', Rule::in(['REVIEWING', 'NEED_MORE_INFO', 'PROPOSE', 'APPROVED', 'REJECTED', 'RESOLVED'])], 'note' => ['required', 'string', 'max:4000'], 'assigned_to' => ['nullable', 'integer', 'exists:users,id'], 'proposed_solution' => ['nullable', Rule::in(array_keys(CourtIncident::AVAILABLE_SOLUTIONS))], 'amount' => ['nullable', 'numeric', 'decimal:0,2', 'gt:0']]);
         if (in_array($data['action'], ['APPROVED', 'REJECTED', 'RESOLVED'], true)) {
             abort_unless($request->user()->role === 'ADMIN', 403);
         }
@@ -146,7 +146,7 @@ class IncidentTicketController extends Controller
                 throw ValidationException::withMessages(['proposed_solution' => 'Chọn phương án đề xuất.']);
             }
             $status = $data['action'] === 'PROPOSE' ? 'REVIEWING' : $data['action'];
-            $locked->update(['status' => $status, 'assigned_to' => $assignee, 'review_note' => $data['note'], 'proposed_solution' => $data['proposed_solution'] ?? $locked->proposed_solution, 'proposed_amount' => $data['amount'] ?? $locked->proposed_amount]);
+            $locked->update(['status' => $status, 'assigned_to' => $assignee, 'review_note' => $data['note'], 'proposed_solution' => $data['proposed_solution'] ?? 'REFUND', 'proposed_amount' => $data['amount'] ?? $locked->proposed_amount]);
             if ($status === 'APPROVED') {
                 $locked->update(['reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
                 $service->approve($locked, $request->user(), (float) ($data['amount'] ?? $locked->proposed_amount ?? 0));

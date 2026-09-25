@@ -106,6 +106,8 @@ class HomeController extends Controller
         });
 
         return view('home', [
+            'venueAddress' => trim((string) \App\Models\SystemSetting::valueFor('address', '')),
+            'venueMapQuery' => trim((string) \App\Models\SystemSetting::valueFor('map_query', \App\Models\SystemSetting::valueFor('address', ''))),
             'banners' => $banners,
             'featured_courts' => $featuredCourts,
             'most_booked_courts' => $mostBookedCourts,

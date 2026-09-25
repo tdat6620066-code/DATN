@@ -10,7 +10,7 @@ class EmployeeShiftController extends Controller
 {
     public function index(Request $request)
     {
-        $shifts = EmployeeShift::where('employee_id', $request->user()->id)->latest()->paginate(20);
+        $shifts = EmployeeShift::where('employee_id', $request->user()->id)->latest()->orderByDesc('id')->paginate(20);
         $selected = $request->filled('shift')
             ? EmployeeShift::where('employee_id', $request->user()->id)->findOrFail($request->query('shift'))
             : $shifts->first();
