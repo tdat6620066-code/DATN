@@ -72,4 +72,16 @@ class BookingCheckoutUiTest extends TestCase
         $this->get($url)->assertOk()->assertSee('Đã hết hạn')->assertDontSee('data-payment-submit', false);
         $this->assertSame('EXPIRED', $this->booking->fresh()->status);
     }
+
+    public function test_other_customer_sees_released_slot_before_owner_refreshes(): void
+    {
+        $detail = $this->booking->bookingDetails()->first();
+        $availability = app(\App\Services\CourtAvailabilityService::class);
+        $this->assertSame('HOLD', $availability->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+        $this->travelTo($this->booking->hold_expires_at);
+        $this->actingAs(User::factory()->create(['role' => 'CUSTOMER']));
+        $this->assertSame('AVAILABLE', $availability->checkAvailability($detail->court_id, $detail->booking_date, $detail->time_slot_id));
+        $this->get(route('bookings.create', ['booking_date' => $detail->booking_date->toDateString()]))
+            ->assertOk()->assertDontSee('data-status="HOLD"', false);
+    }
 }

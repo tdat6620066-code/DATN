@@ -299,8 +299,8 @@
                                     data-duration="{{ $slot->duration ?? 60 }}"
                                     data-start="{{ substr($slot->start_time,0,5) }}" data-end="{{ substr($slot->end_time,0,5) }}"
                                     @if($isSelectable) role="button" tabindex="0" onclick="toggleSlot(this)" @endif>
-                                    <div>{{ $status === 'PAST' ? 'Đã qua' : ($status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay) }}</div>
-                                    <small>{{ match($status) { 'AVAILABLE' => 'Còn trống', 'BOOKED' => 'Đã đặt', 'HOLD' => 'Đang giữ', default => 'Không khả dụng' } }}</small>
+                                    <div @if($status === 'PAST') hidden @endif>{{ $status === 'PAST' ? '' : ($status === 'HOLD' ? '⏳ Đang được giữ chỗ' : $priceDisplay) }}</div>
+                                    <small @if($status === 'HOLD') hidden @endif>{{ match($status) { 'AVAILABLE' => 'Còn trống', 'BOOKED' => 'Đã đặt', 'HOLD' => '', default => 'Không khả dụng' } }}</small>
                                 </td>
                                 @endforeach
                             </tr>
@@ -394,7 +394,10 @@ function expirePastSlots() {
         cell.classList.add('slot-maintenance');
         cell.setAttribute('aria-disabled', 'true');
         cell.removeAttribute('onclick');
-        cell.querySelector('div').textContent = 'Đã qua';
+        cell.querySelector('div').textContent = '';
+        cell.querySelector('div').hidden = true;
+        cell.querySelector('small').textContent = 'Không khả dụng';
+        cell.querySelector('small').hidden = false;
         const key = `${cell.dataset.courtId}-${cell.dataset.slotId}`;
         if (selectedSlots.some(slot => slot.key === key)) {
             selectedSlots = selectedSlots.filter(slot => slot.key !== key);

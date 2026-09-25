@@ -46,6 +46,7 @@
                         <a href="{{ route('bookings.index') }}"><i class="bi bi-calendar2-check"></i> Lịch đặt của tôi</a>
                         <a href="{{ route('notifications.index') }}"><i class="bi bi-bell"></i> Thông báo</a>
                         @if((Auth::user()->role ?: 'CUSTOMER') === 'CUSTOMER')
+                            <a href="{{ route('bookings.create-recurring') }}"><i class="bi bi-calendar-week" aria-hidden="true"></i> Đặt lịch cố định</a>
                             <a href="{{ route('notification-settings.edit') }}"><i class="bi bi-sliders"></i> Cài đặt thông báo</a>
                         @endif
                         <div class="dropdown-divider"></div>
