@@ -24,6 +24,9 @@
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'sc-active' : '' }}">Trang chủ</a>
             <a href="{{ route('courts.index') }}" class="{{ request()->routeIs('courts.*') ? 'sc-active' : '' }}">Khám phá sân</a>
             <a href="{{ route('bookings.create') }}" class="{{ request()->routeIs('bookings.create') ? 'sc-active' : '' }}">Đặt sân</a>
+            @if(!$scCurrentRole || $scCurrentRole === 'CUSTOMER')
+                <a href="{{ route('bookings.create-recurring') }}" class="{{ request()->routeIs('bookings.create-recurring') ? 'sc-active' : '' }}">Lịch cố định</a>
+            @endif
             <a href="{{ route('home') }}#offers">Khuyến mãi</a>
             <a href="{{ route('home') }}#services">Dịch vụ</a>
             <a href="{{ route('news.index') }}">Tin tức</a>

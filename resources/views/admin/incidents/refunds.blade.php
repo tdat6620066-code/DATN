@@ -22,7 +22,8 @@
 <form method="POST" action="{{ route('special-refunds.review', $item) }}">
 @csrf
 <label for="amount-{{ $item->id }}" class="form-label">Số tiền phê duyệt (đ)</label>
-<input id="amount-{{ $item->id }}" name="amount" type="number" min="0.01" max="{{ $item->amount }}" step="0.01" value="{{ $item->amount }}" class="form-control mb-3" required>
+<input id="amount-{{ $item->id }}" name="amount" type="number" min="0" step="0.01" value="{{ app(\App\Services\BookingRefundPolicy::class)->approvalAmount($item) }}" class="form-control mb-3" readonly>
+<p class="small text-muted">Hoàn toàn booking. Số tiền do hệ thống tính lại khi duyệt; booking đã check-in không được hoàn.</p>
 <label for="note-{{ $item->id }}" class="form-label">Kết quả xác minh / ghi chú quyết định</label>
 <textarea id="note-{{ $item->id }}" name="decision_note" maxlength="2000" class="form-control mb-3" required></textarea>
 <button name="decision" value="APPROVED" class="sz-action sz-action--primary">Phê duyệt hoàn tiền</button>

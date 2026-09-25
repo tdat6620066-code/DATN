@@ -2,23 +2,39 @@
 const checkout = document.querySelector('[data-checkout-form]');
 if (checkout) {
     const button = document.querySelector('[data-payment-submit]');
-    const confirmation = checkout.querySelector('[data-confirm-booking]');
     const countdown = document.querySelector('[data-hold-deadline]');
     const status = document.getElementById('checkout-feedback');
     const started = performance.now();
     const serverNow = Number(countdown?.dataset.serverNow);
     let expired = false;
     let busy = false;
-    const sync = () => { button.disabled = expired || busy || !confirmation.checked; };
-    confirmation.addEventListener('change', sync);
+    const sync = () => { button.disabled = expired || busy; };
+    let refreshing = false;
+    let finished = false;
+    const refreshStatus = async () => {
+        if (refreshing || finished || busy) return;
+        refreshing = true;
+        try {
+            const response = await fetch(location.href, {cache: 'no-store', signal: AbortSignal.timeout(10000)});
+            if (!response.ok) return;
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const main = page.getElementById('sz-main');
+            if (main && !main.querySelector('[data-checkout-form]') && main.querySelector('.booking-hero')) {
+                finished = true;
+                document.getElementById('sz-main').replaceChildren(...main.childNodes);
+            }
+        } catch { /* Retry when the connection recovers. */ }
+        finally { refreshing = false; }
+    };
     const tick = () => {
-        if (!countdown) return;
+        if (!countdown || finished) return;
         const remaining = Math.max(0, Math.ceil((Number(countdown.dataset.holdDeadline) - serverNow - (performance.now() - started)) / 1000));
         countdown.textContent = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
         expired = remaining === 0;
         if (expired) {
             status.hidden = false;
-            status.textContent = 'Thời gian giữ chỗ đã hết. Vui lòng tải lại trang để kiểm tra trạng thái và chọn lịch mới.';
+            status.textContent = 'Đã hết thời gian giữ chỗ. Đang cập nhật trạng thái thanh toán…';
+            refreshStatus();
         }
         sync();
     };
@@ -35,6 +51,11 @@ if (checkout) {
     window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
     tick(); sync();
     if (countdown) setInterval(tick, 1000);
+    setInterval(refreshStatus, 5000);
+    window.addEventListener('online', refreshStatus);
+    window.addEventListener('focus', () => { tick(); refreshStatus(); });
+    refreshStatus();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); refreshStatus(); } });
 }
 
 document.querySelectorAll('[data-booking-services]').forEach(picker => picker.addEventListener('toggle', () => {

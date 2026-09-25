@@ -144,14 +144,16 @@ body.sz-home #services { scroll-margin-top:130px; }
 .sz-service-catalogue { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; }
 .sz-service-tile { --service-tint:#e2f4d5; --service-ink:#166534; min-width:0; display:flex; flex-direction:column; overflow:hidden; border-radius:24px; border:1px solid #e2e8f0; background:white; transition:transform .2s,box-shadow .2s; }
 .sz-service-tile:nth-child(4n+2) { --service-tint:#e1effb; --service-ink:#075985; }.sz-service-tile:nth-child(4n+3) { --service-tint:#fff0ce; --service-ink:#854d0e; }.sz-service-tile:nth-child(4n) { --service-tint:#eee8fb; --service-ink:#6b21a8; }
-.sz-service-tile:hover { transform:translateY(-5px); box-shadow:0 16px 32px #0f172a10; }
-.sz-service-visual { position:relative; display:grid; place-items:center; height:170px; isolation:isolate; overflow:hidden; background:var(--service-tint); color:var(--service-ink); }
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+    .sz-service-tile:hover { transform:translateY(-5px); box-shadow:0 16px 32px #0f172a10; }
+}
+.sz-service-visual { position:relative; display:grid; place-items:center; height:240px; flex-shrink:0; isolation:isolate; overflow:hidden; background:var(--service-tint); color:var(--service-ink); }
 .sz-service-visual::before,.sz-service-visual::after { content:''; position:absolute; width:130px; height:130px; border:1px solid currentColor; opacity:.12; border-radius:50%; z-index:-1; }.sz-service-visual::before { right:-25px; bottom:-45px; }.sz-service-visual::after { width:185px; height:185px; right:-50px; bottom:-70px; }
 .sz-service-visual>i { font-size:52px; margin-top:20px; transform:rotate(-8deg); transition:transform .2s; }.sz-service-tile:hover .sz-service-visual>i { transform:rotate(0deg) scale(1.08); }
 .sz-service-kind { position:absolute; top:18px; left:18px; font-size:11px; font-weight:750; padding:5px 10px; border-radius:20px; background:#ffffffb0; }
 .sz-service-index { position:absolute; top:21px; right:18px; font-size:12px; font-weight:750; }
 .sz-service-info { padding:24px; flex:1; display:flex; flex-direction:column; }
-body.sz-home .sz-service-info h3 { color:#0f172a; font-size:23px; margin:0 0 20px; overflow-wrap:anywhere; }
+body.sz-home .sz-service-info h3 { color:#0f172a; font-size:23px; line-height:1.3; min-height:2.6em; margin:0 0 16px; overflow-wrap:anywhere; }
 .sz-service-cost { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:auto; margin-bottom:20px; flex-wrap:wrap; }.sz-service-cost>span { font-size:12px; color:#64748b; }.sz-service-cost strong { font-size:23px; color:#166534; }.sz-service-cost small { font-size:15px; }
 .sz-service-info>a { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:16px; border-top:1px solid #e2e8f0; color:#166534; text-decoration:none; font-size:14px; font-weight:750; }.sz-service-info>a>span { display:grid; place-items:center; width:32px; height:32px; flex-shrink:0; border-radius:50%; background:var(--service-tint); font-size:20px; }
 .sz-service-info>a:focus-visible { outline:3px solid #15803d; outline-offset:4px; }
@@ -181,3 +183,7 @@ body.sz-home .sz-service-info h3 { color:#0f172a; font-size:23px; margin:0 0 20p
 @media(max-width:991px) { .sz-why-layout { grid-template-columns:1fr; }.sz-why-photo { min-height:380px; } }
 @media(max-width:575px) { .sz-why-cards { grid-template-columns:1fr; }.sz-why-card { padding:24px; }.sz-why-photo>div { left:24px; right:24px; bottom:24px; } }
 @media(prefers-reduced-motion:reduce) { body.sz-layout--customer *,body.sz-layout--customer *::before { animation:none; transition:none; scroll-behavior:auto; } }
+.sz-service-visual .sz-service-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.sz-service-visual:has(.sz-service-photo){height:240px}
+.sz-service-visual:has(.sz-service-photo) .sz-service-kind{z-index:1;background:#fffef5;color:#154532;box-shadow:0 2px 12px #0002}
+.sz-service-visual:has(.sz-service-photo) .sz-service-index{z-index:1;color:#fff;text-shadow:0 1px 5px #000}

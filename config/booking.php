@@ -2,7 +2,7 @@
 
 return [
     'daily_confirmation_minutes' => 240,
-    'checkin_early_minutes' => 30,
+    'checkin_early_minutes' => 60,
     'no_show_after_minutes' => 30,
     // Hold timeout in minutes
     'hold_timeout' => env('BOOKING_HOLD_TIMEOUT', 5),

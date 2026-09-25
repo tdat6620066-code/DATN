@@ -17,12 +17,17 @@ class RevenueReportService
             ->whereNotNull('paid_at')->whereBetween('paid_at', [$from, $to])
             ->with(['booking.bookingDetails.court', 'fixedBooking.bookings.bookingDetails.court'])->get();
         $daily = collect();
+        $dailyMethods = collect();
         $courts = collect();
         $slots = 0;
         foreach ($payments as $payment) {
             $date = $payment->paid_at->toDateString();
             $cents = max(0, (int) round((float) $payment->amount * 100));
             $daily[$date] = ($daily[$date] ?? 0) + $cents;
+            $method = $payment->payment_method ?: 'UNKNOWN';
+            $dayMethods = $dailyMethods[$date] ?? [];
+            $dayMethods[$method] = ($dayMethods[$method] ?? 0) + $cents;
+            $dailyMethods[$date] = $dayMethods;
             $bookings = $payment->fixed_booking_id
                 ? ($payment->fixedBooking?->bookings ?? collect())
                 : collect($payment->booking ? [$payment->booking] : []);
@@ -35,9 +40,10 @@ class RevenueReportService
                 $amounts = $this->allocate($bookingAmounts[$booking->id] ?? 0, $weights);
                 foreach ($details as $detail) {
                     $key = $detail->court_id;
-                    $row = $courts[$key] ?? ['name' => $detail->court?->name ?? 'Sân đã xóa', 'slots' => 0, 'amount' => 0];
+                    $row = $courts[$key] ?? ['name' => $detail->court?->name ?? 'Sân đã xóa', 'slots' => 0, 'amount' => 0, 'methods' => []];
                     $row['slots']++;
                     $row['amount'] += $amounts[$detail->id] ?? 0;
+                    $row['methods'][$method] = ($row['methods'][$method] ?? 0) + ($amounts[$detail->id] ?? 0);
                     $courts[$key] = $row;
                     $slots++;
                 }
@@ -45,7 +51,8 @@ class RevenueReportService
         }
         return ['revenue' => $daily->sum() / 100.0, 'slots' => $slots,
             'daily' => $daily->sortKeys()->map(fn ($cents) => $cents / 100.0),
-            'courts' => $courts->map(fn ($row) => array_replace($row, ['amount' => $row['amount'] / 100.0]))];
+            'daily_methods' => $dailyMethods->map(fn ($methods) => collect($methods)->map(fn ($cents) => $cents / 100.0)),
+            'courts' => $courts->map(fn ($row) => array_replace($row, ['amount' => $row['amount'] / 100.0, 'methods' => collect($row['methods'])->map(fn ($cents) => $cents / 100.0)]))];
     }
 
     private function allocate(int $cents, array $weights): array
@@ -89,16 +96,37 @@ class RevenueReportService
             ->when($from, fn ($q) => $q->where('processed_at', '>=', $from))
             ->when($to, fn ($q) => $q->where('processed_at', '<=', $to))
             ->when($bookingIds !== null, fn ($q) => $q->whereHas('refundRequest', fn ($r) => $r->whereIn('booking_id', $bookingIds)))
-            ->get(['amount', 'processed_at']);
+            ->get(['amount', 'processed_at', 'refund_method']);
         $sum = fn ($rows) => $rows->sum(fn ($row) => (int) round((float) $row->amount * 100)) / 100.0;
         $gross = $sum($payments);
         $returned = $sum($refunds);
+        $sources = $payments->groupBy(fn ($payment) => match (true) {
+            $payment->purpose === 'SERVICE' => 'service',
+            $payment->purpose === 'BOOKING' && (bool) $payment->fixed_booking_id => 'fixed',
+            $payment->purpose === 'BOOKING' => 'booking',
+            default => 'other',
+        });
+        $sourceTotals = collect([
+            'booking' => 'Đặt sân theo ngày',
+            'fixed' => 'Đặt lịch cố định',
+            'service' => 'Dịch vụ phát sinh tại sân',
+            'other' => 'Khoản thu khác',
+        ])->map(fn ($label, $key) => [
+            'label' => $label, 'count' => ($sources[$key] ?? collect())->count(),
+            'amount' => $sum($sources[$key] ?? collect()),
+        ]);
 
         return [
             'gross_revenue' => $gross,
+            'sources' => $sourceTotals,
+            'methods' => $payments->groupBy(fn ($payment) => $payment->payment_method ?: 'Chưa xác định')->map(fn ($rows) => ['count' => $rows->count(), 'amount' => $sum($rows)]),
             'refund_amount' => $returned,
             'net_revenue' => round($gross - $returned, 2),
             'gross_daily' => $payments->groupBy(fn ($p) => $p->paid_at->toDateString())->map($sum),
+            'receipt_methods_daily' => $payments->groupBy(fn ($p) => $p->paid_at->toDateString())
+                ->map(fn ($rows) => $rows->groupBy(fn ($p) => $p->payment_method ?: 'UNKNOWN')->map($sum)),
+            'refund_methods_daily' => $refunds->groupBy(fn ($r) => $r->processed_at->toDateString())
+                ->map(fn ($rows) => $rows->groupBy(fn ($r) => $r->refund_method ?: 'UNKNOWN')->map($sum)),
             'refund_daily' => $refunds->groupBy(fn ($r) => $r->processed_at->toDateString())->map($sum),
         ];
     }

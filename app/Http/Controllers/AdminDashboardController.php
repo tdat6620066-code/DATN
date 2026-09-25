@@ -80,6 +80,6 @@ class AdminDashboardController extends Controller
         ];
         $recentBookings = Booking::with(['user','bookingDetails.court'])->latest()->limit(8)->get();
 
-        return view('admin.dashboard', compact('kpis', 'chart', 'popularCourts', 'from', 'to', 'bookingReport', 'refundReport', 'todayStats', 'recentBookings'));
+        return view('admin.dashboard', compact('report', 'kpis', 'chart', 'popularCourts', 'from', 'to', 'bookingReport', 'refundReport', 'todayStats', 'recentBookings'));
     }
 }

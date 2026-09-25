@@ -22,11 +22,12 @@
 
     <!-- Messages -->
     <div class="container">
-        @if ($errors->any())
+        @include('partials.daily-duration-confirmation')
+        @if (collect($errors->getMessages())->except('daily_duration_confirmed')->isNotEmpty())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Lỗi:</strong>
             <ul class="mb-0">
-                @foreach ($errors->all() as $error)
+                @foreach (collect($errors->getMessages())->except('daily_duration_confirmed')->flatten() as $error)
                 <li>{{ $error }}</li>
                 @endforeach
             </ul>

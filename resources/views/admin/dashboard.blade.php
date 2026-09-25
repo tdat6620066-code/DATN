@@ -6,13 +6,33 @@
 <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4"><div><x-admin.page-heading>Tổng quan kinh doanh</x-admin.page-heading><p class="text-muted mb-0">Theo dõi doanh thu và hoạt động tại SmashZone.</p></div><x-admin.filters class="d-flex flex-wrap align-items-end gap-2"><div><label for="from">Từ ngày</label><input class="form-control" type="date" name="from" id="from" value="{{ $from->toDateString() }}"></div><div><label for="to">Đến ngày</label><input class="form-control" type="date" name="to" id="to" value="{{ $to->toDateString() }}"></div><button class="btn btn-primary">Áp dụng</button></x-admin.filters></div>
 <div class="row g-3 mb-3">
 @foreach([
-['Doanh thu sân',number_format($kpis['revenue'],0,',','.').'đ','Ghi nhận theo ngày thanh toán thành công'],
+['Tiền thu ròng',number_format($kpis['net_revenue'],0,',','.').'đ','Đã trừ khoản hoàn thực tế chi trả trong kỳ'],
 ['Tiền đã thu',number_format($kpis['gross_revenue'],0,',','.').'đ','Theo ngày thanh toán thành công'],
 ['Đã hoàn tiền',number_format($kpis['refund_amount'],0,',','.').'đ','Khoản hoàn đã chi trả trong kỳ'],
-['Tiền thu ròng',number_format($kpis['net_revenue'],0,',','.').'đ','Tiền đã thu trừ tiền đã hoàn'],
+['Thu từ booking trước hoàn',number_format($kpis['revenue'],0,',','.').'đ','Bao gồm dịch vụ gộp trong booking; chưa trừ hoàn'],
 ] as [$label,$value,$note])<div class="col-sm-6 col-xl-3"><article @class(['admin-kpi','admin-kpi-primary'=>$loop->first])><span>{{ $label }}</span><strong>{{ $value }}</strong><small>{{ $note }}</small></article></div>@endforeach
 </div>
 <p class="admin-data-summary mb-4">Kỳ tài chính {{ $from->format('d/m/Y') }} – {{ $to->format('d/m/Y') }}. Tiền thu ròng có thể âm khi hoàn giao dịch của kỳ trước.</p>
+<section class="card p-4 mb-4" aria-labelledby="cash-sources-title">
+    <h2 class="h5" id="cash-sources-title">Chi tiết từng dòng tiền</h2>
+    <p class="text-muted small">Chỉ tính giao dịch thanh toán thành công trong kỳ. Tiền đặt sân bao gồm dịch vụ đã gộp trong đơn; dịch vụ phát sinh được thu riêng để tránh tính trùng.</p>
+    <div class="table-responsive"><table class="table align-middle">
+        <thead><tr><th scope="col">Nguồn thu</th><th scope="col" class="text-end">Số giao dịch</th><th scope="col" class="text-end">Đã thu</th></tr></thead>
+        <tbody>@foreach($report['sources'] as $source)
+            <tr><th scope="row" class="fw-normal">{{ $source['label'] }}</th><td class="text-end">{{ number_format($source['count']) }}</td><td class="text-end text-nowrap">{{ number_format($source['amount'],0,',','.') }}đ</td></tr>
+        @endforeach</tbody>
+        <tfoot>
+            <tr><th colspan="2">Tổng tiền đã thu</th><td class="text-end fw-bold text-success">{{ number_format($report['gross_revenue'],0,',','.') }}đ</td></tr>
+            <tr><th colspan="2">Trừ: Hoàn tiền đã chi trả trong kỳ</th><td class="text-end text-danger">−{{ number_format($report['refund_amount'],0,',','.') }}đ</td></tr>
+            <tr class="table-light"><th colspan="2">Tiền thu ròng</th><td class="text-end fw-bold">{{ number_format($report['net_revenue'],0,',','.') }}đ</td></tr>
+        </tfoot>
+    </table></div>
+    <h3 class="h6 mt-3">Đối chiếu theo phương thức thanh toán</h3>
+    <div class="d-flex flex-wrap gap-3">@forelse($report['methods'] as $method => $value)
+        <div class="border rounded p-3"><span>{{ ['CASH'=>'Tiền mặt','VNPAY'=>'VNPay','BANK_TRANSFER'=>'Chuyển khoản'][$method] ?? $method }}</span><strong class="d-block">{{ number_format($value['amount'],0,',','.') }}đ</strong><small class="text-muted">{{ $value['count'] }} giao dịch</small></div>
+    @empty<p class="text-muted mb-0">Chưa có khoản thanh toán thành công trong kỳ này.</p>@endforelse</div>
+    <a class="mt-3" href="{{ route('admin.reports.cash-flow', ['from'=>$from->toDateString(), 'to'=>$to->toDateString()]) }}">Xem báo cáo dòng tiền <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+</section>
 <div class="row g-3 mb-4">
 @foreach([['Booking hôm nay',$todayStats['bookings'],'Có lịch sử dụng sân hôm nay'],['Sân đang hoạt động',$todayStats['courts'],'Sân hoạt động, không bảo trì'],['Khách đang chơi',$todayStats['playing'],'Khách có booking đã check-in'],['Sự cố',$todayStats['incidents'],'Sự cố chưa kết thúc xử lý']] as [$label,$value,$note])<div class="col-6 col-xl-3"><article class="admin-kpi"><span>{{ $label }}</span><strong>{{ number_format($value) }}</strong><small>{{ $note }}</small></article></div>@endforeach
 </div>

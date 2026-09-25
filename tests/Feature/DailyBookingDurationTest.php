@@ -28,7 +28,10 @@ class DailyBookingDurationTest extends TestCase
         $this->from(route('bookings.create'))->post(route('bookings.store'), $data)
             ->assertSessionHasErrors('daily_duration_confirmed');
         $this->assertDatabaseCount('bookings', 0);
-        $this->get(route('bookings.create'))->assertOk()->assertSee('Tôi đã cân nhắc thời lượng');
+        $this->get(route('bookings.create'))->assertOk()->assertSee('Xác nhận tiếp tục')->assertSee('Quay lại chọn giờ')
+            ->assertDontSee('<strong>Lỗi:</strong>', false)
+            ->assertSee('form="bookingForm" disabled', false)
+            ->assertSeeInOrder(['id="daily-duration-confirmed"', '<main'], false);
     }
 
     public function test_recurring_booking_requires_confirmation_for_long_days(): void

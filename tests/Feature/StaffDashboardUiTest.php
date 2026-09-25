@@ -43,8 +43,9 @@ class StaffDashboardUiTest extends TestCase
     {
         $booking = $this->booking();
         app(PaymentService::class)->markAsPaid($booking->payment);
+        $this->travelTo(now()->setTime(16, 59, 59));
         $this->get(route('employee.schedule'))->assertOk()->assertDontSee('data-staff-action="checkin"', false);
-        $this->travelTo(now()->setTime(17, 59));
+        $this->travelTo(now()->setTime(17, 0));
         $this->get(route('employee.schedule'))->assertOk()->assertSee('data-staff-action="checkin"', false)->assertDontSee('data-staff-action="checkout"', false);
         app(BookingOperationsService::class)->checkIn($booking->fresh(), $this->employee);
         $this->get(route('employee.schedule'))->assertOk()->assertSee('data-staff-action="checkout"', false)->assertSee('data-staff-action="services"', false)->assertSee('data-staff-action="extend"', false)->assertDontSee('data-staff-action="checkin"', false);

@@ -9,6 +9,7 @@ class CourtIncident extends Model
     public const TYPES = ['WEATHER' => 'Thời tiết / thiên tai', 'COURT_FAILURE' => 'Sân không thể sử dụng', 'POWER_FAILURE' => 'Mất điện / thiết bị hỏng', 'COURT_CLOSED' => 'Sân đóng cửa', 'SERVICE_INTERRUPTED' => 'Dịch vụ bị gián đoạn', 'OTHER_FORCE_MAJEURE' => 'Khác'];
 
     public const SOLUTIONS = ['REFUND' => 'Hoàn tiền', 'RESCHEDULE' => 'Đổi lịch', 'CHANGE_COURT' => 'Đổi sân', 'CONTACT_ME' => 'Nhân viên liên hệ'];
+    public const AVAILABLE_SOLUTIONS = ['REFUND' => 'Hoàn tiền'];
 
     public const TICKET_STATUSES = ['PENDING' => 'Chờ xử lý', 'REVIEWING' => 'Đang xem xét', 'NEED_MORE_INFO' => 'Cần bổ sung thông tin', 'APPROVED' => 'Đã xác minh / đang xử lý', 'REJECTED' => 'Đã từ chối', 'RESOLVED' => 'Đã xử lý'];
 

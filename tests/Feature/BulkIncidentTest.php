@@ -58,16 +58,15 @@ class BulkIncidentTest extends TestCase
         $this->post(route('admin.incidents.bulk.store'), $data)->assertOk()->assertDontSee('B-PAID');
     }
 
-    public function test_admin_direct_approval_enforces_full_and_partial_amounts(): void
+    public function test_admin_direct_approval_calculates_whole_booking_amount(): void
     {
         $admin = User::factory()->create(['role' => 'ADMIN']);
         $customer = User::factory()->create();
         $booking = Booking::create(['booking_code' => 'DIRECT', 'user_id' => $customer->id, 'status' => 'CONFIRMED', 'payment_status' => 'PAID', 'total_amount' => 300000]);
         Payment::create(['booking_id' => $booking->id, 'status' => 'PAID', 'amount' => 300000]);
         $data = ['reason_code' => 'WEATHER', 'reason' => 'Bão', 'supporting_information' => 'Đóng cửa', 'amount' => 150000, 'refund_type' => 'FULL', 'approve_now' => 1];
-        $this->actingAs($admin)->post(route('special-refunds.store', $booking), $data)->assertSessionHasErrors('amount');
-        $data['refund_type'] = 'PARTIAL';
-        $this->post(route('special-refunds.store', $booking), $data)->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post(route('special-refunds.store', $booking), $data)->assertSessionHasNoErrors();
+        $this->assertSame('300000.00', RefundRequest::firstOrFail()->amount);
         $this->assertSame('APPROVED', RefundRequest::firstOrFail()->status);
         $this->assertDatabaseCount('refunds', 0);
     }

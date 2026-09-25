@@ -36,7 +36,8 @@ class BookingCheckoutUiTest extends TestCase
             ->assertOk()->assertSee('Kiểm tra &amp; thanh toán', false)
             ->assertSee('Chọn sân')->assertSee('Chọn lịch')->assertSee('Dịch vụ')->assertSee('Hoàn tất')
             ->assertSee('150.000đ')->assertSee('20.000đ')->assertSee('170.000đ')->assertSee('30.000đ')->assertSee('140.000đ')
-            ->assertSee('Nước uống')->assertSee('60 phút')->assertSee('data-confirm-booking', false)
+            ->assertSee('Nước uống')->assertSee('60 phút')->assertDontSee('data-confirm-booking', false)
+            ->assertDontSee('để bật nút thanh toán.')
             ->assertSee('name="_token"', false)->assertSee(route('bookings.update-note', $this->booking), false);
         $this->assertSame('140000.00', $this->booking->fresh()->total_amount);
     }

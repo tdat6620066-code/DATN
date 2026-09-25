@@ -21,7 +21,7 @@ class EmployeeBookingController extends Controller
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%'))))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('date'), fn ($q) => $q->whereHas('bookingDetails', fn ($d) => $d->whereDate('booking_date', $request->date)))
-            ->latest()->paginate(20)->withQueryString();
+            ->latest()->orderByDesc('id')->paginate(20)->withQueryString();
         return view('employee.bookings.index', compact('bookings'));
     }
 

@@ -21,7 +21,7 @@ class AdminBookingController extends Controller
     public function index(Request $request)
     {
         $this->admin($request);
-        $bookings = Booking::with(['user', 'bookingDetails.court'])->when($request->boolean('fixed'), fn ($q) => $q->whereNotNull('fixed_booking_id'))->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('booking_code', 'like', '%'.$request->search.'%')->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%'))))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('date'), fn ($q) => $q->whereHas('bookingDetails', fn ($d) => $d->whereDate('booking_date', $request->date)))->latest()->paginate(15)->withQueryString();
+        $bookings = Booking::with(['user', 'bookingDetails.court'])->when($request->boolean('fixed'), fn ($q) => $q->whereNotNull('fixed_booking_id'))->when($request->filled('search'), fn ($q) => $q->where(fn ($i) => $i->where('booking_code', 'like', '%'.$request->search.'%')->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%'))))->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))->when($request->filled('date'), fn ($q) => $q->whereHas('bookingDetails', fn ($d) => $d->whereDate('booking_date', $request->date)))->latest()->orderByDesc('id')->paginate(15)->withQueryString();
 
         return view('admin.bookings.index', compact('bookings'));
     }
@@ -143,6 +143,7 @@ class AdminBookingController extends Controller
 
     public function reschedule(Booking $booking, BookingDetail $detail, Request $request, CourtAvailabilityService $availability)
     {
+        abort(410, 'Chức năng đổi lịch đã ngừng sử dụng.');
         $this->admin($request);
         abort_unless($detail->booking_id === $booking->id, 404);
         $data = $request->validate([
